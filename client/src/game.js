@@ -84,16 +84,10 @@ let playerControls = null
     })
   })
 
-  // Update player positions in animation loop
+  // currently server is handling 100% of game loop, physics, etc
+  // we could add a client-side game loop to smooth things out, but for now not bothering
   // server side ticking
   // app.ticker.add((time) => {
-  // if (localPlayer) {
-  //   localPlayer.onTick(time.deltaTime)
-  // }
-
-  // Object.values(remotePlayers).forEach((player) => {
-  //   player.onTick(time.deltaTime)
-  // })
   // })
 })()
 

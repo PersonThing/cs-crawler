@@ -73,9 +73,6 @@ io.on('connection', (socket) => {
     }
   })
 
-  // server should be responsible for game loop
-  // Update player positions at 30fps (33ms)
-
   // Remove player on disconnect
   socket.on('disconnect', () => {
     console.log('Player disconnected: ' + socket.id)
@@ -95,7 +92,7 @@ io.on('connection', (socket) => {
   })
 })
 
-
+// game loop @ 60fps
 setInterval(() => {
   // get delta time
   for (const id in players) {
