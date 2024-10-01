@@ -20,7 +20,7 @@ const socket = io(`http://${window.location.hostname}:3000`, {
 
 // Create pixi.js app
 const app = new Application()
-await app.init({ background: '#1099bb', resizeTo: window })
+await app.init({ background: '#666666', resizeTo: window })
 document.body.appendChild(app.canvas)
 
 const playerTexture = await Assets.load('https://pixijs.com/assets/bunny.png')
@@ -35,7 +35,7 @@ const createLocalPlayer = (playerData) => {
     localPlayer.removeFromStage(app.stage)
   }
 
-  localPlayer = new Player(socket.id, playerData.color, playerTexture)
+  localPlayer = new Player(socket.id, playerData.color, playerTexture, true)
   localPlayer.setPosition(playerData.x, playerData.y)
   new PlayerControls(localPlayer, app, socket)
   app.stage.addChild(localPlayer.spriteContainer)

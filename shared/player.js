@@ -24,7 +24,7 @@ class Player {
       this.spriteContainer.addChild(this.spriteGraphic)
 
       this.spriteLabel = new Text({
-        text: `${this.id} ${this.isLocalPlayer ? '(you)' : ''}`,
+        text: this.isLocalPlayer ? 'You' : this.id,
         style: {
           fontFamily: 'Arial',
           fontSize: 12,
