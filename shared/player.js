@@ -14,7 +14,6 @@ class Player {
     // server won't have texture
     // client will have texture, create a sprite to represent the player / will keep sprite in sync with player values
     if (texture) {
-      // create a container that will hold the player sprite and a name label
       this.spriteContainer = new Sprite()
       this.spriteContainer.tint = color
       this.spriteContainer.anchor.set(0.5)
@@ -91,6 +90,12 @@ class Player {
     this.setTarget(playerData.targetX, playerData.targetY)
     if (this.spriteGraphic) {
       this.spriteGraphic.rotation = playerData.rotation
+    }
+  }
+
+  removeFromStage(stage) {
+    if (this.spriteContainer) {
+      stage.removeChild(this.spriteContainer)
     }
   }
 }

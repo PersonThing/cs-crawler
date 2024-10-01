@@ -33,7 +33,7 @@ socket.emit('requestInit') // Request initial player data
 
 const createLocalPlayer = (playerData) => {
   if (localPlayer != null) {
-    app.stage.removeChild(localPlayer.sprite)
+    localPlayer.removeFromStage(app.stage)
   }
 
   localPlayer = new Player(socket.id, playerData.color, playerTexture)
@@ -81,6 +81,9 @@ app.ticker.add((time) => {
 // receive state updates from server @ 30fps
 // server is authoritative, if there is one
 socket.on('updateState', (state) => {
+  // log list of player ids
+  console.log('Players:', Object.keys(state.players).length)
+
   // create local player if necessary
   if (!localPlayer && state.players[socket.id]) {
     createLocalPlayer(state.players[socket.id])
@@ -119,6 +122,6 @@ const createRemotePlayer = (id, player) => {
 }
 
 const removeRemotePlayer = (id) => {
-  app.stage.removeChild(remotePlayers[id].sprite)
+  remotePlayers[id].removeFromStage(app.stage)
   delete remotePlayers[id]
 }
