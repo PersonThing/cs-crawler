@@ -1,4 +1,4 @@
-import { Sprite } from 'pixi.js'
+import { Sprite, Text } from 'pixi.js'
 
 class Player {
   constructor(id, color, texture) {
@@ -17,6 +17,17 @@ class Player {
       this.sprite = new Sprite(texture)
       this.sprite.tint = color
       this.sprite.anchor.set(0.5)
+
+      // attach a name label above the texture
+      this.nameLabel = new Text({
+        text: `Player ${this.id}`,
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 12,
+          fill: 0xffffff,
+          align: 'center',
+        }
+      })
     }
   }
 
@@ -45,6 +56,13 @@ class Player {
       this.sprite.x = this.x
       this.sprite.y = this.y
       this.sprite.rotation = this.rotation
+    }
+  }
+
+  setColor(color) {
+    this.color = color
+    if (this.sprite) {
+      this.sprite.tint = color
     }
   }
 

@@ -1,11 +1,8 @@
-import { fileURLToPath } from 'url'
 import { getRandomColor } from '../../shared/utils.js'
 import { Server } from 'socket.io'
 import express from 'express'
 import http from 'http'
-import path from 'path'
 import Player from '../../shared/player.js'
-import fs from 'fs'
 
 const app = express()
 const server = http.createServer(app)
@@ -21,32 +18,20 @@ const io = new Server(server, {
 app.use(express.static('../client/dist'))
 
 const players = {} // Object to store player information
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const playerStatesFile = path.join(__dirname, 'player-states.json')
-
-// load player state from JSON
-let playerStates = {}
-if (fs.existsSync(playerStatesFile)) {
-  playerStates = JSON.parse(fs.readFileSync(playerStatesFile))
-}
 
 io.on('connection', (socket) => {
   const playerId = socket.handshake.query.playerId
   console.log('Player connected: ' + playerId)
 
-  // retrieve or create a new player state
-  let playerState = playerStates[playerId]
-  if (playerState == null) {
-    const x = 50 * (Object.keys(players).length+1)
-    const y = 50
-    playerState = {
-      color: getRandomColor(),
-      x,
-      y,
-      targetX: x,
-      targetY: y
-    }
+  // create a new player state (later we'll store these somewhere)
+  const x = 50 * (Object.keys(players).length+1)
+  const y = 50
+  const playerState = {
+    color: getRandomColor(),
+    x,
+    y,
+    targetX: x,
+    targetY: y
   }
 
   // Create a new player when they connect
@@ -76,31 +61,26 @@ io.on('connection', (socket) => {
   // Remove player on disconnect
   socket.on('disconnect', () => {
     console.log('Player disconnected: ' + socket.id)
-    const player = players[socket.id]
-    playerStates[playerId] = {
-      color: player.color,
-      x: player.x,
-      y: player.y,
-      targetX: player.targetX,
-      targetY: player.targetY
-    }
-
     delete players[socket.id]
     io.emit('playerDisconnected', socket.id) // Notify others
-
-    fs.writeFileSync(playerStatesFile, JSON.stringify(playerStates, null, 2))
   })
 })
 
-// game loop @ 60fps
+// game loop @ 30fps
+// server tracks state and updates @ 30fps
+// client has its own game loop and just syncs with server when it receives state, overwriting anything the client has done
+const fps = 10
+const deltaMS = 1000/fps
 setInterval(() => {
   // get delta time
   for (const id in players) {
     const player = players[id]
-    player.onTick(16)
+    player.onTick(deltaMS)
   }
-  io.emit('updatePlayers', players)
-}, 16)
+  io.emit('updateState', {
+    players
+  })
+}, deltaMS)
 
 // Start the server
 const PORT = process.env.PORT || 3000

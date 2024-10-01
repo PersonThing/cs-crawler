@@ -2,15 +2,15 @@
   "name": "cs-crawler",
   "version": "1.0.0",
   "description": "simple js game",
-  "main": "index.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev:client": "vite --config ./client/vite.config.js",
-    "dev:server": "nodemon ./server/src/index.js",
+    "dev:server": "nodemon ./server/src/server.js",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "build": "vite build --config ./client/vite.config.js",
-    "start": "node ./server/src/index.js"
+    "start": "node ./server/src/server.js"
   },
   "author": "",
   "license": "ISC",
