@@ -25,7 +25,7 @@ class Player {
     this.spriteContainer = new Sprite()
     this.spriteContainer.anchor.set(0.5)
 
-    this.spriteGraphic = new Sprite(txt)
+    this.spriteGraphic = Sprite.from(txt)
     this.spriteGraphic.anchor.set(0.5)
     this.spriteGraphic.scale.x = 2
     this.spriteGraphic.scale.y = 2
