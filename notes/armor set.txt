@@ -1,0 +1,19 @@
+id		name		armor
+
+01		cloth		1
+02		leather		2
+03		quilt		2
+04		hard leather	3
+05		studded leather 3
+06		chainmail	4
+07		platemail	5
+08		light plate	6
+09		plate		7
+10		full plate	8
+11		gilded plate	8
+12		hardened plate	9
+13		iron		10
+14		steel		11
+15		bronze		12
+16		hardened steel	13
+17		black iron	14

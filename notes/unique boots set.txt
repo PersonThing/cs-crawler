@@ -1,0 +1,7 @@
+// id		name		armor		special attributes
+
+// 08		wyrmhide	10		+15 all resist, +5 more when paired with wyrmhide armor, +3 walking speed
+// 09		glass shoes	3		+5 all resist, -3 walking speed
+// 10		makeshift shoes	10		+5 cold resist, +3 poison resist, +3 walking speed
+// 11		golden slippers	11		+10 all resist
+// 12		eebeeb		12		+17 all resist, +5 walking speed, +10 armor when paired with eebeeb armor, sword, and helmet.

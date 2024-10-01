@@ -1,0 +1,8 @@
+id		name		armor		special attributes
+18		lorica segmentata   15
+19		turtle shell	14
+20		pine board	14		fire resist -5, cold resist +10
+21		wyrmhide	16		fire resist +5, cold resist +5, poison resist +5
+22		arctic pelts	14		cold resist +15
+23		steel mail	16		all resists +1
+24		eebeeb		17		all resists +15, if paired with eebeeb sword increase attack speed to extremely fast
