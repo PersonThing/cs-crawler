@@ -41,11 +41,6 @@ io.on('connection', (socket) => {
   players[socket.id].setPosition(playerState.x, playerState.y)
   players[socket.id].setTarget(playerState.x, playerState.y)
 
-  // Send initial player data to the new player
-  socket.on('requestInit', () => {
-    socket.emit('init', { players })
-  })
-
   // Broadcast new player to all other players
   socket.broadcast.emit('playerJoined', players[socket.id])
 

@@ -27,9 +27,6 @@ const playerTexture = await Assets.load('https://pixijs.com/assets/bunny.png')
 const remotePlayers = {}
 let localPlayer = null
 
-// Listen for init event with players from server
-socket.emit('requestInit') // Request initial player data
-
 const createLocalPlayer = (playerData) => {
   if (localPlayer != null) {
     localPlayer.removeFromStage(app.stage)
