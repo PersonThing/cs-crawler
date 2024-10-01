@@ -20,19 +20,26 @@ app.use(express.static('../client/dist'))
 
 const players = {} // Object to store player information
 
+// store player state in memory
+const playerStates = {}
+
 io.on('connection', (socket) => {
   const playerId = socket.handshake.query.playerId
   console.log('Player connected: ' + playerId)
 
-  // create a new player state (later we'll store these somewhere)
-  const x = 50 * (Object.keys(players).length+1)
-  const y = 50
-  const playerState = {
-    color: getRandomColor(),
-    x,
-    y,
-    targetX: x,
-    targetY: y
+  // try to get playerState from memory, or create new one
+  let playerState = playerStates[playerId]
+  if (playerState == null) {
+
+    const x = 50 * (Object.keys(players).length+1)
+    const y = 50
+    playerState = {
+      color: getRandomColor(),
+      x,
+      y,
+      targetX: x,
+      targetY: y
+    }
   }
 
   // Create a new player when they connect
@@ -57,6 +64,17 @@ io.on('connection', (socket) => {
   // Remove player on disconnect
   socket.on('disconnect', () => {
     console.log('Player disconnected: ' + socket.id)
+
+    // update player state in playerStates before removing them
+    const player = players[socket.id]
+    playerStates[playerId] = {
+      color: player.color,
+      x: player.x,
+      y: player.y,
+      targetX: player.targetX,
+      targetY: player.targetY
+    }
+
     delete players[socket.id]
     io.emit('playerDisconnected', socket.id) // Notify others
   })

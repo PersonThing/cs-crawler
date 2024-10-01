@@ -4,9 +4,8 @@ import Player from '../../shared/player'
 import PlayerControls from './player-controls'
 
 // Generate or retrieve a unique identifier for the player
-// const playerId = localStorage.getItem('playerId') || generateUniqueId()
-// localStorage.setItem('playerId', playerId)
-const playerId = generateUniqueId()
+const playerId = localStorage.getItem('playerId') || generateUniqueId()
+localStorage.setItem('playerId', playerId)
 
 // Function to generate a unique identifier
 function generateUniqueId() {
@@ -26,17 +25,6 @@ document.body.appendChild(app.canvas)
 const playerTexture = await Assets.load('https://pixijs.com/assets/bunny.png')
 const remotePlayers = {}
 let localPlayer = null
-
-const createLocalPlayer = (playerData) => {
-  if (localPlayer != null) {
-    localPlayer.removeFromStage(app.stage)
-  }
-
-  localPlayer = new Player(socket.id, playerData.color, playerTexture, true)
-  localPlayer.setPosition(playerData.x, playerData.y)
-  new PlayerControls(localPlayer, app, socket)
-  app.stage.addChild(localPlayer.spriteContainer)
-}
 
 // Listen for player joining
 socket.on('playerJoined', (player) => {
@@ -77,9 +65,6 @@ app.ticker.add((time) => {
 // receive state updates from server @ 30fps
 // server is authoritative, if there is one
 socket.on('updateState', (state) => {
-  // log list of player ids
-  console.log('Players:', Object.keys(state.players).length)
-
   // create local player if necessary
   if (!localPlayer && state.players[socket.id]) {
     createLocalPlayer(state.players[socket.id])
@@ -120,4 +105,15 @@ const createRemotePlayer = (id, player) => {
 const removeRemotePlayer = (id) => {
   remotePlayers[id].removeFromStage(app.stage)
   delete remotePlayers[id]
+}
+
+const createLocalPlayer = (playerData) => {
+  if (localPlayer != null) {
+    localPlayer.removeFromStage(app.stage)
+  }
+
+  localPlayer = new Player(socket.id, playerData.color, playerTexture, true)
+  localPlayer.setPosition(playerData.x, playerData.y)
+  new PlayerControls(localPlayer, app, socket)
+  app.stage.addChild(localPlayer.spriteContainer)
 }
