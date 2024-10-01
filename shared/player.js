@@ -1,7 +1,7 @@
 import { Sprite, Text } from 'pixi.js'
 
 class Player {
-  constructor(id, color, texture) {
+  constructor(id, color, texture, isLocalPlayer) {
     this.id = id
     this.color = color
     this.x = 0
@@ -10,6 +10,7 @@ class Player {
     this.targetY = 0
     this.maxSpeed = 100
     this.texture = texture
+    this.isLocalPlayer = isLocalPlayer
 
     // server won't have texture
     // client will have texture, create a sprite to represent the player / will keep sprite in sync with player values
@@ -23,7 +24,7 @@ class Player {
       this.spriteContainer.addChild(this.spriteGraphic)
 
       this.spriteLabel = new Text({
-        text: `${this.id}`,
+        text: `${this.id} ${this.isLocalPlayer ? '(you)' : ''}`,
         style: {
           fontFamily: 'Arial',
           fontSize: 12,

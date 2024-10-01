@@ -5,5 +5,9 @@ export default defineConfig({
   build: {
     outDir: './dist',
     emptyOutDir: true
+  },
+  server: {
+    host: true, // listen on all network interfaces
+    port: 5173
   }
 })

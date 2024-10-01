@@ -2,7 +2,6 @@ import { Application, Assets } from 'pixi.js'
 import { io } from 'socket.io-client'
 import Player from '../../shared/player'
 import PlayerControls from './player-controls'
-import { getRandomColor } from '../../shared/utils'
 
 // Generate or retrieve a unique identifier for the player
 // const playerId = localStorage.getItem('playerId') || generateUniqueId()
@@ -15,7 +14,7 @@ function generateUniqueId() {
 }
 
 // Create socket connection
-const socket = io('http://localhost:3000', {
+const socket = io(`http://${window.location.hostname}:3000`, {
   query: { playerId }, // Send playerId as a query parameter, no validation for now
 })
 

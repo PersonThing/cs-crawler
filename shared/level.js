@@ -1,4 +1,3 @@
-
 // each tile is a grid of 32x32 blocks
 
 // blocks have properties that determine whether a player can walk on, see through, shoot through, etc
@@ -9,7 +8,6 @@
 // initially, levels will be manually built, but we will eventually randomly generate them, linking tiles together
 // to do that, tiles will need to define their entrances and/or exits
 // and levels will need a strategy for deciding an entrance tile, exit tile, and linking them together
-
 class Level {
   // a level is a collection of "tiles" that are used to build a map
   constructor() {

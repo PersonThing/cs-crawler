@@ -8,7 +8,8 @@ const app = express()
 const server = http.createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // Allow requests from your client
+    // make it allow requests from anywhere
+    origin: '*',
     methods: ['GET', 'POST'],
     credentials: true, // If you need to allow cookies or HTTP authentication
   },
@@ -72,7 +73,6 @@ io.on('connection', (socket) => {
 const fps = 10
 const deltaMS = 1000/fps
 setInterval(() => {
-  // get delta time
   for (const id in players) {
     const player = players[id]
     player.onTick(deltaMS)
@@ -84,6 +84,7 @@ setInterval(() => {
 
 // Start the server
 const PORT = process.env.PORT || 3000
+// listen on PORT on any IP address
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`)
 })
