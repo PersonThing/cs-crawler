@@ -1,42 +1,48 @@
-import { Sprite, Text } from 'pixi.js'
+import { Assets, Sprite, Text } from 'pixi.js'
 
 class Player {
-  constructor(id, color, texture, isLocalPlayer) {
+  constructor(id, name, texture, stage, isLocalPlayer) {
     this.id = id
-    this.color = color
+    this.name = name
     this.x = 0
     this.y = 0
     this.targetX = 0
     this.targetY = 0
-    this.maxSpeed = 100
+    this.maxSpeed = 50
     this.texture = texture
+    this.stage = stage
     this.isLocalPlayer = isLocalPlayer
 
-    // server won't have texture
-    // client will have texture, create a sprite to represent the player / will keep sprite in sync with player values
-    if (texture) {
-      this.spriteContainer = new Sprite()
-      this.spriteContainer.anchor.set(0.5)
-
-      this.spriteGraphic = new Sprite(texture)
-      this.spriteGraphic.anchor.set(0.5)
-      this.spriteGraphic.scale.x = 2
-      this.spriteGraphic.scale.y = 2
-      this.spriteContainer.addChild(this.spriteGraphic)
-
-      this.spriteLabel = new Text({
-        text: this.isLocalPlayer ? 'You' : this.id,
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 12,
-          fill: 0xffffff,
-          align: 'center',
-        }
-      })
-      this.spriteLabel.anchor.set(0.5, 2.5)
-      this.spriteLabel.tint = color
-      this.spriteContainer.addChild(this.spriteLabel)
+    // if we're on client, we have a stage and texture to render ourself
+    if (this.stage && this.texture) {
+      this.initSprite()
     }
+  }
+
+  async initSprite() {
+    const txt = await Assets.load(this.texture)
+
+    this.spriteContainer = new Sprite()
+    this.spriteContainer.anchor.set(0.5)
+
+    this.spriteGraphic = new Sprite(txt)
+    this.spriteGraphic.anchor.set(0.5)
+    this.spriteGraphic.scale.x = 2
+    this.spriteGraphic.scale.y = 2
+    this.spriteContainer.addChild(this.spriteGraphic)
+
+    this.spriteLabel = new Text({
+      text: this.isLocalPlayer ? 'You' : this.name,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 12,
+        fill: 0xffffff,
+        align: 'center',
+      },
+    })
+    this.spriteLabel.anchor.set(0.5, 2.5)
+    this.spriteContainer.addChild(this.spriteLabel)
+    this.stage.addChild(this.spriteContainer)
   }
 
   onTick(deltaMs) {
@@ -62,14 +68,7 @@ class Player {
     if (this.spriteContainer) {
       this.spriteContainer.x = this.x
       this.spriteContainer.y = this.y
-      this.spriteGraphic.rotation = this.rotation + Math.PI / 2
-    }
-  }
-
-  setColor(color) {
-    this.color = color
-    if (this.spriteContainer) {
-      this.spriteContainer.tint = color
+      this.setRotation(this.rotation)
     }
   }
 
@@ -82,6 +81,13 @@ class Player {
     }
   }
 
+  setRotation(rotation) {
+    this.rotation = rotation
+    if (this.spriteGraphic) {
+      this.spriteGraphic.rotation = this.rotation + Math.PI / 2
+    }
+  }
+
   setTarget(x, y) {
     this.targetX = x
     this.targetY = y
@@ -90,14 +96,12 @@ class Player {
   syncWithServer(playerData) {
     this.setPosition(playerData.x, playerData.y)
     this.setTarget(playerData.targetX, playerData.targetY)
-    if (this.spriteGraphic) {
-      this.spriteGraphic.rotation = playerData.rotation
-    }
+    this.setRotation(playerData.rotation)
   }
 
-  removeFromStage(stage) {
-    if (this.spriteContainer) {
-      stage.removeChild(this.spriteContainer)
+  onDestroy() {
+    if (this.stage && this.spriteContainer) {
+      this.stage.removeChild(this.spriteContainer)
     }
   }
 }

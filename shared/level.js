@@ -16,11 +16,12 @@ class Level {
   render(stage) {
     // render all tiles
     this.tiles.forEach((tile) => {
-      renderTile(tile, stage)
+      this.renderTile(tile, stage)
     })
   }
 
   renderTile(tile, stage) {
+    console.log('rendering tile', tile)
     tile.blocks.forEach((block) => {
       if (block.texture) {
         const sprite = new PIXI.Sprite.from(block.texture)

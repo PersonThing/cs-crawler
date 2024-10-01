@@ -1,4 +1,3 @@
-import { getRandomColor } from '../../shared/utils.js'
 import { Server } from 'socket.io'
 import express from 'express'
 import http from 'http'
@@ -30,11 +29,9 @@ io.on('connection', (socket) => {
   // try to get playerState from memory, or create new one
   let playerState = playerStates[playerId]
   if (playerState == null) {
-
     const x = 50 * (Object.keys(players).length+1)
     const y = 50
     playerState = {
-      color: getRandomColor(),
       x,
       y,
       targetX: x,
@@ -44,7 +41,7 @@ io.on('connection', (socket) => {
 
   // Create a new player when they connect
   // set x position from the size of the players object
-  players[socket.id] = new Player(socket.id, playerState.color, null)
+  players[socket.id] = new Player(socket.id, playerId, null)
   players[socket.id].setPosition(playerState.x, playerState.y)
   players[socket.id].setTarget(playerState.x, playerState.y)
 
@@ -68,7 +65,6 @@ io.on('connection', (socket) => {
     // update player state in playerStates before removing them
     const player = players[socket.id]
     playerStates[playerId] = {
-      color: player.color,
       x: player.x,
       y: player.y,
       targetX: player.targetX,

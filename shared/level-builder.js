@@ -21,7 +21,7 @@ export const generateSampleLevel = () => {
 
   level.tiles = [
     // need to decide data structure for tiles, but for now just to get rendering working, we'll use a single tile in an array
-    new Tile()
+    tile1
   ]
 
   return level
