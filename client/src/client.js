@@ -2,6 +2,7 @@ import { Application, Assets } from 'pixi.js'
 import { io } from 'socket.io-client'
 import Player from '../../shared/player'
 import PlayerControls from './player-controls'
+import { generateSampleLevel } from '../../shared/level-builder.js'
 
 // Generate or retrieve a unique identifier for the player
 const playerId = localStorage.getItem('playerId') || generateUniqueId()
@@ -22,9 +23,13 @@ const app = new Application()
 await app.init({ background: '#666666', resizeTo: window })
 document.body.appendChild(app.canvas)
 
-const playerTexture = await Assets.load('https://pixijs.com/assets/bunny.png')
+const playerTexture = await Assets.load('/assets/player_base.png')
 const remotePlayers = {}
 let localPlayer = null
+
+// Render the level
+const level = generateSampleLevel()
+level.render(app.stage)
 
 // Listen for player joining
 socket.on('playerJoined', (player) => {

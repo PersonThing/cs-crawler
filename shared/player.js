@@ -16,11 +16,12 @@ class Player {
     // client will have texture, create a sprite to represent the player / will keep sprite in sync with player values
     if (texture) {
       this.spriteContainer = new Sprite()
-      this.spriteContainer.tint = color
       this.spriteContainer.anchor.set(0.5)
 
       this.spriteGraphic = new Sprite(texture)
       this.spriteGraphic.anchor.set(0.5)
+      this.spriteGraphic.scale.x = 2
+      this.spriteGraphic.scale.y = 2
       this.spriteContainer.addChild(this.spriteGraphic)
 
       this.spriteLabel = new Text({
@@ -33,6 +34,7 @@ class Player {
         }
       })
       this.spriteLabel.anchor.set(0.5, 2.5)
+      this.spriteLabel.tint = color
       this.spriteContainer.addChild(this.spriteLabel)
     }
   }
@@ -54,14 +56,13 @@ class Player {
     } else {
       this.x = this.targetX
       this.y = this.targetY
-      this.rotation = 0 // clear rotation
     }
 
     // if we're in the UI, update the sprite representation of the player
     if (this.spriteContainer) {
       this.spriteContainer.x = this.x
       this.spriteContainer.y = this.y
-      this.spriteGraphic.rotation = this.rotation
+      this.spriteGraphic.rotation = this.rotation + Math.PI / 2
     }
   }
 
