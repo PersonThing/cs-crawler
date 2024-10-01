@@ -39,7 +39,7 @@ const createLocalPlayer = (playerData) => {
   localPlayer = new Player(socket.id, playerData.color, playerTexture)
   localPlayer.setPosition(playerData.x, playerData.y)
   new PlayerControls(localPlayer, app, socket)
-  app.stage.addChild(localPlayer.sprite)
+  app.stage.addChild(localPlayer.spriteContainer)
 }
 
 // Listen for player joining
@@ -113,9 +113,9 @@ socket.on('updateState', (state) => {
 const createRemotePlayer = (id, player) => {
   const remotePlayer = new Player(id, player.color, playerTexture)
   remotePlayer.setPosition(player.x, player.y)
-  remotePlayer.sprite.tint = player.color
+  remotePlayer.spriteContainer.tint = player.color
   remotePlayers[id] = remotePlayer
-  app.stage.addChild(remotePlayer.sprite)
+  app.stage.addChild(remotePlayer.spriteContainer)
 }
 
 const removeRemotePlayer = (id) => {

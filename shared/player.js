@@ -14,13 +14,17 @@ class Player {
     // server won't have texture
     // client will have texture, create a sprite to represent the player / will keep sprite in sync with player values
     if (texture) {
-      this.sprite = new Sprite(texture)
-      this.sprite.tint = color
-      this.sprite.anchor.set(0.5)
+      // create a container that will hold the player sprite and a name label
+      this.spriteContainer = new Sprite()
+      this.spriteContainer.tint = color
+      this.spriteContainer.anchor.set(0.5)
 
-      // attach a name label above the texture
-      this.nameLabel = new Text({
-        text: `Player ${this.id}`,
+      this.spriteGraphic = new Sprite(texture)
+      this.spriteGraphic.anchor.set(0.5)
+      this.spriteContainer.addChild(this.spriteGraphic)
+
+      this.spriteLabel = new Text({
+        text: `${this.id}`,
         style: {
           fontFamily: 'Arial',
           fontSize: 12,
@@ -28,6 +32,8 @@ class Player {
           align: 'center',
         }
       })
+      this.spriteLabel.anchor.set(0.5, 2.5)
+      this.spriteContainer.addChild(this.spriteLabel)
     }
   }
 
@@ -52,26 +58,26 @@ class Player {
     }
 
     // if we're in the UI, update the sprite representation of the player
-    if (this.sprite) {
-      this.sprite.x = this.x
-      this.sprite.y = this.y
-      this.sprite.rotation = this.rotation
+    if (this.spriteContainer) {
+      this.spriteContainer.x = this.x
+      this.spriteContainer.y = this.y
+      this.spriteGraphic.rotation = this.rotation
     }
   }
 
   setColor(color) {
     this.color = color
-    if (this.sprite) {
-      this.sprite.tint = color
+    if (this.spriteContainer) {
+      this.spriteContainer.tint = color
     }
   }
 
   setPosition(x, y) {
     this.x = x
     this.y = y
-    if (this.sprite) {
-      this.sprite.x = x
-      this.sprite.y = y
+    if (this.spriteContainer) {
+      this.spriteContainer.x = x
+      this.spriteContainer.y = y
     }
   }
 
@@ -83,8 +89,8 @@ class Player {
   syncWithServer(playerData) {
     this.setPosition(playerData.x, playerData.y)
     this.setTarget(playerData.targetX, playerData.targetY)
-    if (this.sprite) {
-      this.sprite.rotation = playerData.rotation
+    if (this.spriteGraphic) {
+      this.spriteGraphic.rotation = playerData.rotation
     }
   }
 }
