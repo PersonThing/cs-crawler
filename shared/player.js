@@ -1,4 +1,4 @@
-import { Sprite, Text } from 'pixi.js'
+import { Sprite, Text, Container } from 'pixi.js'
 
 class Player {
   constructor(id, name, texture, stage) {

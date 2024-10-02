@@ -1,32 +1,50 @@
-// each tile is a grid of 32x32 blocks
-
+import { Container, Sprite } from "pixi.js"
 
 class Tile {
-  // we will use the pathing approach built into cs-builder to optimize pathing through tiles
   constructor() {
-    // tiles have a grid of blocks, each of which define whether they can be walked on, seen through, shot through, etc
-    // for example:
-    // setBlock(1, 5, { canWalk: true, canSeeThrough: true, canShootThrough: true, texture: 'grass.png' })
-    // places a block at x=1, y=5 that can be walked on, seen through, and shot through, with a grass texture
-    this.blocks = [] // x, y grid of blocks
-
-    // array of blocks that enter or exit this tile
-    this.exits = []
+    this.blockGrid = []
+    this.connections = {
+      up: null,
+      right: null,
+      down: null,
+      left: null
+    }
   }
 
   setBlock(block) {
-    // make sure we have a y array at the x coordinate
-    if (!this.blocks[block.x]) {
-      this.blocks[block.x] = []
+    if (!this.blockGrid[block.x]) {
+      this.blockGrid[block.x] = []
     }
 
-    // if there's already a block here, unload and delete it
-    if (this.blocks[block.x][block.y]) {
-      this.blocks[block.x][block.y].onUnload()
-      delete this.blocks[block.x][block.y]
+    if (this.blockGrid[block.x][block.y]) {
+      this.blockGrid[block.x][block.y].onUnload()
+      delete this.blockGrid[block.x][block.y]
     }
 
-    this.blocks[block.x][block.y] = block
+    this.blockGrid[block.x][block.y] = block
+  }
+
+  render(stage) {
+    this.container = new Container()
+    this.container.x = 0
+    this.container.y = 0
+    this.blockGrid.forEach((blockRow) => {
+      blockRow.forEach((block) => {
+        if (block.texture) {
+          const sprite = Sprite.from(block.texture)
+          sprite.x = block.x * 32
+          sprite.y = block.y * 32
+          this.container.addChild(sprite)
+        }
+      })
+    })
+    stage.addChild(this.container)
+  }
+
+  setPosition(x, y) {
+    // assume all tiles are 10x10 32x32 blocks
+    this.container.x = x * 320
+    this.container.y = y * 320
   }
 }
 
