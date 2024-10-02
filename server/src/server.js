@@ -24,13 +24,13 @@ const playerStates = {}
 
 io.on('connection', (socket) => {
   const playerId = socket.handshake.query.playerId
-  console.log('Player connected: ' + playerId)
+  console.log('Player connected: ' + playerId, socket.id)
 
   // try to get playerState from memory, or create new one
   let playerState = playerStates[playerId]
   if (playerState == null) {
-    const x = 50 * (Object.keys(players).length+1)
-    const y = 50
+    const x = 100
+    const y = 100 * (Object.keys(players).length + 1)
     playerState = {
       x,
       y,
@@ -41,9 +41,9 @@ io.on('connection', (socket) => {
 
   // Create a new player when they connect
   // set x position from the size of the players object
-  players[socket.id] = new Player(socket.id, playerId, null)
+  players[socket.id] = new Player(socket.id, playerId)
   players[socket.id].setPosition(playerState.x, playerState.y)
-  players[socket.id].setTarget(playerState.x, playerState.y)
+  players[socket.id].setTarget(playerState.targetX, playerState.targetY)
 
   // Broadcast new player to all other players
   socket.broadcast.emit('playerJoined', players[socket.id])
@@ -53,14 +53,12 @@ io.on('connection', (socket) => {
     if (players[socket.id]) {
       players[socket.id].targetX = data.targetX
       players[socket.id].targetY = data.targetY
-      // Broadcast the updated position to all clients
-      io.emit('playerSetTarget', players[socket.id])
     }
   })
 
   // Remove player on disconnect
   socket.on('disconnect', () => {
-    console.log('Player disconnected: ' + socket.id)
+    console.log('Player disconnected: ' + playerId, socket.id)
 
     // update player state in playerStates before removing them
     const player = players[socket.id]
@@ -79,7 +77,7 @@ io.on('connection', (socket) => {
 // game loop @ 30fps
 // server tracks state and updates @ 30fps
 // client has its own game loop and just syncs with server when it receives state, overwriting anything the client has done
-const fps = 10
+const fps = 30
 const deltaMS = 1000/fps
 setInterval(() => {
   for (const id in players) {

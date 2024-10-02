@@ -1,7 +1,7 @@
-import { Assets, Sprite, Text } from 'pixi.js'
+import { Sprite, Text } from 'pixi.js'
 
 class Player {
-  constructor(id, name, texture, stage, isLocalPlayer) {
+  constructor(id, name, texture, stage) {
     this.id = id
     this.name = name
     this.x = 0
@@ -9,9 +9,8 @@ class Player {
     this.targetX = 0
     this.targetY = 0
     this.maxSpeed = 50
-    this.texture = texture
     this.stage = stage
-    this.isLocalPlayer = isLocalPlayer
+    this.texture = texture
 
     // if we're on client, we have a stage and texture to render ourself
     if (this.stage && this.texture) {
@@ -19,20 +18,19 @@ class Player {
     }
   }
 
-  async initSprite() {
-    const txt = await Assets.load(this.texture)
-
+  initSprite() {
     this.spriteContainer = new Sprite()
     this.spriteContainer.anchor.set(0.5)
+    this.stage.addChild(this.spriteContainer)
 
-    this.spriteGraphic = Sprite.from(txt)
+    this.spriteGraphic = Sprite.from(this.texture)
     this.spriteGraphic.anchor.set(0.5)
     this.spriteGraphic.scale.x = 2
     this.spriteGraphic.scale.y = 2
     this.spriteContainer.addChild(this.spriteGraphic)
 
     this.spriteLabel = new Text({
-      text: this.isLocalPlayer ? 'You' : this.name,
+      text: this.name,
       style: {
         fontFamily: 'Arial',
         fontSize: 12,
@@ -42,7 +40,6 @@ class Player {
     })
     this.spriteLabel.anchor.set(0.5, 2.5)
     this.spriteContainer.addChild(this.spriteLabel)
-    this.stage.addChild(this.spriteContainer)
   }
 
   onTick(deltaMs) {

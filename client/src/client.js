@@ -1,17 +1,12 @@
-import { Application, Assets } from 'pixi.js'
+import { Application } from 'pixi.js'
+import { generateSampleLevel } from '../../shared/level-builder.js'
 import { io } from 'socket.io-client'
+import { Textures, preloadTextures } from '../../shared/textures.js'
 import Player from '../../shared/player'
 import PlayerControls from './player-controls'
-import { generateSampleLevel } from '../../shared/level-builder.js'
 
-// Generate or retrieve a unique identifier for the player
-const playerId = localStorage.getItem('playerId') || generateUniqueId()
+const playerId = localStorage.getItem('playerId') || 'player-' + Math.random().toString(36).substr(2, 9)
 localStorage.setItem('playerId', playerId)
-
-// Function to generate a unique identifier
-function generateUniqueId() {
-  return 'player-' + Math.random().toString(36).substr(2, 9)
-}
 
 // Create socket connection
 const socket = io(`http://${window.location.hostname}:3000`, {
@@ -31,37 +26,11 @@ const init = async () => {
   const level = generateSampleLevel()
   level.render(app.stage)
 
-  // Listen for player joining
-  socket.on('playerJoined', (player) => {
-    if (player.id !== socket.id && !remotePlayers[player.id]) {
-      createRemotePlayer(player.id, player)
-    }
-  })
-
-  // Listen for player movement
-  socket.on('playerSetTarget', (player) => {
-    if (remotePlayers[player.id]) {
-      remotePlayers[player.id].setTarget(player.targetX, player.targetY)
-    }
-  })
-
-  // Listen for player disconnect
-  socket.on('playerDisconnected', (playerId) => {
-    if (remotePlayers[playerId]) {
-      removeRemotePlayer(playerId)
-    }
-  })
-
-  // client-side game loop
-  // currently server is handling 100% of game loop, physics, etc
-  // we could add a client-side game loop to smooth things out, but for now not bothering
-  // server side ticking
+  // Client-side game loop - server has authority, but client predicts and corrects
   app.ticker.add((time) => {
     if (localPlayer) {
       localPlayer.onTick(time.deltaMS)
     }
-
-    // update positions of all players
     Object.values(remotePlayers).forEach((player) => {
       player.onTick(time.deltaMS)
     })
@@ -70,11 +39,6 @@ const init = async () => {
   // receive state updates from server @ 30fps
   // server is authoritative, if there is one
   socket.on('updateState', (state) => {
-    // create local player if necessary
-    if (!localPlayer && state.players[socket.id]) {
-      createLocalPlayer(state.players[socket.id])
-    }
-
     // remove any remote players that aren't in server
     Object.keys(remotePlayers).forEach((id) => {
       if (!state.players[id]) {
@@ -82,32 +46,37 @@ const init = async () => {
       }
     })
 
-    // add any remote players that aren't in local
+    // add or update remote players
     Object.entries(state.players).forEach(([id, player]) => {
-      if (id !== socket.id && !remotePlayers[id]) {
+      if (id === socket.id) return // local player
+      if (!remotePlayers[id]) {
         createRemotePlayer(id, player)
-      }
-    })
-
-    // sync player state to server
-    Object.entries(state.players).forEach(([id, player]) => {
-      if (id === socket.id && localPlayer) {
-        localPlayer.syncWithServer(player)
-      } else if (remotePlayers[id]) {
+      } else {
         remotePlayers[id].syncWithServer(player)
       }
     })
+
+    // create or update local player
+    if (state.players[socket.id]) {
+      if (!localPlayer) {
+        createLocalPlayer(state.players[socket.id])
+      } else {
+        localPlayer.syncWithServer(state.players[socket.id])
+      }
+    }
   })
 }
 
-const textures = {
-  playerBase: '/assets/player_base.png'
+const createPlayer = (id, playerData) => {
+  const player = new Player(id, playerData.name, Textures.PlayerBase, app.stage)
+  player.setPosition(playerData.x, playerData.y)
+  player.setRotation(playerData.rotation)
+  player.setTarget(playerData.targetX, playerData.targetY)
+  return player
 }
 
 const createRemotePlayer = (id, playerData) => {
-  const remotePlayer = new Player(id, playerData.name, textures.playerBase, app.stage)
-  remotePlayer.setPosition(playerData.x, playerData.y)
-  remotePlayer.setRotation(playerData.rotation)
+  const remotePlayer = createPlayer(id, playerData)
   remotePlayers[id] = remotePlayer
 }
 
@@ -121,10 +90,9 @@ const createLocalPlayer = (playerData) => {
     localPlayer.onDestroy()
   }
 
-  localPlayer = new Player(socket.id, playerData.name, textures.playerBase, app.stage, true)
-  localPlayer.setPosition(playerData.x, playerData.y)
-  localPlayer.setRotation(playerData.rotation)
+  playerData.name = `${playerData.name} (You)`
+  localPlayer = createPlayer(socket.id, playerData)
   new PlayerControls(localPlayer, app, socket)
 }
 
-init()
+preloadTextures().then(init)

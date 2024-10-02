@@ -2,6 +2,7 @@
 // to do that, tiles will need to define their entrances and/or exits
 // and levels will need a strategy for deciding an entrance tile, exit tile, and linking them together
 
+import { Sprite } from "pixi.js"
 
 class Level {
   // a level is a collection of "tiles" that are used to build a map
@@ -21,14 +22,16 @@ class Level {
   }
 
   renderTile(tile, stage) {
-    console.log('rendering tile', tile)
-    tile.blocks.forEach((block) => {
-      if (block.texture) {
-        const sprite = new PIXI.Sprite.from(block.texture)
-        sprite.x = block.x * 32
-        sprite.y = block.y * 32
-        stage.addChild(sprite)
-      }
+    tile.blocks.forEach((blockRow) => {
+      blockRow.forEach((block) => {
+        console.log('rendering block', tile)
+        if (block.texture) {
+          const sprite = Sprite.from(block.texture)
+          sprite.x = block.x * 32
+          sprite.y = block.y * 32
+          stage.addChild(sprite)
+        }
+      })
     })
   }
 }

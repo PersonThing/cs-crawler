@@ -31,7 +31,6 @@ class PlayerControls {
 
     // Function to update the target position
     const updateTargetPosition = (event) => {
-      // Calculate the target position based on the mouse event
       const rect = this.app.canvas.getBoundingClientRect()
       const targetX = event.clientX - rect.left
       const targetY = event.clientY - rect.top

@@ -1,6 +1,7 @@
 import Level from "./level"
 import Tile from "./tile"
 import Block from "./block"
+import { Textures } from "./textures"
 
 export const generateSampleLevel = () => {
   const level = new Level()
@@ -11,10 +12,12 @@ export const generateSampleLevel = () => {
   for (let x = 0; x < 20; x++) {
     for (let y = 0; y < 20; y++) {
       tile1.setBlock(new Block({
+        x,
+        y,
         canWalk: true,
         canSeeThrough: true,
         canShootThrough: true,
-        texture: '/assets/grass.png'
+        texture: x > 0 && x < 19 && y > 0 && y < 19 ? Textures.Grass : Textures.Stone
       }))
     }
   }
