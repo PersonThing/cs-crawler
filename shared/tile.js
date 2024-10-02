@@ -24,7 +24,7 @@ class Tile {
     this.blockGrid[block.x][block.y] = block
   }
 
-  render(stage) {
+  render(levelContainer) {
     this.container = new Container()
     this.container.x = 0
     this.container.y = 0
@@ -38,13 +38,19 @@ class Tile {
         }
       })
     })
-    stage.addChild(this.container)
+    levelContainer.addChild(this.container)
+    this.rendered = true
+  }
+
+  unrender(levelContainer) {
+    levelContainer.removeChild(this.container)
+    delete this.container
+    this.rendered = false
   }
 
   setPosition(x, y) {
-    // assume all tiles are 10x10 32x32 blocks
-    this.container.x = x * 320
-    this.container.y = y * 320
+    this.container.x = x
+    this.container.y = y
   }
 }
 

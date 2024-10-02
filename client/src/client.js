@@ -22,18 +22,25 @@ const remotePlayers = {}
 let localPlayer = null
 
 const init = async () => {
-  // Render the level
-  const level = generateSampleLevel()
-  level.render(app.stage)
+  // Load the level
+  const level = generateSampleLevel(app.stage)
 
   // Client-side game loop - server has authority, but client predicts and corrects
   app.ticker.add((time) => {
     if (localPlayer) {
       localPlayer.onTick(time.deltaMS)
+      // pass screen size to level so we know how many tiles around the current tile to render
+      level.onTick(time.deltaMS, localPlayer, app.screen.width, app.screen.height)
     }
     Object.values(remotePlayers).forEach((player) => {
       player.onTick(time.deltaMS)
     })
+
+    // shift the stage to keep player centered
+    if (localPlayer) {
+      app.stage.x = -localPlayer.x + app.screen.width / 2
+      app.stage.y = -localPlayer.y + app.screen.height / 2
+    }
   })
 
   // receive state updates from server @ 30fps

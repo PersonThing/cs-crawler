@@ -32,8 +32,11 @@ class PlayerControls {
     // Function to update the target position
     const updateTargetPosition = (event) => {
       const rect = this.app.canvas.getBoundingClientRect()
-      const targetX = event.clientX - rect.left
-      const targetY = event.clientY - rect.top
+      
+      // stage is shifted to center the player
+      // so we need to account for that offset
+      const targetX = event.clientX - rect.left - this.app.stage.x
+      const targetY = event.clientY - rect.top - this.app.stage.y
 
       this.player.setTarget(targetX, targetY)
       this.socket.emit('playerSetTarget', { targetX, targetY })

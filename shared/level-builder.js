@@ -3,14 +3,22 @@ import Tile from './tile'
 import Block from './block'
 import { Textures } from './textures'
 
-export const generateSampleLevel = () => {
-  const level = new Level()
+export const generateSampleLevel = (stage) => {
+  const level = new Level(stage)
 
-  const createSampleTile = canWalkFunc => {
+  const makeTile = ({ left, right, top, bottom }) => {
     const tile = new Tile()
     for (let x = 0; x < 10; x++) {
       for (let y = 0; y < 10; y++) {
-        const canWalk = canWalkFunc(x, y)
+        const canWalk =
+          // grass in the middle
+          (x > 0 && x < 9 && y > 0 && y < 9) ||
+          // door options
+          (left && y > 2 && y < 7 && x === 0) ||
+          (right && y > 2 && y < 7 && x === 9) ||
+          (top && x > 2 && x < 7 && y === 0) ||
+          (bottom && x > 2 && x < 7 && y === 9)
+
         tile.setBlock(
           new Block({
             x,
@@ -26,71 +34,33 @@ export const generateSampleLevel = () => {
     return tile
   }
 
-  const doorSides = () => createSampleTile((x, y) => {
-    return (x > 0 && x < 9 && y > 0 && y < 9)
-      // door on sides
-      || (y === 4)
-      || (y === 5)
-  })
-
-  const doorLeft = () => createSampleTile((x, y) => {
-    return (x > 0 && x < 9 && y > 0 && y < 9)
-      // door on left
-      || (x === 0) && (y == 4 || y == 5)
-  })
-
-  const doorSidesTop = () => createSampleTile((x, y) => {
-    return (x > 0 && x < 9 && y > 0 && y < 9)
-      // door on sides
-      || (y === 4)
-      || (y === 5)
-      // door on top
-      || (y === 0) && (x == 4 || x == 5)
-  })
-
-  const doorRight = () => createSampleTile((x, y) => {
-    return (x > 0 && x < 9 && y > 0 && y < 9)
-      // door on right
-      || (x === 9) && (y == 4 || y == 5)
-  })
-
-  const doorLeftTop = () => createSampleTile((x, y) => {
-    return (x > 0 && x < 9 && y > 0 && y < 9)
-      // door on top
-      || (y === 0) && (x == 4 || x == 5)
-      // door on left
-      || (x === 0) && (y == 4 || y == 5)
-  })
-
-  const doorRightBottom = () => createSampleTile((x, y) => {
-    return (x > 0 && x < 9 && y > 0 && y < 9)
-      // door on bottom
-      || (y === 9) && (x == 4 || x == 5)
-      // door on right
-      || (x === 9) && (y == 4 || y == 5)
-  })
-
-  const doorLeftBottom = () => createSampleTile((x, y) => {
-    return (x > 0 && x < 9 && y > 0 && y < 9)
-      // door on bottom
-      || (y === 9) && (x == 4 || x == 5)
-      // door on left
-      || (x === 0) && (y == 4 || y == 5)
-  })
-
-  const doorAllSides = () => createSampleTile((x, y) => {
-    return (x > 0 && x < 9 && y > 0 && y < 9)
-      // grass doorway on all sides
-      || (y === 4)
-      || (y === 5)
-      || (x === 4)
-      || (x === 5)
-  })
-
   level.tileGrid = [
-    [doorRight(), doorSides(), doorLeftBottom()],
-    [null, doorRightBottom(), doorLeftTop()],
-    [doorRight(), doorSidesTop(), doorLeft()]
+    [
+      makeTile({ right: true }),
+      makeTile({ left: true, right: true }),
+      makeTile({ left: true, bottom: true }),
+    ],
+    [
+      null,
+      makeTile({ right: true, bottom: true }),
+      makeTile({ left: true, top: true }),
+      makeTile({ right: true, bottom: true }),
+      makeTile({ left: true }),
+    ],
+    [
+      makeTile({ right: true }),
+      makeTile({ right: true, left: true, top: true }),
+      makeTile({ right: true, left: true }),
+      makeTile({ left: true, top: true, bottom: true }),
+    ],
+    [
+      null,
+      null,
+      null,
+      makeTile({ top: true, right: true }),
+      makeTile({ left: true, right: true }),
+      makeTile({ left: true }),
+    ],
   ]
 
   return level
