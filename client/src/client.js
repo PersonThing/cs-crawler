@@ -133,7 +133,7 @@ const createLocalPlayer = (playerData) => {
 }
 
 const createLightRadius = () => {
-  const radius = 250
+  const radius = 350
   const blurSize = 100
   let circle = new Graphics().circle(radius + blurSize, radius + blurSize, radius).fill(0xff0000)
   circle.alpha = 1
