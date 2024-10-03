@@ -29,17 +29,29 @@ class Tile {
     this.container.x = 0
     this.container.y = 0
     this.blockGrid.forEach((blockRow) => {
-      blockRow.forEach((block) => {
-        if (block.texture) {
-          const sprite = Sprite.from(block.texture)
-          sprite.x = block.x * 32
-          sprite.y = block.y * 32
-          this.container.addChild(sprite)
-        }
+      blockRow.filter(b => b.texture != null).forEach((block) => {
+        block.render(this.container, block.x * 32, block.y * 32)
       })
     })
     levelContainer.addChild(this.container)
     this.rendered = true
+  }
+
+  updateBlockVisibility(localPlayer) {
+    this.blockGrid.forEach((blockRow) => {
+      blockRow.filter(b => b.sprite != null).forEach((block) => {
+        const dx = this.container.x + block.sprite.x - localPlayer.x
+        const dy = this.container.y + block.sprite.y - localPlayer.y
+
+        // if block.sprite is within 200px of the player, set it to discovered
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        if (distance < 200) {
+          block.setAlpha(1)
+        } else if (distance < 300 && block.sprite.alpha < 1) {
+          block.setAlpha(0.5)
+        }
+      })
+    })
   }
 
   unrender(levelContainer) {

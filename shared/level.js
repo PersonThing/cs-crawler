@@ -1,4 +1,4 @@
-import { Container, Sprite } from "pixi.js"
+import { Container, Sprite } from 'pixi.js'
 
 class Level {
   constructor(stage) {
@@ -9,7 +9,7 @@ class Level {
       this.stage.addChild(this.container)
     }
   }
-  
+
   setTile(tile, x, y) {
     if (!this.tileGrid[y]) {
       this.tileGrid[y] = []
@@ -22,7 +22,6 @@ class Level {
 
     this.tileGrid[y][x] = tile
   }
-
 
   onClientTick(deltaMS, localPlayer, screenWidth, screenHeight) {
     // only render the tiles around the local player
@@ -44,14 +43,26 @@ class Level {
         if (!tile) return
 
         // if tile is NOT around the player's current tile, unrender it
-        if (tile.rendered && Math.abs(x - tileX) > renderWidth || Math.abs(y - tileY) > renderHeight) {
+        if (
+          (tile.rendered && Math.abs(x - tileX) > renderWidth) ||
+          Math.abs(y - tileY) > renderHeight
+        ) {
           tile.unrender(this.container)
         }
 
-        // if tile is around player's current tile and not yet rendered, render it
-        if (!tile.rendered && Math.abs(x - tileX) <= renderWidth && Math.abs(y - tileY) <= renderHeight) {
-          tile.render(this.container)
-          tile.setPosition(x*320, y*320)
+        // if tile is around player's current tile
+        if (
+          Math.abs(x - tileX) <= renderWidth &&
+          Math.abs(y - tileY) <= renderHeight
+        ) {
+          // if it isn't rendered, render it
+          if (!tile.rendered) {
+            tile.render(this.container)
+            tile.setPosition(x * 320, y * 320)
+          }
+
+          // update visibility of blocks based on whether the player has discovered them or not
+          tile.updateBlockVisibility(localPlayer)
         }
       })
     })

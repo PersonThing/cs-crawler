@@ -77,9 +77,9 @@ io.on('connection', (socket) => {
   })
 })
 
-// game loop @ 30fps
-// server tracks state and updates @ 30fps
-// client has its own game loop and just syncs with server when it receives state, overwriting anything the client has done
+// game loop
+// client has its own game loop
+// server is authoritative, sending state to overwrite client
 const fps = 30
 const deltaMS = 1000/fps
 setInterval(() => {

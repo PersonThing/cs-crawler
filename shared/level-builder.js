@@ -6,75 +6,207 @@ import Tile from './tile.js'
 export const generateSampleLevel = (stage) => {
   const level = new Level(stage)
 
-  const grassBlockConfig = {
-    canWalk: true,
-    canSeeThrough: true,
-    canShootThrough: true,
-    texture: Textures.Grass,
-  }
+  const tileDoorRight = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  ]
 
-  const stoneBlockConfig = {
-    canWalk: false,
-    canSeeThrough: false,
-    canShootThrough: false,
-    texture: Textures.Stone,
-  }
+  const tileDoorRightTop = [
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  ]
 
-  const makeTile = ({ left, right, top, bottom }) => {
+  const tileDoorLeft = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  ]
+
+  const tileDoorRightBottom = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+  ]
+
+  const tileDoorLeftTop = [
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  ]
+
+  const tileDoorLeftTopBottom = [
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+  ]
+
+  const tileDoorLeftRightTop = [
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  ]
+
+  const tileDoorLeftBottom = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+  ]
+
+  const tileDoorLeftRightBottom = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+  ]
+
+  const tileDoorTop = [
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  ]
+
+  const tileHallwayVertical = [
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+    [0, 0, 1, 2, 2, 2, 2, 1, 0, 0],
+  ]
+
+  const tileHallwayHorizontal = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ]
+
+  const t = (config) => {
     const tile = new Tile()
-    for (let x = 0; x < 10; x++) {
-      for (let y = 0; y < 10; y++) {
-        // grass anywhere that's walkable, stone otherwise
-        const config =
-          // open middle area
-          (x > 0 && x < 9 && y > 0 && y < 9) ||
-          // passages
-          (left && y > 2 && y < 7 && x === 0) ||
-          (right && y > 2 && y < 7 && x === 9) ||
-          (top && x > 2 && x < 7 && y === 0) ||
-          (bottom && x > 2 && x < 7 && y === 9)
-          ? grassBlockConfig
-          : stoneBlockConfig
-
+    config.forEach((row, y) => {
+      row.forEach((n, x) => {
         tile.setBlock(
           new Block({
             x,
             y,
-            ...config
+            canWalk: n > 1 ? true : false,
+            canSeeThrough: n > 1 ? true : false,
+            canShootThrough: n > 1 ? true : false,
+            texture: n == 0 ? null : n == 1 ? Textures.Stone : Textures.Grass,
           })
         )
-      }
-    }
+      })
+    })
     return tile
   }
 
   level.tileGrid = [
-    [
-      makeTile({ right: true }),
-      makeTile({ left: true, right: true }),
-      makeTile({ left: true, bottom: true }),
-    ],
+    [t(tileDoorRight), t(tileHallwayHorizontal), t(tileDoorLeftBottom)],
     [
       null,
-      makeTile({ right: true, bottom: true }),
-      makeTile({ left: true, top: true }),
-      makeTile({ right: true, bottom: true }),
-      makeTile({ left: true }),
+      t(tileDoorRightBottom),
+      t(tileDoorLeftTop),
+      t(tileDoorRightBottom),
+      t(tileDoorLeft),
     ],
     [
-      makeTile({ right: true }),
-      makeTile({ right: true, left: true, top: true }),
-      makeTile({ right: true, left: true }),
-      makeTile({ left: true, top: true, bottom: true }),
+      t(tileDoorRight),
+      t(tileDoorLeftRightTop),
+      t(tileHallwayHorizontal),
+      t(tileDoorLeftTopBottom),
     ],
+    [null, null, null, t(tileHallwayVertical)],
     [
       null,
       null,
       null,
-      makeTile({ top: true, right: true }),
-      makeTile({ left: true, right: true }),
-      makeTile({ left: true }),
+      t(tileDoorRightTop),
+      t(tileHallwayHorizontal),
+      t(tileDoorLeftRightBottom),
+      t(tileDoorLeft),
     ],
+    [null, null, null, null, null, t(tileDoorTop)],
   ]
 
   return level

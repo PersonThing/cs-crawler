@@ -6,7 +6,7 @@ class Player {
     this.name = name
     this.x = 0
     this.y = 0
-    this.maxSpeed = 300 // pixels per second
+    this.maxSpeed = 500 // pixels per second
     this.stage = stage
     this.texture = texture
     
@@ -66,13 +66,10 @@ class Player {
   }
 
   syncWithServer(data) {
-    // if position is more than 10px off, set it, otherwise leave it alone
-    // if (Math.abs(this.x - data.x) > 100 || Math.abs(this.y - data.y) > 100) {
-    //   console.log('position off by', Math.abs(this.x - data.x), Math.abs(this.y - data.y))
-      // this.setPosition(data.x, data.y)
-    // } else {
-    //   console.log('position ok')
-    // }
+    // currently just trusting client on player position, or it gets choppy..
+    // need to figure out a way to reconcile position without feeling choppy
+    // this.setPosition(data.x, data.y)
+
     this.setTarget(data.target)
   }
 

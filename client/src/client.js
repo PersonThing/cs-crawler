@@ -1,4 +1,4 @@
-import { Application } from 'pixi.js'
+import { Application, Graphics } from 'pixi.js'
 import { generateSampleLevel } from '../../shared/level-builder.js'
 import { io } from 'socket.io-client'
 import { Textures, preloadTextures } from '../../shared/textures.js'
@@ -10,7 +10,9 @@ const centerViewOnPlayer = true
 const remotePlayers = {}
 let localPlayer = null
 
-const playerId = localStorage.getItem('playerId') || 'player-' + Math.random().toString(36).substr(2, 9)
+const playerId =
+  localStorage.getItem('playerId') ||
+  'player-' + Math.random().toString(36).substr(2, 9)
 localStorage.setItem('playerId', playerId)
 
 // Create socket connection
@@ -20,13 +22,17 @@ const socket = io(`http://${window.location.hostname}:3000`, {
 
 // Create pixi.js app
 const app = new Application()
-await app.init({ background: '#666666', resizeTo: window })
+await app.init({ background: '#555555', resizeTo: window })
 document.body.appendChild(app.canvas)
 
 const level = generateSampleLevel(app.stage)
 const pather = new Pather(level)
 
 const init = async () => {
+  // let lightRadiusMask = new Graphics().circle(0, 0, 250).fill(0x000000)
+  // lightRadiusMask.alpha = 0.5
+  // app.stage.addChild(lightRadiusMask)
+
   // Client-side game loop - server has authority, but client predicts and corrects
   app.ticker.maxFPS = 120
   app.ticker.add((time) => {
@@ -34,7 +40,12 @@ const init = async () => {
       localPlayer.onTick(time.deltaMS)
 
       // pass screen size to level so we know how many tiles around the current tile to render
-      level.onClientTick(time.deltaMS, localPlayer, app.screen.width, app.screen.height)
+      level.onClientTick(
+        time.deltaMS,
+        localPlayer,
+        app.screen.width,
+        app.screen.height
+      )
     }
     Object.values(remotePlayers).forEach((player) => {
       player.onTick(time.deltaMS)
@@ -44,6 +55,11 @@ const init = async () => {
     if (localPlayer && centerViewOnPlayer) {
       app.stage.x = -localPlayer.x + app.screen.width / 2
       app.stage.y = -localPlayer.y + app.screen.height / 2
+
+      // mask the level
+      // lightRadiusMask.x = localPlayer.x
+      // lightRadiusMask.y = localPlayer.y
+      // app.stage.mask = lightRadiusMask
     }
   })
 
@@ -79,7 +95,13 @@ const init = async () => {
 }
 
 const createPlayer = (socketId, playerData) => {
-  const player = new Player(socketId, playerData.name, pather, Textures.PlayerBase, app.stage)
+  const player = new Player(
+    socketId,
+    playerData.name,
+    pather,
+    Textures.PlayerBase,
+    app.stage
+  )
   player.setPosition(playerData.x, playerData.y)
   player.setTarget(playerData.target)
   return player
