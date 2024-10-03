@@ -12,16 +12,16 @@ class Tile {
   }
 
   setBlock(block) {
-    if (!this.blockGrid[block.x]) {
-      this.blockGrid[block.x] = []
+    if (!this.blockGrid[block.y]) {
+      this.blockGrid[block.y] = []
     }
 
-    if (this.blockGrid[block.x][block.y]) {
-      this.blockGrid[block.x][block.y].onUnload()
-      delete this.blockGrid[block.x][block.y]
+    if (this.blockGrid[block.y][block.x]) {
+      this.blockGrid[block.y][block.x].onUnload()
+      delete this.blockGrid[block.y][block.x]
     }
 
-    this.blockGrid[block.x][block.y] = block
+    this.blockGrid[block.y][block.x] = block
   }
 
   render(levelContainer) {

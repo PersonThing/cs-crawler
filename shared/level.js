@@ -5,23 +5,26 @@ class Level {
     this.tileGrid = []
     this.stage = stage
     this.container = new Container()
-    this.stage.addChild(this.container)
+    if (this.stage != null) {
+      this.stage.addChild(this.container)
+    }
   }
   
   setTile(tile, x, y) {
-    if (!this.tileGrid[x]) {
-      this.tileGrid[x] = []
+    if (!this.tileGrid[y]) {
+      this.tileGrid[y] = []
     }
 
-    if (this.tileGrid[x][y]) {
-      this.tileGrid[x][y].onUnload()
-      delete this.tileGrid[x][y]
+    if (this.tileGrid[y][x]) {
+      this.tileGrid[y][x].onUnload()
+      delete this.tileGrid[y][x]
     }
 
-    this.tileGrid[x][y] = tile
+    this.tileGrid[y][x] = tile
   }
 
-  onTick(deltaMS, localPlayer, screenWidth, screenHeight) {
+
+  onClientTick(deltaMS, localPlayer, screenWidth, screenHeight) {
     // only render the tiles around the local player
     // figure out which tile the local player is inside
     const tileX = Math.floor(localPlayer.x / 320)

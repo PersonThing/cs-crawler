@@ -1,8 +1,9 @@
 class PlayerControls {
-  constructor(player, app, socket) {
+  constructor(player, app, socket, centerViewOnPlayer) {
     this.player = player
     this.app = app
     this.socket = socket
+    this.centerViewOnPlayer = centerViewOnPlayer
     this.startListening()
   }
 
@@ -32,14 +33,16 @@ class PlayerControls {
     // Function to update the target position
     const updateTargetPosition = (event) => {
       const rect = this.app.canvas.getBoundingClientRect()
-      
+
       // stage is shifted to center the player
       // so we need to account for that offset
-      const targetX = event.clientX - rect.left - this.app.stage.x
-      const targetY = event.clientY - rect.top - this.app.stage.y
+      const target = {
+        x: event.clientX - rect.left - (this.centerViewOnPlayer ? this.app.stage.x : 0),
+        y: event.clientY - rect.top - (this.centerViewOnPlayer ? this.app.stage.y : 0)
+      }
 
-      this.player.setTarget(targetX, targetY)
-      this.socket.emit('playerSetTarget', { targetX, targetY })
+      this.player.setTarget(target)
+      this.socket.emit('playerSetTarget', target)
     }
   }
 }

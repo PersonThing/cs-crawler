@@ -1,6 +1,8 @@
+import { generateSampleLevel } from '../../shared/level-builder.js'
 import { Server } from 'socket.io'
 import express from 'express'
 import http from 'http'
+import Pather from '../../shared/pather.js'
 import Player from '../../shared/player.js'
 
 const app = express()
@@ -22,6 +24,10 @@ const players = {} // Object to store player information
 // store player state in memory
 const playerStates = {}
 
+// Load the level and pather
+const level = generateSampleLevel()
+const pather = new Pather(level)
+
 io.on('connection', (socket) => {
   const playerId = socket.handshake.query.playerId
   console.log('Player connected: ' + playerId, socket.id)
@@ -34,25 +40,23 @@ io.on('connection', (socket) => {
     playerState = {
       x,
       y,
-      targetX: x,
-      targetY: y
+      target: null
     }
   }
 
   // Create a new player when they connect
   // set x position from the size of the players object
-  players[socket.id] = new Player(socket.id, playerId)
+  players[socket.id] = new Player(socket.id, playerId, pather)
   players[socket.id].setPosition(playerState.x, playerState.y)
-  players[socket.id].setTarget(playerState.targetX, playerState.targetY)
+  players[socket.id].setTarget(playerState.target)
 
   // Broadcast new player to all other players
-  socket.broadcast.emit('playerJoined', players[socket.id])
+  socket.broadcast.emit('playerJoined', players[socket.id].getSyncProperties())
 
   // Handle player movement
-  socket.on('playerSetTarget', (data) => {
+  socket.on('playerSetTarget', (target) => {
     if (players[socket.id]) {
-      players[socket.id].targetX = data.targetX
-      players[socket.id].targetY = data.targetY
+      players[socket.id].setTarget(target)
     }
   })
 
@@ -65,8 +69,7 @@ io.on('connection', (socket) => {
     playerStates[playerId] = {
       x: player.x,
       y: player.y,
-      targetX: player.targetX,
-      targetY: player.targetY
+      target: player.target
     }
 
     delete players[socket.id]
@@ -84,8 +87,11 @@ setInterval(() => {
     const player = players[id]
     player.onTick(deltaMS)
   }
+  // convert players map to map of sync properties
+  const playerSyncs = Object.fromEntries(Object.entries(players).map(([id, player]) => [id, player.getSyncProperties()]))
+
   io.emit('updateState', {
-    players
+    players: playerSyncs
   })
 }, deltaMS)
 

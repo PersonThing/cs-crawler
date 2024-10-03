@@ -4,6 +4,11 @@ import { io } from 'socket.io-client'
 import { Textures, preloadTextures } from '../../shared/textures.js'
 import Player from '../../shared/player'
 import PlayerControls from './player-controls'
+import Pather from '../../shared/pather'
+
+const centerViewOnPlayer = true
+const remotePlayers = {}
+let localPlayer = null
 
 const playerId = localStorage.getItem('playerId') || 'player-' + Math.random().toString(36).substr(2, 9)
 localStorage.setItem('playerId', playerId)
@@ -18,26 +23,25 @@ const app = new Application()
 await app.init({ background: '#666666', resizeTo: window })
 document.body.appendChild(app.canvas)
 
-const remotePlayers = {}
-let localPlayer = null
+const level = generateSampleLevel(app.stage)
+const pather = new Pather(level)
 
 const init = async () => {
-  // Load the level
-  const level = generateSampleLevel(app.stage)
-
   // Client-side game loop - server has authority, but client predicts and corrects
+  app.ticker.maxFPS = 120
   app.ticker.add((time) => {
     if (localPlayer) {
       localPlayer.onTick(time.deltaMS)
+
       // pass screen size to level so we know how many tiles around the current tile to render
-      level.onTick(time.deltaMS, localPlayer, app.screen.width, app.screen.height)
+      level.onClientTick(time.deltaMS, localPlayer, app.screen.width, app.screen.height)
     }
     Object.values(remotePlayers).forEach((player) => {
       player.onTick(time.deltaMS)
     })
 
     // shift the stage to keep player centered
-    if (localPlayer) {
+    if (localPlayer && centerViewOnPlayer) {
       app.stage.x = -localPlayer.x + app.screen.width / 2
       app.stage.y = -localPlayer.y + app.screen.height / 2
     }
@@ -47,19 +51,19 @@ const init = async () => {
   // server is authoritative, if there is one
   socket.on('updateState', (state) => {
     // remove any remote players that aren't in server
-    Object.keys(remotePlayers).forEach((id) => {
-      if (!state.players[id]) {
-        removeRemotePlayer(id)
+    Object.keys(remotePlayers).forEach((socketId) => {
+      if (!state.players[socketId]) {
+        removeRemotePlayer(socketId)
       }
     })
 
     // add or update remote players
-    Object.entries(state.players).forEach(([id, player]) => {
-      if (id === socket.id) return // local player
-      if (!remotePlayers[id]) {
-        createRemotePlayer(id, player)
+    Object.entries(state.players).forEach(([socketId, player]) => {
+      if (socketId === socket.id) return // local player
+      if (!remotePlayers[socketId]) {
+        createRemotePlayer(socketId, player)
       } else {
-        remotePlayers[id].syncWithServer(player)
+        remotePlayers[socketId].syncWithServer(player)
       }
     })
 
@@ -74,22 +78,21 @@ const init = async () => {
   })
 }
 
-const createPlayer = (id, playerData) => {
-  const player = new Player(id, playerData.name, Textures.PlayerBase, app.stage)
+const createPlayer = (socketId, playerData) => {
+  const player = new Player(socketId, playerData.name, pather, Textures.PlayerBase, app.stage)
   player.setPosition(playerData.x, playerData.y)
-  player.setRotation(playerData.rotation)
-  player.setTarget(playerData.targetX, playerData.targetY)
+  player.setTarget(playerData.target)
   return player
 }
 
-const createRemotePlayer = (id, playerData) => {
-  const remotePlayer = createPlayer(id, playerData)
-  remotePlayers[id] = remotePlayer
+const createRemotePlayer = (socketId, playerData) => {
+  const remotePlayer = createPlayer(socketId, playerData)
+  remotePlayers[socketId] = remotePlayer
 }
 
-const removeRemotePlayer = (id) => {
-  remotePlayers[id].onDestroy()
-  delete remotePlayers[id]
+const removeRemotePlayer = (socketId) => {
+  remotePlayers[socketId].onDestroy()
+  delete remotePlayers[socketId]
 }
 
 const createLocalPlayer = (playerData) => {
@@ -99,7 +102,7 @@ const createLocalPlayer = (playerData) => {
 
   playerData.name = `${playerData.name} (You)`
   localPlayer = createPlayer(socket.id, playerData)
-  new PlayerControls(localPlayer, app, socket)
+  new PlayerControls(localPlayer, app, socket, centerViewOnPlayer)
 }
 
 preloadTextures().then(init)

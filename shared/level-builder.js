@@ -1,32 +1,46 @@
-import Level from './level'
-import Tile from './tile'
-import Block from './block'
-import { Textures } from './textures'
+import { Textures } from './textures.js'
+import Block from './block.js'
+import Level from './level.js'
+import Tile from './tile.js'
 
 export const generateSampleLevel = (stage) => {
   const level = new Level(stage)
+
+  const grassBlockConfig = {
+    canWalk: true,
+    canSeeThrough: true,
+    canShootThrough: true,
+    texture: Textures.Grass,
+  }
+
+  const stoneBlockConfig = {
+    canWalk: false,
+    canSeeThrough: false,
+    canShootThrough: false,
+    texture: Textures.Stone,
+  }
 
   const makeTile = ({ left, right, top, bottom }) => {
     const tile = new Tile()
     for (let x = 0; x < 10; x++) {
       for (let y = 0; y < 10; y++) {
-        const canWalk =
-          // grass in the middle
+        // grass anywhere that's walkable, stone otherwise
+        const config =
+          // open middle area
           (x > 0 && x < 9 && y > 0 && y < 9) ||
-          // door options
+          // passages
           (left && y > 2 && y < 7 && x === 0) ||
           (right && y > 2 && y < 7 && x === 9) ||
           (top && x > 2 && x < 7 && y === 0) ||
           (bottom && x > 2 && x < 7 && y === 9)
+          ? grassBlockConfig
+          : stoneBlockConfig
 
         tile.setBlock(
           new Block({
             x,
             y,
-            canWalk,
-            canSeeThrough: canWalk,
-            canShootThrough: canWalk,
-            texture: canWalk ? Textures.Grass : Textures.Stone,
+            ...config
           })
         )
       }
