@@ -10,6 +10,7 @@ import Minimap from './minimap.js'
 const centerViewOnPlayer = true
 const remotePlayers = {}
 let localPlayer = null
+let playerControls = null
 
 const playerId =
   localStorage.getItem('playerId') ||
@@ -129,7 +130,7 @@ const createLocalPlayer = (playerData) => {
 
   playerData.name = `${playerData.name} (You)`
   localPlayer = createPlayer(socket.id, playerData)
-  new PlayerControls(localPlayer, app, socket, centerViewOnPlayer)
+  playerControls = new PlayerControls(localPlayer, app, socket, centerViewOnPlayer)
 }
 
 const createLightRadius = () => {

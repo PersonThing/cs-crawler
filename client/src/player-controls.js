@@ -9,12 +9,14 @@ class PlayerControls {
 
   startListening() {
     let isMouseDown = false
+    let lastMouseEvent = null
 
     // Start updating the target position on mousedown
     this.app.canvas.addEventListener('mousedown', (event) => {
       if (!this.player) return
 
       isMouseDown = true
+      lastMouseEvent = event
       updateTargetPosition(event)
     })
 
@@ -22,12 +24,20 @@ class PlayerControls {
     this.app.canvas.addEventListener('mousemove', (event) => {
       if (!this.player || !isMouseDown) return
 
+      lastMouseEvent = event
       updateTargetPosition(event)
     })
 
+    this.app.ticker.add((time) => {
+      if (isMouseDown && lastMouseEvent) {
+        updateTargetPosition(lastMouseEvent)
+      }
+    })
+
     // Stop updating the target position on mouseup
-    this.app.canvas.addEventListener('mouseup', () => {
+    this.app.canvas.addEventListener('mouseup', (event) => {
       isMouseDown = false
+      lastMouseEvent = event
     })
 
     // Function to update the target position
