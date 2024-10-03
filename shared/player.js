@@ -17,6 +17,8 @@ class Player {
     this.pather = pather
     this.showPaths = true
 
+    this.isMoving = false
+
     // if we're on client, we have a stage and texture to render ourself
     if (this.stage && this.texture) {
       this.initSprite()
@@ -41,6 +43,10 @@ class Player {
         fontSize: 12,
         fill: 0xffffff,
         align: 'center',
+        dropShadow: true,
+        dropShadowDistance: 1,
+        dropShadowBlur: 1,
+        dropShadowAlpha: 1
       },
     })
     this.spriteLabel.anchor.set(0.5, 2.5)
@@ -63,7 +69,7 @@ class Player {
     // if position is more than 10px off, set it, otherwise leave it alone
     // if (Math.abs(this.x - data.x) > 100 || Math.abs(this.y - data.y) > 100) {
     //   console.log('position off by', Math.abs(this.x - data.x), Math.abs(this.y - data.y))
-      this.setPosition(data.x, data.y)
+      // this.setPosition(data.x, data.y)
     // } else {
     //   console.log('position ok')
     // }
@@ -126,26 +132,24 @@ class Player {
     }
   }
 
-  stopMoving() {
-    this.path = []
-    this.tempTarget = null
-    this.target = null
-  }
-
   setTarget(target) {
-    if (target == this.target) {
+    if (
+      // target is null
+      target == null
+      // target hasn't changed
+      || (this.target != null && target.x === this.target.x && target.y === this.target.y)
+     ) {
       return
     }
 
-    if (target == null) {
-      this.stopMoving()
-      return
-    }
-    
+    // target is the same as current position
     if (target.x == this.x && target.y == this.y) {
+      this.target = null
+      this.setMoving(false)
       return
     }
 
+    this.target = target
     this.path = this.pather.findPath(this, target)
     this.targetNextPathPoint()
   }
