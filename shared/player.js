@@ -9,7 +9,7 @@ class Player {
     this.maxSpeed = 500 // pixels per second
     this.stage = stage
     this.texture = texture
-    
+
     this.path = []
     this.target = null
     this.tempTarget = null
@@ -46,7 +46,7 @@ class Player {
         dropShadow: true,
         dropShadowDistance: 1,
         dropShadowBlur: 1,
-        dropShadowAlpha: 1
+        dropShadowAlpha: 1,
       },
     })
     this.spriteLabel.anchor.set(0.5, 2.5)
@@ -132,10 +132,12 @@ class Player {
   setTarget(target) {
     if (
       // target is null
-      target == null
+      target == null ||
       // target hasn't changed
-      || (this.target != null && target.x === this.target.x && target.y === this.target.y)
-     ) {
+      (this.target != null &&
+        target.x === this.target.x &&
+        target.y === this.target.y)
+    ) {
       return
     }
 
@@ -158,7 +160,7 @@ class Player {
     }
   }
 
-  rotateToward({x, y}) {
+  rotateToward({ x, y }) {
     if (this.stage != null && x != null && y != null) {
       const angle = Math.atan2(y - this.y, x - this.x) + (90 * Math.PI) / 180
       this.spriteGraphic.rotation = angle
@@ -191,26 +193,20 @@ class Player {
 
     if (this.tempTarget == null) return
 
-    this.pathLine.moveTo(this.x, this.y)
-
-    // line to current target
-    this.pathLine.setStrokeStyle({
-      width: 5,
-      color: 0xffffff,
-      alpha: 0.5,
-    })
-    this.pathLine.lineTo(this.tempTarget.x, this.tempTarget.y)
-    this.pathLine.circle(this.tempTarget.x, this.tempTarget.y, 5)
-
-    // line to each subsequent target
-    this.pathLine.setStrokeStyle({
-      width: 5,
-      color: 0xffffff,
-      alpha: 0.3,
-    })
-    this.path.forEach(p => {
-      this.pathLine.lineTo(p.x, p.y)
-      this.pathLine.circle(p.x, p.y, 5)
+    const linePoints = [this.tempTarget, ...this.path]
+    let lastPoint = this
+    linePoints.forEach((p, i) => {
+      this.pathLine
+        .moveTo(lastPoint.x, lastPoint.y)
+        .lineTo(p.x, p.y)
+        .stroke({
+          width: 5,
+          color: 0xffffff,
+          alpha: i == 0 ? 0.5 : 0.3,
+        })
+        .circle(p.x, p.y, 5)
+        .fill(0xffffff)
+      lastPoint = p
     })
   }
 }

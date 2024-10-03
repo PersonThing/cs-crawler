@@ -38,6 +38,7 @@ class Tile {
   }
 
   updateBlockVisibility(localPlayer) {
+    // return
     this.blockGrid.forEach((blockRow) => {
       blockRow.filter(b => b.sprite != null).forEach((block) => {
         const dx = this.container.x + block.sprite.x - localPlayer.x

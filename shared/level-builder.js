@@ -58,6 +58,19 @@ export const generateSampleLevel = (stage) => {
     [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
   ]
 
+  const tileDoorRightTopBottom = [
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+  ]
+
   const tileDoorLeftTop = [
     [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
     [1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
@@ -173,7 +186,7 @@ export const generateSampleLevel = (stage) => {
             canWalk: n > 1 ? true : false,
             canSeeThrough: n > 1 ? true : false,
             canShootThrough: n > 1 ? true : false,
-            texture: n == 0 ? null : n == 1 ? Textures.Stone : Textures.Grass,
+            texture: n == 0 ? null : n == 1 ? Textures.Bricks : Textures.Stone,
           })
         )
       })
@@ -182,21 +195,29 @@ export const generateSampleLevel = (stage) => {
   }
 
   level.tileGrid = [
-    [t(tileDoorRight), t(tileHallwayHorizontal), t(tileDoorLeftBottom)],
     [
-      null,
       t(tileDoorRightBottom),
+      t(tileHallwayHorizontal),
+      t(tileDoorLeftBottom)],
+    [
+      t(tileDoorRightTopBottom),
+      t(tileDoorLeftRightBottom),
       t(tileDoorLeftTop),
       t(tileDoorRightBottom),
       t(tileDoorLeft),
     ],
     [
-      t(tileDoorRight),
+      t(tileDoorRightTop),
       t(tileDoorLeftRightTop),
       t(tileHallwayHorizontal),
       t(tileDoorLeftTopBottom),
     ],
-    [null, null, null, t(tileHallwayVertical)],
+    [
+      null,
+      null,
+      null,
+      t(tileHallwayVertical)
+    ],
     [
       null,
       null,
