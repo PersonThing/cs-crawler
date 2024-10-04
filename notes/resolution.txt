@@ -1,1 +1,0 @@
-resoloution for blocks/items=32x32
