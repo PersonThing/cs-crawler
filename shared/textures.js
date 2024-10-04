@@ -1,7 +1,7 @@
 import { Assets } from 'pixi.js'
 
 export const Textures = {
-  PlayerBase: '/assets/textures/player/warrior/base/player_front.png',
+  PlayerBase: '/assets/textures/player/2dchar/playerbase.png',
   Grass: '/assets/textures/tiles/grass.png',
   Stone: '/assets/textures/tiles/stone.png',
   Bricks: '/assets/textures/tiles/bricks.png',
