@@ -1,11 +1,11 @@
 import { Assets } from 'pixi.js'
 
 export const Textures = {
-  PlayerBase: '/assets/textures/player/2dchar/playerbase.png',
+  PlayerBase: '/assets/textures/player/2dchar/player_base.png',
   Grass: '/assets/textures/tiles/grass.png',
   Stone: '/assets/textures/tiles/stone.png',
-  Bricks: '/assets/textures/tiles/bricks.png',
-  BricksTop: '/assets/textures/tiles/bricks_top.png',
+  Bricks: '/assets/textures/tiles/perspective/brickwall_lr.png',
+  BricksTop: '/assets/textures/tiles/perspective/bricks_top.png',
 }
 
 export const preloadTextures = () => {

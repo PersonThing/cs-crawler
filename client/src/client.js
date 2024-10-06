@@ -1,4 +1,4 @@
-import { Application, Graphics, BlurFilter, Sprite, SCALE_MODES, Rectangle } from 'pixi.js'
+import { Application, Container, Graphics, BlurFilter, Sprite, Rectangle } from 'pixi.js'
 import { generateSampleLevel } from '../../shared/level-builder.js'
 import { io } from 'socket.io-client'
 import { Textures, preloadTextures } from '../../shared/textures.js'
@@ -6,6 +6,7 @@ import Player from '../../shared/player'
 import PlayerControls from './player-controls'
 import Pather from '../../shared/pather'
 import Minimap from './minimap.js'
+import LevelSprite from './level-sprite.js'
 
 const centerViewOnPlayer = true
 const remotePlayers = {}
@@ -27,76 +28,73 @@ const app = new Application()
 await app.init({ background: '#000000', resizeTo: window })
 document.body.appendChild(app.canvas)
 
-const level = generateSampleLevel(app.stage)
-const pather = new Pather(level)
+const world = new Container()
+world.levelContainer = new Container()
+world.addChild(world.levelContainer)
+app.stage.addChild(world)
 
-// const minimap = new Minimap(level, app.stage)
+const levelConfig = generateSampleLevel()
+const levelSprite = new LevelSprite(levelConfig, 1, false)
+world.addChild(levelSprite)
+const pather = new Pather(levelConfig)
+
+const minimap = new Minimap(app, levelConfig, 300, 200, 0.25)
 
 const init = async () => {
   // light radius
-  const lightRadiusMask = createLightRadius()
+  world.mask = createLightRadiusMask()
 
   // Client-side game loop - server has authority, but client predicts and corrects
   app.ticker.maxFPS = 120
   app.ticker.add((time) => {
+    levelSprite.onTick(
+      localPlayer,
+      app.screen.width,
+      app.screen.height
+    )
+    
     if (localPlayer) {
       localPlayer.onTick(time.deltaMS)
-
-      // pass screen size to level so we know how many tiles around the current tile to render
-      level.onClientTick(
-        time.deltaMS,
-        localPlayer,
-        app.screen.width,
-        app.screen.height
-      )
-      level.container.mask = lightRadiusMask
     }
     Object.values(remotePlayers).forEach((player) => {
       player.onTick(time.deltaMS)
     })
 
-    // shift the stage to keep player centered
+    // shift the world to keep player centered
     if (localPlayer && centerViewOnPlayer) {
-      app.stage.x = -localPlayer.x + app.screen.width / 2
-      app.stage.y = -localPlayer.y + app.screen.height / 2
-
-      // move our mask to player position
-      lightRadiusMask.x = localPlayer.x
-      lightRadiusMask.y = localPlayer.y
+      world.x = -localPlayer.x + app.screen.width / 2
+      world.y = -localPlayer.y + app.screen.height / 2
+      world.mask.x = localPlayer.x
+      world.mask.y = localPlayer.y
     }
 
-    // render a minimap
-    // minimap.onTick(localPlayer)
+    // render minimap
+    minimap.onTick(localPlayer, remotePlayers)
   })
 
-  // receive state updates from server @ 30fps
-  // server is authoritative, if there is one
   socket.on('updateState', (state) => {
-    // remove any remote players that aren't in server
     Object.keys(remotePlayers).forEach((socketId) => {
       if (!state.players[socketId]) {
+        // remote players that has disconnected
         removeRemotePlayer(socketId)
       }
     })
-
-    // add or update remote players
     Object.entries(state.players).forEach(([socketId, player]) => {
-      if (socketId === socket.id) return // local player
-      if (!remotePlayers[socketId]) {
+      if (socketId === socket.id) {
+        // local player
+        if (!localPlayer) {
+          createLocalPlayer(state.players[socket.id])
+        } else {
+          localPlayer.syncWithServer(state.players[socket.id])
+        }
+      } else if (!remotePlayers[socketId]) {
+        // new remote player
         createRemotePlayer(socketId, player)
       } else {
+        // existing remote player
         remotePlayers[socketId].syncWithServer(player)
       }
     })
-
-    // create or update local player
-    if (state.players[socket.id]) {
-      if (!localPlayer) {
-        createLocalPlayer(state.players[socket.id])
-      } else {
-        localPlayer.syncWithServer(state.players[socket.id])
-      }
-    }
   })
 }
 
@@ -106,7 +104,7 @@ const createPlayer = (socketId, playerData) => {
     playerData.name,
     pather,
     Textures.PlayerBase,
-    app.stage
+    world
   )
   player.setPosition(playerData.x, playerData.y)
   player.setTarget(playerData.target)
@@ -130,10 +128,10 @@ const createLocalPlayer = (playerData) => {
 
   playerData.name = `${playerData.name} (You)`
   localPlayer = createPlayer(socket.id, playerData)
-  playerControls = new PlayerControls(localPlayer, app, socket, centerViewOnPlayer)
+  playerControls = new PlayerControls(app, world, localPlayer, socket, centerViewOnPlayer)
 }
 
-const createLightRadius = () => {
+const createLightRadiusMask = () => {
   const radius = 350
   const blurSize = 100
   let circle = new Graphics().circle(radius + blurSize, radius + blurSize, radius).fill(0xff0000)
@@ -149,7 +147,7 @@ const createLightRadius = () => {
   })
   const focus = new Sprite(texture)
   focus.anchor.set(0.5, 0.5)
-  app.stage.addChild(focus)
+  world.addChild(focus)
   return focus
 }
 
