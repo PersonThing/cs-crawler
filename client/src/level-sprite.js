@@ -61,7 +61,8 @@ class LevelSprite extends Container {
                   blockSprite.x = block.x * this.blockSize
                   blockSprite.y = block.y * this.blockSize
                   blockSprite.scale.set(this.mapScale)
-                  blockSprite.alpha = 1 //block.alpha
+                  blockSprite.alpha = block.alpha
+                  block.sprite = blockSprite
                   
                   // draw x's on blocks that can't be walked on if debug mode on
                   // if (this.debug && !block.canWalk) {
@@ -110,7 +111,7 @@ class LevelSprite extends Container {
           }
 
           // update visibility of blocks based on whether the player has discovered them or not
-          // this.updateBlockVisibility(localPlayer, tile)
+          this.updateBlockVisibility(localPlayer, tile)
         }
       })
     })
@@ -130,15 +131,17 @@ class LevelSprite extends Container {
       blockRow
         .filter((b) => b.sprite != null)
         .forEach((block) => {
-          const dx = tile.container.x + block.sprite.x - localPlayer.x
-          const dy = tile.container.y + block.sprite.y - localPlayer.y
+          const dx = tile.container.x + block.sprite.x - localPlayer.x * this.mapScale
+          const dy = tile.container.y + block.sprite.y - localPlayer.y * this.mapScale
 
           // if block.sprite is within 200px of the player, set it to discovered
           const distance = Math.sqrt(dx * dx + dy * dy)
-          if (distance < 200) {
-            block.setAlpha(1)
-          } else if (distance < 300 && block.sprite.alpha < 1) {
-            block.setAlpha(0.5)
+          if (distance < 200 * this.mapScale) {
+            block.alpha = 1
+            block.sprite.alpha = 1
+          } else if (distance < 300 * this.mapScale && block.sprite.alpha < 1) {
+            block.alpha = 0.5
+            block.sprite.alpha = 0.5
           }
         })
     })

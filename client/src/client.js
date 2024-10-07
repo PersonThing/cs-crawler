@@ -1,4 +1,11 @@
-import { Application, Container, Graphics, BlurFilter, Sprite, Rectangle } from 'pixi.js'
+import {
+  Application,
+  Container,
+  Graphics,
+  BlurFilter,
+  Sprite,
+  Rectangle,
+} from 'pixi.js'
 import { generateSampleLevel } from '../../shared/level-builder.js'
 import { io } from 'socket.io-client'
 import { Textures, preloadTextures } from '../../shared/textures.js'
@@ -34,11 +41,11 @@ world.addChild(world.levelContainer)
 app.stage.addChild(world)
 
 const levelConfig = generateSampleLevel()
-const levelSprite = new LevelSprite(levelConfig, 1, true)
+const levelSprite = new LevelSprite(levelConfig, 1, false)
 world.addChild(levelSprite)
 const pather = new Pather(levelConfig)
 
-const minimap = new Minimap(app, levelConfig, 300, 200, 0.25)
+const minimap = new Minimap(app, levelConfig, 300, 300, 0.2)
 
 const init = async () => {
   // light radius
@@ -47,12 +54,8 @@ const init = async () => {
   // Client-side game loop - server has authority, but client predicts and corrects
   app.ticker.maxFPS = 120
   app.ticker.add((time) => {
-    levelSprite.onTick(
-      localPlayer,
-      app.screen.width,
-      app.screen.height
-    )
-    
+    levelSprite.onTick(localPlayer, app.screen.width, app.screen.height)
+
     if (localPlayer) {
       localPlayer.onTick(time.deltaMS)
     }
@@ -129,22 +132,35 @@ const createLocalPlayer = (playerData) => {
 
   playerData.name = `You`
   localPlayer = createPlayer(socket.id, playerData, 0xffffff)
-  playerControls = new PlayerControls(app, world, localPlayer, socket, centerViewOnPlayer)
+  playerControls = new PlayerControls(
+    app,
+    world,
+    localPlayer,
+    socket,
+    centerViewOnPlayer
+  )
 }
 
 const createLightRadiusMask = () => {
   const radius = 350
   const blurSize = 100
-  let circle = new Graphics().circle(radius + blurSize, radius + blurSize, radius).fill(0xff0000)
+  let circle = new Graphics()
+    .circle(radius + blurSize, radius + blurSize, radius)
+    .fill(0xff0000)
   circle.alpha = 1
   const blurFilter = new BlurFilter()
   blurFilter.blur = blurSize
   circle.filters = [blurFilter]
-  const bounds = new Rectangle(0, 0, (radius + blurSize) * 2, (radius + blurSize) * 2)
+  const bounds = new Rectangle(
+    0,
+    0,
+    (radius + blurSize) * 2,
+    (radius + blurSize) * 2
+  )
   const texture = app.renderer.generateTexture({
     target: circle,
     resolution: 1,
-    frame: bounds
+    frame: bounds,
   })
   const focus = new Sprite(texture)
   focus.anchor.set(0.5, 0.5)

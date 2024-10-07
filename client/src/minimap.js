@@ -76,7 +76,7 @@ class Minimap {
     const container = new Container()
     container.zIndex = 10
     
-    const dot = new Graphics().circle(0, 0, 5).fill(color)
+    const dot = new Graphics().circle(0, 0, 3).fill(color)
     container.addChild(dot)
 
     const text = new Text({

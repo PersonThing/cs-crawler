@@ -8,7 +8,7 @@ class Block {
     this.canSeeThrough = props.canSeeThrough || false
     this.canShootThrough = props.canShootThrough || false
     this.texture = props.texture || null
-    this.alpha = 1
+    this.alpha = 0
   }
 
   setAlpha(alpha) {
