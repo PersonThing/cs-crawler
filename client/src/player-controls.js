@@ -1,3 +1,5 @@
+import throttle from '../../shared/throttle'
+
 class PlayerControls {
   constructor(app, world, player, socket, centerViewOnPlayer) {
     this.app = app
@@ -41,19 +43,29 @@ class PlayerControls {
       lastMouseEvent = event
     })
 
-    // Function to update the target position
+    // only pass new position to server at most every 50ms (20 times per second)
+    const throttledSetTargetOnServer = throttle((target) => {
+      this.socket.emit('playerSetTarget', target)
+    }, 50)
+
     const updateTargetPosition = (event) => {
       const rect = this.app.canvas.getBoundingClientRect()
 
       // stage is shifted to center the player
       // so we need to account for that offset
       const target = {
-        x: event.clientX - rect.left - (this.centerViewOnPlayer ? this.world.x : 0),
-        y: event.clientY - rect.top - (this.centerViewOnPlayer ? this.world.y : 0)
+        x:
+          event.clientX -
+          rect.left -
+          (this.centerViewOnPlayer ? this.world.x : 0),
+        y:
+          event.clientY -
+          rect.top -
+          (this.centerViewOnPlayer ? this.world.y : 0),
       }
 
       this.player.setTarget(target)
-      this.socket.emit('playerSetTarget', target)
+      throttledSetTargetOnServer(target)
     }
   }
 }

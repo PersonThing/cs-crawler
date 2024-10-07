@@ -16,13 +16,21 @@ class Minimap {
     this.mask.rect(0, 0, this.width, this.height)
     this.mask.fill(0xff0000)
     this.container.addChild(this.mask)
+    this.outline = new Graphics()
+      .moveTo(0,0)
+      .lineTo(this.width, 0)
+      .lineTo(this.width, this.height)
+      .lineTo(0, this.height)
+      .lineTo(0, 0)
+      .stroke(0xffffff, 1)
     this.map = new LevelSprite(this.level, this.scale, false, [
       new GrayscaleFilter(),
     ])
     this.container.addChild(this.map)
-    this.container.mask = this.mask
+    this.map.mask = this.mask
+    this.container.addChild(this.outline)
     this.map.sortableChildren = true
-    this.map.alpha = 0.5
+    this.map.tileContainer.alpha = 0.5
     app.stage.addChild(this.container)
   }
 

@@ -8,6 +8,8 @@ class LevelSprite extends Container {
     this.blockSize = 32 * this.mapScale
     this.tileSize = this.blockSize * 10
     this.debug = debug
+    this.tileContainer = new Container()
+    this.addChild(this.tileContainer)
   }
 
   onTick(localPlayer, maxWidth, maxHeight) {
@@ -103,7 +105,7 @@ class LevelSprite extends Container {
               tile.container.addChild(text)
             }
             
-            this.addChild(tile.container)
+            this.tileContainer.addChild(tile.container)
             tile.rendered = true
           }
 
@@ -117,7 +119,7 @@ class LevelSprite extends Container {
   unrenderTile(tile) {
     if (!tile.rendered) return
 
-    this.removeChild(tile.container)
+    this.tileContainer.removeChild(tile.container)
     delete tile.container
     tile.rendered = false
   }
