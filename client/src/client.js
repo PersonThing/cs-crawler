@@ -34,7 +34,7 @@ world.addChild(world.levelContainer)
 app.stage.addChild(world)
 
 const levelConfig = generateSampleLevel()
-const levelSprite = new LevelSprite(levelConfig, 1, false)
+const levelSprite = new LevelSprite(levelConfig, 1, true)
 world.addChild(levelSprite)
 const pather = new Pather(levelConfig)
 
@@ -98,13 +98,14 @@ const init = async () => {
   })
 }
 
-const createPlayer = (socketId, playerData) => {
+const createPlayer = (socketId, playerData, color = 0xffffff) => {
   const player = new Player(
     socketId,
     playerData.name,
     pather,
     Textures.PlayerBase,
-    world
+    world,
+    color
   )
   player.setPosition(playerData.x, playerData.y)
   player.setTarget(playerData.target)
@@ -112,7 +113,7 @@ const createPlayer = (socketId, playerData) => {
 }
 
 const createRemotePlayer = (socketId, playerData) => {
-  const remotePlayer = createPlayer(socketId, playerData)
+  const remotePlayer = createPlayer(socketId, playerData, 0x00ff00)
   remotePlayers[socketId] = remotePlayer
 }
 
@@ -126,8 +127,8 @@ const createLocalPlayer = (playerData) => {
     localPlayer.onDestroy()
   }
 
-  playerData.name = `${playerData.name} (You)`
-  localPlayer = createPlayer(socket.id, playerData)
+  playerData.name = `You`
+  localPlayer = createPlayer(socket.id, playerData, 0xffffff)
   playerControls = new PlayerControls(app, world, localPlayer, socket, centerViewOnPlayer)
 }
 

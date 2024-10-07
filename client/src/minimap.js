@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite } from 'pixi.js'
+import { Container, Graphics, Sprite, Text } from 'pixi.js'
 import { GrayscaleFilter } from 'pixi-filters/grayscale'
 import LevelSprite from './level-sprite'
 
@@ -9,7 +9,7 @@ class Minimap {
     this.width = width
     this.height = height
     this.scale = scale
-    this.remotePlayerDots = {}
+    this.remotePlayerMarkers = {}
 
     this.container = new Container()
     this.mask = new Graphics()
@@ -22,6 +22,7 @@ class Minimap {
     this.container.addChild(this.map)
     this.container.mask = this.mask
     this.map.sortableChildren = true
+    this.map.alpha = 0.5
     app.stage.addChild(this.container)
   }
 
@@ -34,41 +35,60 @@ class Minimap {
       this.map.onTick(localPlayer, this.width, this.height)
 
       // update local player dot
-      if (!this.localPlayerDot) {
-        this.localPlayerDot = this.makePlayerDot(0x00ff00)
-        this.map.addChild(this.localPlayerDot)
+      if (!this.localPlayerMarker) {
+        this.localPlayerMarker = this.makePlayerMarker('You', 0xffffff)
       }
-      this.localPlayerDot.x = localPlayer.x * this.scale
-      this.localPlayerDot.y = localPlayer.y * this.scale
+      this.localPlayerMarker.x = localPlayer.x * this.scale
+      this.localPlayerMarker.y = localPlayer.y * this.scale
 
       // center map on player
-      this.map.x = -this.localPlayerDot.x + this.width / 2
-      this.map.y = -this.localPlayerDot.y + this.height / 2
+      this.map.x = -this.localPlayerMarker.x + this.width / 2
+      this.map.y = -this.localPlayerMarker.y + this.height / 2
 
       // update remote player dots
       if (remotePlayers != null) {
         Object.entries(remotePlayers).forEach(([id, player]) => {
-          if (!this.remotePlayerDots[id]) {
-            this.remotePlayerDots[id] = this.makePlayerDot(0x0000ff)
-            this.map.addChild(this.remotePlayerDots[id])
+          if (!this.remotePlayerMarkers[id]) {
+            this.remotePlayerMarkers[id] = this.makePlayerMarker(player.name, 0x00ff00)
           }
-          this.remotePlayerDots[id].x = player.x * this.scale
-          this.remotePlayerDots[id].y = player.y * this.scale
+          this.remotePlayerMarkers[id].x = player.x * this.scale
+          this.remotePlayerMarkers[id].y = player.y * this.scale
         })
-        Object.keys(this.remotePlayerDots)
+        Object.keys(this.remotePlayerMarkers)
           .filter((id) => !remotePlayers[id])
           .forEach((id) => {
-            this.map.removeChild(this.remotePlayerDots[id])
-            delete this.remotePlayerDots[id]
+            this.map.removeChild(this.remotePlayerMarkers[id])
+            delete this.remotePlayerMarkers[id]
           })
       }
     }
   }
 
-  makePlayerDot(color) {
-    const graphic = new Graphics().circle(0, 0, 5).fill(color)
-    graphic.zIndex = 10
-    return graphic
+  makePlayerMarker(name, color) {
+    const container = new Container()
+    container.zIndex = 10
+    
+    const dot = new Graphics().circle(0, 0, 5).fill(color)
+    container.addChild(dot)
+
+    const text = new Text({
+      text: name,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 10,
+        fill: color,
+        align: 'center',
+        dropShadow: true,
+        dropShadowDistance: 1,
+        dropShadowBlur: 1,
+        dropShadowAlpha: 1,
+      },
+    })
+    text.anchor.set(0.5, 1.5)
+    container.addChild(text)
+    
+    this.map.addChild(container)
+    return container
   }
 }
 

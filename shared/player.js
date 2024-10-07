@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js'
 
 class Player {
-  constructor(socketId, name, pather, texture, stage) {
+  constructor(socketId, name, pather, texture, stage, color) {
     this.socketId = socketId
     this.name = name
     this.x = 0
@@ -9,6 +9,7 @@ class Player {
     this.maxSpeed = 500 // pixels per second
     this.stage = stage
     this.texture = texture
+    this.color = color
 
     this.path = []
     this.target = null
@@ -41,7 +42,7 @@ class Player {
       style: {
         fontFamily: 'Arial',
         fontSize: 12,
-        fill: 0xffffff,
+        fill: this.color,
         align: 'center',
         dropShadow: true,
         dropShadowDistance: 1,
