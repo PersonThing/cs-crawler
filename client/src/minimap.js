@@ -30,7 +30,7 @@ class Minimap {
     this.map.mask = this.mask
     this.container.addChild(this.outline)
     this.map.sortableChildren = true
-    this.map.tileContainer.alpha = 0.5
+    this.map.tileContainer.alpha = 0.7
     app.stage.addChild(this.container)
   }
 

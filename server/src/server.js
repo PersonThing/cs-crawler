@@ -60,6 +60,20 @@ io.on('connection', (socket) => {
     }
   })
 
+  // temp: handle weapon swapping
+  socket.on('playerSetWeapon', (index) => {
+    if (players[socket.id]) {
+      players[socket.id].setWeapon(index)
+    }
+  })
+
+  // temp: handle armor swapping
+  socket.on('playerSetArmor', (index) => {
+    if (players[socket.id]) {
+      players[socket.id].setArmor(index)
+    }
+  })
+
   // Remove player on disconnect
   socket.on('disconnect', () => {
     console.log('Player disconnected: ' + playerId, socket.id)

@@ -1,13 +1,14 @@
 import * as PIXI from 'pixi.js'
+import { Textures } from './textures.js'
 
 class Player {
-  constructor(socketId, name, pather, texture, stage, color) {
+  constructor(socketId, name, pather, texture, world, color) {
     this.socketId = socketId
     this.name = name
     this.x = 0
     this.y = 0
     this.maxSpeed = 500 // pixels per second
-    this.stage = stage
+    this.world = world
     this.texture = texture
     this.color = color
 
@@ -20,8 +21,14 @@ class Player {
 
     this.isMoving = false
 
+    // TODO: remove this - hacking some textures in quick to test graphics
+    this.weaponTextures = Object.values(Textures.weapons)
+    this.setWeapon(0)
+    this.armorTextures = Object.values(Textures.armors)
+    this.setArmor(0)
+
     // if we're on client, we have a stage and texture to render ourself
-    if (this.stage && this.texture) {
+    if (this.world && this.texture) {
       this.initSprite()
     }
   }
@@ -29,13 +36,13 @@ class Player {
   initSprite() {
     this.spriteContainer = new PIXI.Sprite()
     this.spriteContainer.anchor.set(0.5)
-    this.stage.addChild(this.spriteContainer)
+    this.world.addChild(this.spriteContainer)
 
-    this.spriteGraphic = PIXI.Sprite.from(this.texture)
-    this.spriteGraphic.anchor.set(0.5)
-    this.spriteGraphic.scale.x = 2
-    this.spriteGraphic.scale.y = 2
-    this.spriteContainer.addChild(this.spriteGraphic)
+    this.spritePlayer = PIXI.Sprite.from(this.texture)
+    this.spritePlayer.anchor.set(0.5)
+    this.spritePlayer.scale.x = 2
+    this.spritePlayer.scale.y = 2
+    this.spriteContainer.addChild(this.spritePlayer)
 
     this.spriteLabel = new PIXI.Text({
       text: this.name,
@@ -54,6 +61,72 @@ class Player {
     this.spriteContainer.addChild(this.spriteLabel)
   }
 
+  setArmor(ix) {
+    if (ix == null || ix < 0 || ix > this.armorTextures.length - 1) {
+      ix = 0
+    }
+    this.tempArmorIndex = ix
+
+    if (this.spritePlayer) {
+      if (this.tempArmorSprite) {
+        this.tempArmorSprite.parent.removeChild(this.tempArmorSprite)
+        this.tempArmorSprite.destroy()
+      }
+      this.tempArmorSprite = PIXI.Sprite.from(this.armorTextures[ix])
+      this.tempArmorSprite.anchor.set(0.5)
+      this.spritePlayer.addChild(this.tempArmorSprite)
+    }
+  }
+
+  setWeapon(ix) {
+    if (ix == null || ix < 0 || ix > this.weaponTextures.length - 1) {
+      ix = 0
+    }
+    this.tempWeaponIndex = ix
+
+    if (this.spritePlayer) {
+      if (this.tempWeaponSprite) {
+        this.tempWeaponSprite.parent.removeChild(this.tempWeaponSprite)
+        this.tempWeaponSprite.destroy()
+      }
+      this.tempWeaponSprite = PIXI.Sprite.from(this.weaponTextures[ix])
+      this.tempWeaponSprite.anchor.set(0.5)
+      this.spritePlayer.addChild(this.tempWeaponSprite)
+    }
+  }
+
+  selectNextArmor() {
+    this.tempArmorIndex += 1
+    if (this.tempArmorIndex > this.armorTextures.length - 1) {
+      this.tempArmorIndex = 0
+    }
+    this.setArmor(this.tempArmorIndex)
+  }
+
+  selectPreviousArmor() {
+    this.tempArmorIndex -= 1
+    if (this.tempArmorIndex < 0) {
+      this.tempArmorIndex = this.armorTextures.length - 1
+    }
+    this.setArmor(this.tempArmorIndex)
+  }
+
+  selectNextWeapon() {
+    this.tempWeaponIndex += 1
+    if (this.tempWeaponIndex > this.weaponTextures.length - 1) {
+      this.tempWeaponIndex = 0
+    }
+    this.setWeapon(this.tempWeaponIndex)
+  }
+
+  selectPreviousWeapon() {
+    this.tempWeaponIndex -= 1
+    if (this.tempWeaponIndex < 0) {
+      this.tempWeaponIndex = this.weaponTextures.length - 1
+    }
+    this.setWeapon(this.tempWeaponIndex)
+  }
+
   // when player state changes on the server, this is what the server will send
   // this is to avoid serializing a bunch of properties that aren't necessary to sync with the client
   getSyncProperties() {
@@ -63,6 +136,8 @@ class Player {
       x: this.x,
       y: this.y,
       target: this.target,
+      tempWeaponIndex: this.tempWeaponIndex,
+      tempArmorIndex: this.tempArmorIndex,
     }
   }
 
@@ -77,6 +152,9 @@ class Player {
       this.setPosition(data.x, data.y)
     }
 
+    this.setWeapon(data.tempWeaponIndex)
+    this.setArmor(data.tempArmorIndex)
+
     this.setTarget(data.target)
   }
 
@@ -89,7 +167,7 @@ class Player {
       this.targetNextPathPoint()
     }
 
-    if (this.stage) {
+    if (this.world) {
       this.drawPathLine()
     }
 
@@ -117,7 +195,7 @@ class Player {
     }
 
     // if we're in the UI, update the sprite representation of the player
-    if (this.stage) {
+    if (this.world) {
       this.spriteContainer.x = this.x
       this.spriteContainer.y = this.y
     }
@@ -168,9 +246,9 @@ class Player {
   }
 
   rotateToward({ x, y }) {
-    if (this.stage != null && x != null && y != null) {
+    if (this.world != null && x != null && y != null) {
       const angle = Math.atan2(y - this.y, x - this.x) + (90 * Math.PI) / 180
-      this.spriteGraphic.rotation = angle
+      this.spritePlayer.rotation = angle
     }
   }
 
@@ -193,7 +271,7 @@ class Player {
       this.pathLine.x = 0
       this.pathLine.y = 0
       this.pathLine.zIndex = 1
-      this.stage.addChild(this.pathLine)
+      this.world.addChild(this.pathLine)
     } else {
       this.pathLine.clear()
     }

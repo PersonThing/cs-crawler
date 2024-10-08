@@ -43,6 +43,32 @@ class PlayerControls {
       lastMouseEvent = event
     })
 
+    // on mouse scroll, change player weapon
+    this.app.canvas.addEventListener('wheel', (event) => {
+      if (!this.player) return
+
+      // if control is pressed, swap armor, otherwise weapon
+
+      if (event.altKey) {
+        const delta = Math.sign(event.deltaY)
+        if (delta > 0) {
+          this.player.selectNextArmor()
+        } else {
+          this.player.selectPreviousArmor()
+        }
+        this.socket.emit('playerSetArmor', this.player.tempArmorIndex)
+        return
+      }
+
+      const delta = Math.sign(event.deltaY)
+      if (delta > 0) {
+        this.player.selectNextWeapon()
+      } else {
+        this.player.selectPreviousWeapon()
+      }
+      this.socket.emit('playerSetWeapon', this.player.tempWeaponIndex)
+    })
+
     // only pass new position to server at most every 50ms (20 times per second)
     const throttledSetTargetOnServer = throttle((target) => {
       this.socket.emit('playerSetTarget', target)

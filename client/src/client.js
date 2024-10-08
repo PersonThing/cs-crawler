@@ -106,7 +106,7 @@ const createPlayer = (socketId, playerData, color = 0xffffff) => {
     socketId,
     playerData.name,
     pather,
-    Textures.PlayerBase,
+    Textures.player_base,
     world,
     color
   )
