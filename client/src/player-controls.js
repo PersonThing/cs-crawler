@@ -1,12 +1,11 @@
 import throttle from '../../shared/throttle'
 
 class PlayerControls {
-  constructor(app, world, player, socket, centerViewOnPlayer) {
+  constructor(app, world, player, socket) {
     this.app = app
     this.world = world
     this.player = player
     this.socket = socket
-    this.centerViewOnPlayer = centerViewOnPlayer
     this.startListening()
   }
 
@@ -80,14 +79,8 @@ class PlayerControls {
       // stage is shifted to center the player
       // so we need to account for that offset
       const target = {
-        x:
-          event.clientX -
-          rect.left -
-          (this.centerViewOnPlayer ? this.world.x : 0),
-        y:
-          event.clientY -
-          rect.top -
-          (this.centerViewOnPlayer ? this.world.y : 0),
+        x: event.clientX - rect.left - this.world.x,
+        y: event.clientY - rect.top - this.world.y,
       }
 
       this.player.setTarget(target)

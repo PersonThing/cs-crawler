@@ -1,11 +1,4 @@
-import {
-  Application,
-  Container,
-  Graphics,
-  BlurFilter,
-  Sprite,
-  Rectangle,
-} from 'pixi.js'
+import * as PIXI from 'pixi.js'
 import { generateSampleLevel } from '../../shared/level-builder.js'
 import { io } from 'socket.io-client'
 import { Textures, preloadTextures } from '../../shared/textures.js'
@@ -13,9 +6,8 @@ import Player from '../../shared/player'
 import PlayerControls from './player-controls'
 import Pather from '../../shared/pather'
 import Minimap from './minimap.js'
-import LevelSprite from './level-sprite.js'
+import World from '../../shared/world.js'
 
-const centerViewOnPlayer = true
 const remotePlayers = {}
 let localPlayer = null
 let playerControls = null
@@ -31,48 +23,24 @@ const socket = io(`http://${window.location.hostname}:3000`, {
 })
 
 // Create pixi.js app
-const app = new Application()
+const app = new PIXI.Application()
 await app.init({ background: '#000000', resizeTo: window })
 document.body.appendChild(app.canvas)
 
-const world = new Container()
-world.levelContainer = new Container()
-world.addChild(world.levelContainer)
+const levelConfig = generateSampleLevel()
+const world = new World(app, levelConfig)
 app.stage.addChild(world)
 
-const levelConfig = generateSampleLevel()
-const levelSprite = new LevelSprite(levelConfig, 1, false)
-world.addChild(levelSprite)
 const pather = new Pather(levelConfig)
-
-const minimap = new Minimap(app, levelConfig, 300, 300, 0.2)
+const minimap = new Minimap(levelConfig)
+app.stage.addChild(minimap)
 
 const init = async () => {
-  // light radius
-  world.mask = createLightRadiusMask()
-
   // Client-side game loop - server has authority, but client predicts and corrects
   app.ticker.maxFPS = 120
   app.ticker.add((time) => {
-    levelSprite.onTick(localPlayer, app.screen.width, app.screen.height)
-
-    if (localPlayer) {
-      localPlayer.onTick(time.deltaMS)
-    }
-    Object.values(remotePlayers).forEach((player) => {
-      player.onTick(time.deltaMS)
-    })
-
-    // shift the world to keep player centered
-    if (localPlayer && centerViewOnPlayer) {
-      world.x = -localPlayer.x + app.screen.width / 2
-      world.y = -localPlayer.y + app.screen.height / 2
-      world.mask.x = localPlayer.x
-      world.mask.y = localPlayer.y
-    }
-
-    // render minimap
-    minimap.onTick(localPlayer, remotePlayers)
+    world.onTick(time, localPlayer, app.screen.width, app.screen.height)
+    minimap.onTick(localPlayer, remotePlayers, app.screen.width, app.screen.height)
   })
 
   socket.on('updateState', (state) => {
@@ -104,7 +72,7 @@ const init = async () => {
 const createPlayer = (socketId, playerData, color = 0xffffff) => {
   const player = new Player(
     socketId,
-    playerData.name,
+    playerData.label,
     pather,
     Textures.player_base,
     world,
@@ -112,6 +80,7 @@ const createPlayer = (socketId, playerData, color = 0xffffff) => {
   )
   player.setPosition(playerData.x, playerData.y)
   player.setTarget(playerData.target)
+  world.addPlayer(player)
   return player
 }
 
@@ -122,53 +91,24 @@ const createRemotePlayer = (socketId, playerData) => {
 
 const removeRemotePlayer = (socketId) => {
   remotePlayers[socketId].onDestroy()
+  world.removePlayer(remotePlayers[socketId])
   delete remotePlayers[socketId]
 }
 
 const createLocalPlayer = (playerData) => {
   if (localPlayer != null) {
     localPlayer.onDestroy()
+    world.removePlayer(localPlayer)
   }
 
-  playerData.name = `You`
+  playerData.label = `You`
   localPlayer = createPlayer(socket.id, playerData, 0xffffff)
   playerControls = new PlayerControls(
     app,
     world,
     localPlayer,
-    socket,
-    centerViewOnPlayer
+    socket
   )
-}
-
-const createLightRadiusMask = () => {
-  const radius = 700
-  const blurSize = 500
-  let circle = new Graphics()
-    .circle(radius + blurSize, radius + blurSize, radius)
-    .fill(0xff0000)
-  circle.alpha = 1
-
-  const blurFilter = new BlurFilter()
-  blurFilter.blur = blurSize
-  blurFilter.quality = 10
-  circle.filters = [blurFilter]
-
-  const bounds = new Rectangle(
-    0,
-    0,
-    (radius + blurSize) * 2,
-    (radius + blurSize) * 2
-  )
-  const texture = app.renderer.generateTexture({
-    target: circle,
-    resolution: 1,
-    frame: bounds,
-  })
-  const focus = new Sprite(texture)
-  focus.anchor.set(0.5, 0.5)
-  world.addChild(focus)
-  return focus
 }
 
 preloadTextures().then(init)

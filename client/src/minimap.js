@@ -1,53 +1,49 @@
-import { Container, Graphics, Sprite, Text } from 'pixi.js'
+import * as PIXI from 'pixi.js'
 import { GrayscaleFilter } from 'pixi-filters/grayscale'
 import LevelSprite from './level-sprite'
 
-class Minimap {
-  constructor(app, level, width, height, scale) {
+class Minimap extends PIXI.Sprite {
+  constructor(level) {
+    super()
+
     this.level = level
-    this.app = app
-    this.width = width
-    this.height = height
-    this.scale = scale
+    this.mapScale = 0.3
     this.remotePlayerMarkers = {}
 
-    this.container = new Container()
-    this.mask = new Graphics()
-    this.mask.rect(0, 0, this.width, this.height)
-    this.mask.fill(0xff0000)
-    this.container.addChild(this.mask)
-    this.outline = new Graphics()
-      .moveTo(0,0)
-      .lineTo(this.width, 0)
-      .lineTo(this.width, this.height)
-      .lineTo(0, this.height)
-      .lineTo(0, 0)
-      .stroke(0xffffff, 1)
-    this.map = new LevelSprite(this.level, this.scale, false, [
+    this.x = 0
+    this.y = 0
+    this.anchor.set(0.5)
+    
+    this.map = new LevelSprite(this.level, this.mapScale, false, [
       new GrayscaleFilter(),
     ])
-    this.container.addChild(this.map)
-    this.map.mask = this.mask
-    this.container.addChild(this.outline)
     this.map.sortableChildren = true
-    this.map.tileContainer.alpha = 0.7
-    app.stage.addChild(this.container)
+    this.map.tileContainer.alpha = 0.5
+    this.addChild(this.map)
+
+    this.mask = new PIXI.Graphics().rect(0, 0, 200, 200).fill(0xff0000)
+    this.mask.x = -100
+    this.mask.y = -100
+    this.addChild(this.mask)
+    this.map.mask = this.mask
   }
 
-  onTick(localPlayer, remotePlayers) {
-    this.container.x = this.app.screen.width - this.width
-    this.container.y = 0
+  onTick(localPlayer, remotePlayers, screenWidth, screenHeight) {
+    // this.x = screenWidth / 2
+    // this.y = screenHeight / 2
+    this.x = screenWidth - 100
+    this.y = 100
 
     if (localPlayer != null) {
       // update map
-      this.map.onTick(localPlayer, this.width, this.height)
+      this.map.onTick(localPlayer, screenWidth, screenHeight)
 
       // update local player dot
       if (!this.localPlayerMarker) {
         this.localPlayerMarker = this.makePlayerMarker('You', 0xffffff)
       }
-      this.localPlayerMarker.x = localPlayer.x * this.scale
-      this.localPlayerMarker.y = localPlayer.y * this.scale
+      this.localPlayerMarker.x = localPlayer.x * this.mapScale
+      this.localPlayerMarker.y = localPlayer.y * this.mapScale
 
       // center map on player
       this.map.x = -this.localPlayerMarker.x + this.width / 2
@@ -57,10 +53,13 @@ class Minimap {
       if (remotePlayers != null) {
         Object.entries(remotePlayers).forEach(([id, player]) => {
           if (!this.remotePlayerMarkers[id]) {
-            this.remotePlayerMarkers[id] = this.makePlayerMarker(player.name, 0x00ff00)
+            this.remotePlayerMarkers[id] = this.makePlayerMarker(
+              player.label,
+              0x00ff00
+            )
           }
-          this.remotePlayerMarkers[id].x = player.x * this.scale
-          this.remotePlayerMarkers[id].y = player.y * this.scale
+          this.remotePlayerMarkers[id].x = player.x * this.mapScale
+          this.remotePlayerMarkers[id].y = player.y * this.mapScale
         })
         Object.keys(this.remotePlayerMarkers)
           .filter((id) => !remotePlayers[id])
@@ -73,13 +72,13 @@ class Minimap {
   }
 
   makePlayerMarker(name, color) {
-    const container = new Container()
+    const container = new PIXI.Container()
     container.zIndex = 10
-    
-    const dot = new Graphics().circle(0, 0, 3).fill(color)
+
+    const dot = new PIXI.Graphics().circle(0, 0, 3).fill(color)
     container.addChild(dot)
 
-    const text = new Text({
+    const text = new PIXI.Text({
       text: name,
       style: {
         fontFamily: 'Arial',
@@ -94,7 +93,7 @@ class Minimap {
     })
     text.anchor.set(0.5, 1.5)
     container.addChild(text)
-    
+
     this.map.addChild(container)
     return container
   }
