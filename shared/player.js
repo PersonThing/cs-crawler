@@ -69,7 +69,13 @@ class Player {
   syncWithServer(data) {
     // currently just trusting client on player position, or it gets choppy..
     // need to figure out a way to reconcile position without feeling choppy
-    // this.setPosition(data.x, data.y)
+    // if we're off by more than 200px, snap it
+    const dx = this.x - data.x
+    const dy = this.y - data.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    if (distance > 400) {
+      this.setPosition(data.x, data.y)
+    }
 
     this.setTarget(data.target)
   }

@@ -142,15 +142,18 @@ const createLocalPlayer = (playerData) => {
 }
 
 const createLightRadiusMask = () => {
-  const radius = 350
-  const blurSize = 100
+  const radius = 700
+  const blurSize = 500
   let circle = new Graphics()
     .circle(radius + blurSize, radius + blurSize, radius)
     .fill(0xff0000)
   circle.alpha = 1
+
   const blurFilter = new BlurFilter()
   blurFilter.blur = blurSize
+  blurFilter.quality = 10
   circle.filters = [blurFilter]
+
   const bounds = new Rectangle(
     0,
     0,
