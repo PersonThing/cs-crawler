@@ -20,10 +20,11 @@ export const Textures = {
     sword: '/assets/textures/item/weapon/sword.png',
   },
   armors: {
-    // base: '/assets/textures/item/helmet/armorbase.png',
     bascinet: '/assets/textures/item/helmet/bascinet.png',
+    bascinet: '/assets/textures/item/helmet/crown.png',
     greathelm: '/assets/textures/item/helmet/greathelm.png',
     nasalhelm: '/assets/textures/item/helmet/nasalhelm.png',
+    nasalhelm: '/assets/textures/item/helmet/ornatehelm.png',
     skullcap: '/assets/textures/item/helmet/skullcap.png',
     visorhelm: '/assets/textures/item/helmet/visorhelm.png',
   }
