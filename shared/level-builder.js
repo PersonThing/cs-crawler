@@ -230,8 +230,8 @@ export const generateSampleLevel = () => {
   ]
 
   level.start = {
-    x: 200,
-    y: 200
+    x: 2600,
+    y: 2600
   }
 
   return level

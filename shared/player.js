@@ -16,8 +16,6 @@ class Player extends LivingEntity {
   }
 
   setLabel(label) {
-    if (this.label == 'You') return
-
     super.setLabel(label)
   }
 

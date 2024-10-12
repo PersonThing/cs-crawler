@@ -17,7 +17,7 @@ class Minimap extends PIXI.Sprite {
     this.y = 0
     this.anchor.set(0.5)
 
-    this.map = new LevelSprite(this.level, this.mapScale, false, true)
+    this.map = new LevelSprite(this.level, this.mapScale, true)
     this.map.sortableChildren = true
     this.addChild(this.map)
 

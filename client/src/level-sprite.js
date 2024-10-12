@@ -1,17 +1,16 @@
 import { Container, Sprite, Graphics, Text } from 'pixi.js'
-import { ArtScale, BlockSize as BlockSizePixels } from '../../shared/constants.js'
+import { ArtScale, BlockSize, Debug } from '../../shared/constants.js'
 
 const partialRevealDistance = 400
 const fullRevealDistance = 200
 
 class LevelSprite extends Container {
-  constructor(level, mapScale, debug, isMinimap = false) {
+  constructor(level, mapScale, isMinimap) {
     super()
     this.level = JSON.parse(JSON.stringify(level))
     this.mapScale = mapScale
-    this.blockSize = BlockSizePixels * this.mapScale * ArtScale
+    this.blockSize = BlockSize * this.mapScale * ArtScale
     this.tileSize = this.blockSize * 10
-    this.debug = debug
     this.isMinimap = isMinimap
     this.tileContainer = new Container()
     this.addChild(this.tileContainer)
@@ -93,7 +92,7 @@ class LevelSprite extends Container {
                 })
             })
 
-            if (this.debug) {
+            if (Debug) {
               // draw coords and blue box around tile if debug mode on
               const graphic = new Graphics()
               graphic.rect(0, 0, this.tileSize, this.tileSize)
