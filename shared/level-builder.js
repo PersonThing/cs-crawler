@@ -1,4 +1,4 @@
-import { Textures } from './textures.js'
+import { Textures } from '../client/src/textures.js'
 import Block from './block.js'
 import Level from './level.js'
 import Tile from './tile.js'
@@ -228,6 +228,11 @@ export const generateSampleLevel = () => {
     ],
     [null, null, null, null, null, t(tileDoorTop)],
   ]
+
+  level.start = {
+    x: 200,
+    y: 200
+  }
 
   return level
 }

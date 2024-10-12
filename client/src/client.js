@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js'
 import { generateSampleLevel } from '../../shared/level-builder.js'
 import { io } from 'socket.io-client'
-import { Textures, preloadTextures } from '../../shared/textures.js'
+import { Textures, preloadTextures } from './textures.js'
 import Player from '../../shared/player'
 import PlayerControls from './player-controls'
 import Pather from '../../shared/pather'
@@ -33,7 +33,7 @@ const world = new World(app, levelConfig)
 app.stage.addChild(world)
 
 const pather = new Pather(levelConfig)
-const minimap = new Minimap(levelConfig, 400, 200, true)
+const minimap = new Minimap(levelConfig, 400, 200, false)
 app.stage.addChild(minimap)
 
 const hud = new Hud(app.screen.width, app.screen.height)

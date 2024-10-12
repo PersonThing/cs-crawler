@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js'
-import { Textures } from './textures.js'
+import { Textures } from '../client/src/textures.js'
 import LivingEntity from './living-entity.js'
 
 class Player extends LivingEntity {

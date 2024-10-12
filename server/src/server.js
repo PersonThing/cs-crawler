@@ -35,11 +35,9 @@ io.on('connection', (socket) => {
   // try to get playerState from memory, or create new one
   let playerState = playerStates[playerId]
   if (playerState == null) {
-    const x = 100
-    const y = 100 * (Object.keys(players).length + 1)
     playerState = {
-      x,
-      y,
+      x: level.start.x,
+      y: level.start.y,
       target: null
     }
   }
