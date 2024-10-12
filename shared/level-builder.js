@@ -192,13 +192,18 @@ export const generateSampleLevel = () => {
     [
       t(tileDoorRightBottom),
       t(tileHallwayHorizontal),
-      t(tileDoorLeftBottom)],
+      t(tileDoorLeftRightBottom),
+      t(tileHallwayHorizontal),
+      t(tileHallwayHorizontal),
+      t(tileDoorLeftBottom),
+    ],
     [
       t(tileDoorRightTopBottom),
       t(tileDoorLeftRightBottom),
       t(tileDoorLeftTop),
       t(tileDoorRightBottom),
-      t(tileDoorLeft),
+      t(tileHallwayHorizontal),
+      t(tileDoorLeftTop),
     ],
     [
       t(tileDoorRightTop),

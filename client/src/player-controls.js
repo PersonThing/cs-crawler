@@ -1,12 +1,13 @@
 import throttle from '../../shared/throttle'
 
 class PlayerControls {
-  constructor(app, world, player, socket, minimap) {
+  constructor(app, world, player, socket, minimap, hud) {
     this.app = app
     this.world = world
     this.player = player
     this.socket = socket
     this.minimap = minimap
+    this.hud = hud
     this.startListening()
   }
 
@@ -70,8 +71,12 @@ class PlayerControls {
     })
 
     window.addEventListener('keydown', (event) => {
-      if (event.code === 'Tab') {
+      if (event.key === 'Tab') {
         this.minimap.toggleCentered()
+        event.preventDefault()
+      } else if (event.key === 'b') {
+        this.hud.toggleInventory()
+        event.preventDefault()
       }
     })
 

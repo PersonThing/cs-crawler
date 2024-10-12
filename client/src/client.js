@@ -7,6 +7,7 @@ import PlayerControls from './player-controls'
 import Pather from '../../shared/pather'
 import Minimap from './minimap.js'
 import World from '../../shared/world.js'
+import Hud from './hud.js'
 
 const remotePlayers = {}
 let localPlayer = null
@@ -34,6 +35,9 @@ app.stage.addChild(world)
 const pather = new Pather(levelConfig)
 const minimap = new Minimap(levelConfig, 400, 200, true)
 app.stage.addChild(minimap)
+
+const hud = new Hud(app.screen.width, app.screen.height)
+app.stage.addChild(hud)
 
 const init = async () => {
   // Client-side game loop - server has authority, but client predicts and corrects
@@ -108,7 +112,8 @@ const createLocalPlayer = (playerData) => {
     world,
     localPlayer,
     socket,
-    minimap
+    minimap,
+    hud
   )
 }
 
