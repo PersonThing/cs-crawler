@@ -1,7 +1,7 @@
-import * as PIXI from 'pixi.js'
+import { Container, BlurFilter, Rectangle, Graphics, Sprite } from 'pixi.js'
 import LevelSprite from '../client/src/level-sprite'
 
-class World extends PIXI.Container {
+class World extends Container {
   constructor(app, levelConfig) {
     super()
 
@@ -12,7 +12,7 @@ class World extends PIXI.Container {
 
     this.levelConfig = levelConfig
 
-    this.levelContainer = new PIXI.Container()
+    this.levelContainer = new Container()
     this.addChild(this.levelContainer)
 
     this.levelSprite = new LevelSprite(levelConfig, 1, false)
@@ -24,17 +24,17 @@ class World extends PIXI.Container {
   createLightRadiusMask() {
     const radius = 700
     const blurSize = 500
-    let circle = new PIXI.Graphics()
+    let circle = new Graphics()
       .circle(radius + blurSize, radius + blurSize, radius)
       .fill(0xff0000)
     circle.alpha = 1
 
-    const blurFilter = new PIXI.BlurFilter()
+    const blurFilter = new BlurFilter()
     blurFilter.blur = blurSize
     blurFilter.quality = 10
     circle.filters = [blurFilter]
 
-    const bounds = new PIXI.Rectangle(
+    const bounds = new Rectangle(
       0,
       0,
       (radius + blurSize) * 2,
@@ -45,7 +45,7 @@ class World extends PIXI.Container {
       resolution: 1,
       frame: bounds,
     })
-    const focus = new PIXI.Sprite(texture)
+    const focus = new Sprite(texture)
     focus.anchor.set(0.5)
     this.addChild(focus)
     return focus

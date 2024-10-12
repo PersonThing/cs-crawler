@@ -1,7 +1,7 @@
-import * as PIXI from 'pixi.js'
+import { Sprite, Container, Graphics, Text } from 'pixi.js'
 import { ART_SCALE, DEBUG } from './constants.js'
 
-class LivingEntity extends PIXI.Container {
+class LivingEntity extends Container {
   constructor(label, pather, texture, world, color, maxHealth, currentHealth) {
     super()
 
@@ -30,13 +30,13 @@ class LivingEntity extends PIXI.Container {
   }
 
   initSprite() {
-    this.entitySprite = PIXI.Sprite.from(this.entityTexture)
+    this.entitySprite = Sprite.from(this.entityTexture)
     this.entitySprite.anchor.set(0.5)
     this.entitySprite.scale.x = ART_SCALE
     this.entitySprite.scale.y = ART_SCALE
     this.addChild(this.entitySprite)
 
-    this.spriteLabel = new PIXI.Text({
+    this.spriteLabel = new Text({
       text: this.label,
       style: {
         fontFamily: 'Arial',
@@ -205,7 +205,7 @@ class LivingEntity extends PIXI.Container {
     if (!this.showPaths) return
 
     if (this.pathLine == null) {
-      this.pathLine = new PIXI.Graphics()
+      this.pathLine = new Graphics()
       this.pathLine.x = 0
       this.pathLine.y = 0
       this.pathLine.zIndex = 1

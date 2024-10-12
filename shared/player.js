@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js'
+import { Sprite } from 'pixi.js'
 import { Textures } from '../client/src/textures.js'
 import LivingEntity from './living-entity.js'
 
@@ -30,7 +30,7 @@ class Player extends LivingEntity {
         this.tempArmorSprite.parent.removeChild(this.tempArmorSprite)
         this.tempArmorSprite.destroy()
       }
-      this.tempArmorSprite = PIXI.Sprite.from(this.armorTextures[ix])
+      this.tempArmorSprite = Sprite.from(this.armorTextures[ix])
       this.tempArmorSprite.anchor.set(0.5)
       this.entitySprite.addChild(this.tempArmorSprite)
     }
@@ -47,7 +47,7 @@ class Player extends LivingEntity {
         this.tempWeaponSprite.parent.removeChild(this.tempWeaponSprite)
         this.tempWeaponSprite.destroy()
       }
-      this.tempWeaponSprite = PIXI.Sprite.from(this.weaponTextures[ix])
+      this.tempWeaponSprite = Sprite.from(this.weaponTextures[ix])
       this.tempWeaponSprite.anchor.set(0.5)
       this.entitySprite.addChild(this.tempWeaponSprite)
     }

@@ -5,7 +5,7 @@ export const Textures = {
     base: '/assets/textures/player/base.png',
   },
   inventory: {
-    // background: '/assets/textures/inventory.png',
+    background: '/assets/textures/inventory/background.png',
   },
   tiles: {
     grass: '/assets/textures/tiles/grass.png',
@@ -30,8 +30,8 @@ export const Textures = {
     sword: '/assets/textures/item/weapon/sword.png',
   },
   armors: {
+    crown: '/assets/textures/item/helmet/crown.png',
     bascinet: '/assets/textures/item/helmet/bascinet.png',
-    bascinet: '/assets/textures/item/helmet/crown.png',
     greathelm: '/assets/textures/item/helmet/greathelm.png',
     nasalhelm: '/assets/textures/item/helmet/nasalhelm.png',
     nasalhelm: '/assets/textures/item/helmet/ornatehelm.png',

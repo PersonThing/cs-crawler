@@ -1,8 +1,8 @@
-import * as PIXI from 'pixi.js'
+import { Sprite, Container, Graphics, Text } from 'pixi.js'
 import LevelSprite from './level-sprite'
 import { MINIMAP_SCALE } from '../../shared/constants.js'
 
-class Minimap extends PIXI.Sprite {
+class Minimap extends Sprite {
   constructor(level, maskWidth, maskHeight, centered) {
     super()
 
@@ -21,7 +21,7 @@ class Minimap extends PIXI.Sprite {
     this.map.sortableChildren = true
     this.addChild(this.map)
 
-    this.mapMask = new PIXI.Graphics()
+    this.mapMask = new Graphics()
       .rect(0, 0, maskWidth, maskHeight)
       .fill(0xff0000)
     this.mapMask.x = -maskWidth / 2
@@ -93,13 +93,13 @@ class Minimap extends PIXI.Sprite {
   }
 
   makePlayerMarker(name, color) {
-    const container = new PIXI.Container()
+    const container = new Container()
     container.zIndex = 10
 
-    const dot = new PIXI.Graphics().circle(0, 0, 3).fill(color)
+    const dot = new Graphics().circle(0, 0, 3).fill(color)
     container.addChild(dot)
 
-    const text = new PIXI.Text({
+    const text = new Text({
       text: name,
       style: {
         fontFamily: 'Arial',

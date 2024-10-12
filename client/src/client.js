@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js'
+import { Application } from 'pixi.js'
 import { generateSampleLevel } from '../../shared/level-builder.js'
 import { io } from 'socket.io-client'
 import { Textures, preloadTextures } from './textures.js'
@@ -24,7 +24,7 @@ const socket = io(`http://${window.location.hostname}:3000`, {
 })
 
 // Create pixi.js app
-const app = new PIXI.Application()
+const app = new Application()
 await app.init({ background: '#000000', resizeTo: window })
 document.body.appendChild(app.canvas)
 
