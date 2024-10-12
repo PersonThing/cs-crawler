@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js'
-import artScale from './art-scale.js'
+import { ArtScale } from './constants.js'
 
 class LivingEntity extends PIXI.Container {
   constructor(label, pather, texture, world, color, maxHealth, currentHealth) {
@@ -32,8 +32,8 @@ class LivingEntity extends PIXI.Container {
   initSprite() {
     this.entitySprite = PIXI.Sprite.from(this.entityTexture)
     this.entitySprite.anchor.set(0.5)
-    this.entitySprite.scale.x = artScale
-    this.entitySprite.scale.y = artScale
+    this.entitySprite.scale.x = ArtScale
+    this.entitySprite.scale.y = ArtScale
     this.addChild(this.entitySprite)
 
     this.spriteLabel = new PIXI.Text({

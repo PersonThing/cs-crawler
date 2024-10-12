@@ -4,15 +4,15 @@ import InventoryHud from './inventory-hud.js'
 class Hud extends Container {
   constructor(screenWidth, screenHeight) {
     super()
-    this.inventory = new InventoryHud(600, 800)
-    this.inventory.x = screenWidth - this.inventory.width
-    this.inventory.y = screenHeight - this.inventory.height
+    this.inventory = new InventoryHud()
     this.inventory.visible = false
     this.addChild(this.inventory)
   }
 
-  toggleInventory() {
+  toggleInventory(screenWidth, screenHeight) {
     this.inventory.visible = !this.inventory.visible
+    this.inventory.x = screenWidth - this.inventory.width
+    this.inventory.y = screenHeight - this.inventory.height
   }
 }
 

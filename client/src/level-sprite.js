@@ -1,12 +1,15 @@
 import { Container, Sprite, Graphics, Text } from 'pixi.js'
-import artScale from '../../shared/art-scale.js'
+import { ArtScale, BlockSize as BlockSizePixels } from '../../shared/constants.js'
+
+const partialRevealDistance = 400
+const fullRevealDistance = 200
 
 class LevelSprite extends Container {
   constructor(level, mapScale, debug, isMinimap = false) {
     super()
     this.level = JSON.parse(JSON.stringify(level))
     this.mapScale = mapScale
-    this.blockSize = 48 * this.mapScale
+    this.blockSize = BlockSizePixels * this.mapScale * ArtScale
     this.tileSize = this.blockSize * 10
     this.debug = debug
     this.isMinimap = isMinimap
@@ -82,7 +85,7 @@ class LevelSprite extends Container {
                     const blockSprite = Sprite.from(block.texture)
                     blockSprite.x = block.x * this.blockSize
                     blockSprite.y = block.y * this.blockSize
-                    blockSprite.scale.set(this.mapScale * artScale)
+                    blockSprite.scale.set(this.mapScale * ArtScale)
                     blockSprite.alpha = block.alpha
                     block.sprite = blockSprite
                     tile.container.addChild(blockSprite)
@@ -145,10 +148,10 @@ class LevelSprite extends Container {
 
           // if block.sprite is within 200px of the player, set it to discovered
           const distance = Math.sqrt(dx * dx + dy * dy)
-          if (distance < 200 * this.mapScale) {
+          if (distance < fullRevealDistance * this.mapScale) {
             block.alpha = 1
             block.sprite.alpha = 1
-          } else if (distance < 300 * this.mapScale && block.sprite.alpha < 1) {
+          } else if (distance < partialRevealDistance * this.mapScale && block.sprite.alpha < 1) {
             block.alpha = 0.5
             block.sprite.alpha = 0.5
           }

@@ -75,7 +75,7 @@ class PlayerControls {
         this.minimap.toggleCentered()
         event.preventDefault()
       } else if (event.key === 'b') {
-        this.hud.toggleInventory()
+        this.hud.toggleInventory(this.app.screen.width, this.app.screen.height)
         event.preventDefault()
       }
     })

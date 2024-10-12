@@ -1,13 +1,13 @@
 import Grid from './path-finding/Grid.js'
 import Util from './path-finding/Util.js'
 import AStarFinder from './path-finding/AStarFinder.js'
-import { Textures } from './textures.js'
+import { ArtScale, BlockSize } from './constants.js'
 // Most of this code is from the cs-builder project, and may need revision
 
 class Pather {
   constructor(level) {
     this.level = level
-    this.blockSize = 48
+    this.blockSize = BlockSize * ArtScale
     this.smoothPathing = true
     
     // compute grid width and height
