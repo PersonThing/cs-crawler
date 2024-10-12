@@ -1,4 +1,5 @@
 import { Container } from 'pixi.js'
+import InventoryHud from './inventory-hud.js'
 
 class Hud extends Container {
   constructor(screenWidth, screenHeight) {
