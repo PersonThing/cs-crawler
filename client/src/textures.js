@@ -4,6 +4,9 @@ export const Textures = {
   player: {
     base: '/assets/textures/player/base.png',
   },
+  inventory: {
+    // background: '/assets/textures/inventory.png',
+  },
   tiles: {
     grass: '/assets/textures/tiles/grass.png',
     stone: '/assets/textures/tiles/stone.png',

@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js'
 import LevelSprite from './level-sprite'
-import { MinimapScale } from '../../shared/constants.js'
+import { MINIMAP_SCALE } from '../../shared/constants.js'
 
 class Minimap extends PIXI.Sprite {
   constructor(level, maskWidth, maskHeight, centered) {
@@ -10,7 +10,7 @@ class Minimap extends PIXI.Sprite {
     this.maskWidth = maskWidth
     this.maskHeight = maskHeight
 
-    this.mapScale = MinimapScale
+    this.mapScale = MINIMAP_SCALE
     this.remotePlayerMarkers = {}
 
     this.x = 0

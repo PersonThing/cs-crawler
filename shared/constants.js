@@ -1,9 +1,9 @@
-const Debug = true
+const DEBUG = true
 
-const ArtScale = 1.5
-const BlockSize = 32
-const MinimapScale = 0.15
-const InventoryWidth = 400
-const InventoryHeight = 600
+const ART_SCALE = 1.5
+const BLOCK_SIZE = 32
+const MINIMAP_SCALE = 0.15
+const INVENTORY_WIDTH = 400
+const INVENTORY_HEIGHT = 600
 
-export { ArtScale, BlockSize, MinimapScale, InventoryWidth, InventoryHeight, Debug }
+export { ART_SCALE, BLOCK_SIZE, MINIMAP_SCALE, INVENTORY_WIDTH, INVENTORY_HEIGHT, DEBUG }
