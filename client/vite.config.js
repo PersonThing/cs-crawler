@@ -8,6 +8,6 @@ export default defineConfig({
   },
   server: {
     host: true, // listen on all network interfaces
-    port: 5173
+    port: 5200
   }
 })
