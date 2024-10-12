@@ -1,11 +1,12 @@
 import throttle from '../../shared/throttle'
 
 class PlayerControls {
-  constructor(app, world, player, socket) {
+  constructor(app, world, player, socket, minimap) {
     this.app = app
     this.world = world
     this.player = player
     this.socket = socket
+    this.minimap = minimap
     this.startListening()
   }
 
@@ -66,6 +67,12 @@ class PlayerControls {
         this.player.selectPreviousWeapon()
       }
       this.socket.emit('playerSetWeapon', this.player.tempWeaponIndex)
+    })
+
+    window.addEventListener('keydown', (event) => {
+      if (event.code === 'Tab') {
+        this.minimap.toggleCentered()
+      }
     })
 
     // only pass new position to server at most every 50ms (20 times per second)

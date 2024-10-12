@@ -1,11 +1,18 @@
 import { Assets } from 'pixi.js'
 
 export const Textures = {
-  player_base: '/assets/textures/player/activechar/base.png',
-  grass: '/assets/textures/tiles/grass.png',
-  stone: '/assets/textures/tiles/stone.png',
-  bricks: '/assets/textures/tiles/perspective/brickwall_lr.png',
-  bricks_top: '/assets/textures/tiles/perspective/bricks_top.png',
+  player: {
+    base: '/assets/textures/player/base.png',
+  },
+  tiles: {
+    grass: '/assets/textures/tiles/grass.png',
+    stone: '/assets/textures/tiles/stone.png',
+    dirt: '/assets/textures/tiles/dirt.png',
+    gravel: '/assets/textures/tiles/gravel.png',
+    blackstone: '/assets/textures/tiles/blackstone.png',
+    bricks: '/assets/textures/tiles/bricks.png',
+    rocks: '/assets/textures/tiles/rocks.png',
+  },
   weapons: {
     hands: '/assets/textures/item/weapon/hands.png',
     axe: '/assets/textures/item/weapon/axe.png',

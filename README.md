@@ -15,3 +15,4 @@
 - click to move
 - mouse wheel to cycle through weapons (temp)
 - alt + mouse wheel to cycle through armors (temp)
+- tab to toggle minimap between center overlay and top-right

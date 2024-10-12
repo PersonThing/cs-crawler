@@ -1,42 +1,61 @@
 import * as PIXI from 'pixi.js'
-import { GrayscaleFilter } from 'pixi-filters/grayscale'
 import LevelSprite from './level-sprite'
 
 class Minimap extends PIXI.Sprite {
-  constructor(level) {
+  constructor(level, maskWidth, maskHeight, centered) {
     super()
 
     this.level = level
-    this.mapScale = 0.3
+    this.maskWidth = maskWidth
+    this.maskHeight = maskHeight
+
+    this.mapScale = 0.15
     this.remotePlayerMarkers = {}
 
     this.x = 0
     this.y = 0
     this.anchor.set(0.5)
-    
-    this.map = new LevelSprite(this.level, this.mapScale, false, [
-      new GrayscaleFilter(),
-    ])
+
+    this.map = new LevelSprite(this.level, this.mapScale, false, true)
     this.map.sortableChildren = true
-    this.map.tileContainer.alpha = 0.5
     this.addChild(this.map)
 
-    this.mask = new PIXI.Graphics().rect(0, 0, 200, 200).fill(0xff0000)
-    this.mask.x = -100
-    this.mask.y = -100
-    this.addChild(this.mask)
-    this.map.mask = this.mask
+    this.mapMask = new PIXI.Graphics()
+      .rect(0, 0, maskWidth, maskHeight)
+      .fill(0xff0000)
+    this.mapMask.x = -maskWidth / 2
+    this.mapMask.y = -maskHeight / 2
+    // this.mapMask.visible = false
+    this.addChild(this.mapMask)
+    this.map.mask = this.mapMask
+    this.setCentered(centered)
+  }
+
+  toggleCentered() {
+    this.setCentered(!this.centered)
+  }
+
+  setCentered(isCentered) {
+    this.centered = isCentered
+    this.map.mask = this.centered ? null : this.mapMask
+    this.mapMask.visible = !this.centered
+    this.map.tileContainer.alpha = this.centered ? 0.25 : 0.5
   }
 
   onTick(localPlayer, remotePlayers, screenWidth, screenHeight) {
-    // this.x = screenWidth / 2
-    // this.y = screenHeight / 2
-    this.x = screenWidth - 100
-    this.y = 100
+    if (this.centered) {
+      this.x = screenWidth / 2
+      this.y = screenHeight / 2
+    } else {
+      this.x = screenWidth - this.maskWidth / 2
+      this.y = 100
+    }
 
     if (localPlayer != null) {
       // update map
-      this.map.onTick(localPlayer, screenWidth, screenHeight)
+      const maxMapWidth = this.centered ? screenWidth : this.maskWidth
+      const maxMapHeight = this.centered ? screenHeight : this.maskHeight
+      this.map.onTick(localPlayer, maxMapWidth, maxMapHeight)
 
       // update local player dot
       if (!this.localPlayerMarker) {
@@ -44,6 +63,7 @@ class Minimap extends PIXI.Sprite {
       }
       this.localPlayerMarker.x = localPlayer.x * this.mapScale
       this.localPlayerMarker.y = localPlayer.y * this.mapScale
+      this.localPlayerMarker.visible = !this.centered
 
       // center map on player
       this.map.x = -this.localPlayerMarker.x + this.width / 2

@@ -32,7 +32,7 @@ const world = new World(app, levelConfig)
 app.stage.addChild(world)
 
 const pather = new Pather(levelConfig)
-const minimap = new Minimap(levelConfig)
+const minimap = new Minimap(levelConfig, 400, 200, true)
 app.stage.addChild(minimap)
 
 const init = async () => {
@@ -74,7 +74,7 @@ const createPlayer = (socketId, playerData, color = 0xffffff) => {
     socketId,
     playerData.label,
     pather,
-    Textures.player_base,
+    Textures.player.base,
     world,
     color
   )
@@ -107,7 +107,8 @@ const createLocalPlayer = (playerData) => {
     app,
     world,
     localPlayer,
-    socket
+    socket,
+    minimap
   )
 }
 

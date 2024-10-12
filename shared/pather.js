@@ -7,7 +7,7 @@ import { Textures } from './textures.js'
 class Pather {
   constructor(level) {
     this.level = level
-    this.blockSize = 32
+    this.blockSize = 48
     this.smoothPathing = true
     
     // compute grid width and height

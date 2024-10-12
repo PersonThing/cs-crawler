@@ -1,13 +1,15 @@
 import { Container, Sprite, Graphics, Text } from 'pixi.js'
+import artScale from '../../shared/art-scale.js'
 
 class LevelSprite extends Container {
-  constructor(level, mapScale, debug, tileFilters) {
+  constructor(level, mapScale, debug, isMinimap = false) {
     super()
     this.level = JSON.parse(JSON.stringify(level))
     this.mapScale = mapScale
-    this.blockSize = 32 * this.mapScale
+    this.blockSize = 48 * this.mapScale
     this.tileSize = this.blockSize * 10
     this.debug = debug
+    this.isMinimap = isMinimap
     this.tileContainer = new Container()
     this.addChild(this.tileContainer)
   }
@@ -17,8 +19,12 @@ class LevelSprite extends Container {
 
     // only render the tiles around the local player
     // figure out which tile the local player is inside
-    const playerTileX = Math.floor(localPlayer.x*this.mapScale / this.tileSize)
-    const playerTileY = Math.floor(localPlayer.y*this.mapScale / this.tileSize)
+    const playerTileX = Math.floor(
+      (localPlayer.x * this.mapScale) / this.tileSize
+    )
+    const playerTileY = Math.floor(
+      (localPlayer.y * this.mapScale) / this.tileSize
+    )
 
     // compute the bounds of the screen in tiles
     const numTilesWide = Math.ceil(maxWidth / this.tileSize)
@@ -57,29 +63,30 @@ class LevelSprite extends Container {
               blockRow
                 .filter((b) => b.texture != null)
                 .forEach((block) => {
-                  const blockSprite = Sprite.from(block.texture)
-                  blockSprite.x = block.x * this.blockSize
-                  blockSprite.y = block.y * this.blockSize
-                  blockSprite.scale.set(this.mapScale)
-                  blockSprite.alpha = block.alpha
-                  block.sprite = blockSprite
-                  
-                  // draw x's on blocks that can't be walked on if debug mode on
-                  // if (this.debug && !block.canWalk) {
-                  //   const cantWalkGraphic = new Graphics()
-                  //   cantWalkGraphic.x = 0
-                  //   cantWalkGraphic.y = 0
-                  //   cantWalkGraphic
-                  //     .moveTo(0, 0)
-                  //     .lineTo(this.blockSize, this.blockSize)
-                  //     .stroke(0xff0000)
-                  //     .moveTo(this.blockSize, 0)
-                  //     .lineTo(0, this.blockSize)
-                  //     .stroke(0xff0000)
-                  //   blockSprite.addChild(cantWalkGraphic)
-                  // }
+                  if (this.isMinimap) {
+                    if (block.canWalk) {
+                      // dont draw anything for walkable areas
+                      return
+                    }
 
-                  tile.container.addChild(blockSprite)
+                    const blockGraphic = new Graphics()
+                    blockGraphic.x = block.x * this.blockSize
+                    blockGraphic.y = block.y * this.blockSize
+                    blockGraphic.alpha = block.alpha
+                    blockGraphic
+                      .rect(0, 0, this.blockSize, this.blockSize)
+                      .fill(0xffffff)
+                    block.sprite = blockGraphic
+                    tile.container.addChild(blockGraphic)
+                  } else {
+                    const blockSprite = Sprite.from(block.texture)
+                    blockSprite.x = block.x * this.blockSize
+                    blockSprite.y = block.y * this.blockSize
+                    blockSprite.scale.set(this.mapScale * artScale)
+                    blockSprite.alpha = block.alpha
+                    block.sprite = blockSprite
+                    tile.container.addChild(blockSprite)
+                  }
                 })
             })
 
@@ -105,7 +112,7 @@ class LevelSprite extends Container {
               })
               tile.container.addChild(text)
             }
-            
+
             this.tileContainer.addChild(tile.container)
             tile.rendered = true
           }
@@ -131,8 +138,10 @@ class LevelSprite extends Container {
       blockRow
         .filter((b) => b.sprite != null)
         .forEach((block) => {
-          const dx = tile.container.x + block.sprite.x - localPlayer.x * this.mapScale
-          const dy = tile.container.y + block.sprite.y - localPlayer.y * this.mapScale
+          const dx =
+            tile.container.x + block.sprite.x - localPlayer.x * this.mapScale
+          const dy =
+            tile.container.y + block.sprite.y - localPlayer.y * this.mapScale
 
           // if block.sprite is within 200px of the player, set it to discovered
           const distance = Math.sqrt(dx * dx + dy * dy)

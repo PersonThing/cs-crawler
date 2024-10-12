@@ -5,9 +5,9 @@ import Tile from './tile.js'
 
 const textureMap = {
   0: null,
-  1: Textures.bricks,
-  2: Textures.bricks_top,
-  3: Textures.stone,
+  1: Textures.tiles.rocks,
+  2: Textures.tiles.stone,
+  3: Textures.tiles.blackstone,
 }
 
 export const generateSampleLevel = () => {
