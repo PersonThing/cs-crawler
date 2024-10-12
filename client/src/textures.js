@@ -6,6 +6,9 @@ export const Textures = {
   },
   inventory: {
     background: '/assets/textures/inventory/background.png',
+    armor: {},
+    charm: {},
+    weapon: {},
   },
   tiles: {
     grass: '/assets/textures/tiles/grass.png',
@@ -37,7 +40,7 @@ export const Textures = {
     nasalhelm: '/assets/textures/item/helmet/ornatehelm.png',
     skullcap: '/assets/textures/item/helmet/skullcap.png',
     visorhelm: '/assets/textures/item/helmet/visorhelm.png',
-  }
+  },
 }
 
 export const preloadTextures = (textures) => {

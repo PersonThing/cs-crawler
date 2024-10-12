@@ -1,7 +1,6 @@
-import { Container, Sprite } from "pixi.js"
-
 class Tile {
-  constructor() {
+  constructor(label) {
+    this.label = label
     this.blockGrid = []
     this.connections = {
       up: null,
