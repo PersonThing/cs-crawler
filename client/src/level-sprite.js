@@ -100,10 +100,10 @@ class LevelSprite extends Container {
               tile.container.addChild(graphic)
 
               const text = new Text({
-                text: `${tile.container.x},${tile.container.y}`,
+                text: `${tile.label}    ${tile.container.x},${tile.container.y}`,
                 style: {
                   fontFamily: 'Arial',
-                  fontSize: 8,
+                  fontSize: 12,
                   fill: 0x00ff00,
                   align: 'center',
                   dropShadow: true,
