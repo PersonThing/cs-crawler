@@ -92,7 +92,7 @@ class LevelSprite extends Container {
                 })
             })
 
-            if (DEBUG) {
+            if (DEBUG && !this.isMinimap){
               // draw coords and blue box around tile if debug mode on
               const graphic = new Graphics()
               graphic.rect(0, 0, this.tileSize, this.tileSize)
