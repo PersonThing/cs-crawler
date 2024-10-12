@@ -36,10 +36,11 @@ const pather = new Pather(levelConfig)
 const minimap = new Minimap(levelConfig, 400, 200, false)
 app.stage.addChild(minimap)
 
-const hud = new Hud(app.screen.width, app.screen.height)
-app.stage.addChild(hud)
-
+let hud
 const init = async () => {
+  hud = new Hud(app.screen.width, app.screen.height)
+  app.stage.addChild(hud)
+
   // Client-side game loop - server has authority, but client predicts and corrects
   app.ticker.maxFPS = 120
   app.ticker.add((time) => {
