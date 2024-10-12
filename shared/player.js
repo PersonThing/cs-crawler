@@ -9,9 +9,9 @@ class Player extends LivingEntity {
     this.socketId = socketId
 
     // TODO: remove this - hacking some textures in quick to test graphics
-    this.weaponTextures = Object.values(Textures.weapons)
+    this.weaponTextures = Object.values(Textures.item.weapon)
     this.setWeapon(0)
-    this.armorTextures = Object.values(Textures.armors)
+    this.armorTextures = Object.values(Textures.item.helmet)
     this.setArmor(0)
   }
 

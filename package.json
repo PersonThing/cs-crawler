@@ -8,13 +8,16 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev:client": "vite --config ./client/vite.config.js",
     "dev:server": "nodemon ./server/src/server.js",
-    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:textures": "node build-textures.js --watch",
+    "textures": "node build-textures.js",
+    "dev": "concurrently \"npm run dev:textures\" \"npm run dev:client\" \"npm run dev:server\"",
     "build": "vite build --config ./client/vite.config.js",
     "start": "node ./server/src/server.js"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "chokidar": "^4.0.1",
     "concurrently": "^9.0.1",
     "nodemon": "^3.1.7",
     "prettier": "^3.3.3",
