@@ -186,51 +186,56 @@ class InventoryHud extends Container {
     this.itemContainer.addChild(itemSprite)
 
     if (!isDisabledOffHand) {
-      const ITEM_DESCRIPTION_WIDTH = 200
       const itemDescription = new Container()
-      itemDescription.x = -ITEM_DESCRIPTION_WIDTH
-
       const itemDescriptionBg = new Graphics()
       itemDescription.addChild(itemDescriptionBg)
 
-      // create text for the name
+      // name
       const itemNameText = new Text({
         text: `${item.name}`,
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 14,
+          fontWeight: 'bold',
+          fill: ItemQualityColors[item.itemQuality],
+        },
+      })
+      itemDescription.addChild(itemNameText)
+
+      // quality + type
+      const itemTypeNameText = new Text({
+        text: `${item.itemQuality} ${item.itemType.name}`,
         style: {
           fontFamily: 'Arial',
           fontSize: 12,
           fill: 0xffffff,
         },
       })
-      itemDescription.addChild(itemNameText)
-
-      // create text for the item quality + type
-      const itemTypeNameText = new Text({
-        text: `${item.itemQuality} ${item.itemType.name}`,
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 11,
-          fill: ItemQualityColors[item.itemQuality],
-        },
-      })
-      itemTypeNameText.y = 14
+      itemTypeNameText.y = 16
       itemDescription.addChild(itemTypeNameText)
 
-      // add 1 text, with all the item's attributes
+      // attributes + description
       const itemAttributeText = new Text({
         text: Object.keys(item.attributes)
-          .map(
-            (attributeName) =>
-              `${item.attributes[attributeName]} ${attributeName}`
-          )
+          .map((attributeName) => {
+            const attributeValue = item.attributes[attributeName]
+            let symbol = '+'
+            if (attributeValue < 0) {
+              symbol = '-'
+            }
+            return `${symbol}${attributeValue} ${attributeName}`
+          })
           .join('\n'),
         style: {
           fontFamily: 'Arial',
-          fontSize: 11,
-          fill: 0xffffff,
+          fontSize: 12,
+          fill: 0x999999,
         },
       })
-      itemAttributeText.y = 28
+      if (item.description != null) {
+        itemAttributeText.text += `\n\n${item.description}`
+      }
+      itemAttributeText.y = 32
       itemDescription.addChild(itemAttributeText)
 
       // only show on mouseover
@@ -245,12 +250,13 @@ class InventoryHud extends Container {
       })
 
       // draw a background and set y based on height of the description container
+      itemDescription.x = -itemDescription.width
       itemDescription.y = -itemDescription.height
       itemDescriptionBg
         .roundRect(
           -10,
           -10,
-          ITEM_DESCRIPTION_WIDTH + 20,
+          itemDescription.width + 20,
           itemDescription.height + 20,
           4
         )

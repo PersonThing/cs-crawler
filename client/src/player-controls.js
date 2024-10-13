@@ -59,11 +59,11 @@ class PlayerControls {
       } else if (event.key === 'n') {
         // temp: generate and pick up a random sample item
         this.player.inventory.pickup(generateRandomItem())
-      } else if (event.key === 'N') {
+      } else if (event.key === 'm') {
         // temp: fill inventory with random items
         this.player.inventory.reset()
         while (this.player.inventory.pickup(generateRandomItem())) {}
-      } else if (event.key === 'M') {
+      } else if (event.key === ',') {
         // temp: reset inventory
         this.player.inventory.reset()
       }

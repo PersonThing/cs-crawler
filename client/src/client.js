@@ -16,7 +16,7 @@ let playerControls = null
 
 // Create pixi.js app
 const app = new Application()
-await app.init({ background: '#000000', resizeTo: window })
+await app.init({ background: 0x000000, resizeTo: window })
 document.body.appendChild(app.canvas)
 
 const levelConfig = generateSampleLevel()

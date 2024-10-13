@@ -9,6 +9,9 @@ const textureMap = {
   1: Textures.tiles.rocks,
   2: Textures.tiles.stone,
   3: Textures.tiles.gravel,
+  4: Textures.object.mushroom,
+  5: Textures.particle.fire1,
+  6: Textures.particle.fire2,
 }
 
 export const generateSampleLevel = () => {
@@ -158,12 +161,24 @@ export const generateSampleLevel = () => {
       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ],
+    MushRoom: [
+      [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      [2, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+      [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [2, 3, 3, 3, [3, 4], [3, 4], 3, 3, 3, 2],
+      [2, 3, 3, 3, [3, 4], [3, 4], 3, 3, 3, 2],
+      [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [2, 2, 2, 3, 3, 3, 3, 2, 2, 2],
+    ],
   }
 
   Object.entries(Tiles).forEach(([key, value]) => {
     Tiles[key] = {
       label: key,
-      grid: value
+      grid: value,
     }
   })
 
@@ -171,14 +186,16 @@ export const generateSampleLevel = () => {
     const tile = new Tile(config.label)
     config.grid.forEach((row, y) => {
       row.forEach((n, x) => {
+        const isWalkable = n === 3 || n.length
+        const textures = n.length ? n.map(t => textureMap[t]) : [textureMap[n]]
         tile.setBlock(
           new Block({
             x,
             y,
-            canWalk: n == 3 ? true : false,
-            canSeeThrough: n == 3 ? true : false,
-            canShootThrough: n == 3 ? true : false,
-            texture: textureMap[n],
+            canWalk: isWalkable,
+            canSeeThrough: isWalkable,
+            canShootThrough: isWalkable,
+            textures,
           })
         )
       })
@@ -187,8 +204,9 @@ export const generateSampleLevel = () => {
   }
 
   level.tileGrid = [
+    [t(Tiles.MushRoom)],
     [
-      t(Tiles.DoorRightBottom),
+      t(Tiles.DoorRightTopBottom),
       t(Tiles.HallwayHorizontal),
       t(Tiles.DoorLeftRightBottom),
       t(Tiles.HallwayHorizontal),
@@ -223,8 +241,8 @@ export const generateSampleLevel = () => {
   ]
 
   level.start = {
-    x: 1750 * ART_SCALE,
-    y: 1750 * ART_SCALE,
+    x: 200 * ART_SCALE,
+    y: 200 * ART_SCALE,
   }
 
   return level

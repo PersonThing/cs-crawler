@@ -12,9 +12,12 @@
 - (more browser tabs in incognito to simulate multiple players connecting)
 
 # Controls
-- click to move
-- mouse wheel to cycle through weapons (temp)
-- alt + mouse wheel to cycle through armors (temp)
-- tab to toggle minimap between center overlay and top-right
-- b to toggle inventory
+- `click` to move
+- `mouse wheel` to cycle through weapons (temp)
+- `alt` + `mouse wheel` to cycle through armors (temp)
+- `tab` to toggle minimap between center overlay and top-right
+- `b` to toggle inventory
+- `n` to generate and pick up a random item (temp)
+- `m` to completely fill inventory and bags with generated items (temp)
+- `,` to clear inventory and bags (temp)
 - to toggle debug mode, open `/shared/constants.js` and change `DEBUG` to true or false

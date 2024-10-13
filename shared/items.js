@@ -11,7 +11,7 @@ export const SampleItems = [
     itemQuality: ItemQuality.Normal,
     inventoryTexture: Textures.inventory.chest[textureKey],
     attributes: {
-      [ItemAttributeType.Armor]: 15
+      [ItemAttributeType.Defense]: 15
     }
   })),
 
@@ -21,7 +21,7 @@ export const SampleItems = [
     itemQuality: ItemQuality.Normal,
     inventoryTexture: Textures.inventory.hands[textureKey],
     attributes: {
-      [ItemAttributeType.Armor]: 5
+      [ItemAttributeType.Defense]: 5
     }
   })),
 
@@ -31,7 +31,7 @@ export const SampleItems = [
     itemQuality: ItemQuality.Normal,
     inventoryTexture: Textures.inventory.feet[textureKey],
     attributes: {
-      [ItemAttributeType.Armor]: 8,
+      [ItemAttributeType.Defense]: 8,
       [ItemAttributeType.MovementSpeedPercent]: 20,
     }
   })),
@@ -43,7 +43,7 @@ export const SampleItems = [
     inventoryTexture: Textures.inventory.head[textureKey],
     equippedTexture: Textures.item.head[textureKey],
     attributes: {
-      [ItemAttributeType.Armor]: 10
+      [ItemAttributeType.Defense]: 10
     }
   })),
 
@@ -54,10 +54,46 @@ export const SampleItems = [
     inventoryTexture: Textures.inventory.one_handed[textureKey],
     equippedTexture: Textures.item.weapon[textureKey],
     attributes: {
-      [ItemAttributeType.Damage]: 10
+      [ItemAttributeType.PhysicalDamage]: 10,
+      [ItemAttributeType.AttackSpeedPercent]: 20,
+    }
+  })),
+  
+  ...Object.keys(Textures.inventory.two_handed).filter(textureKey => Textures.item.weapon[textureKey] != null).map(textureKey => new Item({
+    name: textureKey,
+    itemType: ItemType.TwoHandWeapon,
+    itemQuality: ItemQuality.Normal,
+    inventoryTexture: Textures.inventory.two_handed[textureKey],
+    equippedTexture: Textures.item.weapon[textureKey],
+    attributes: {
+      [ItemAttributeType.PhysicalDamage]: 10,
+      [ItemAttributeType.MovementSpeedPercent]: -5
     }
   })),
 
+  ...Object.keys(Textures.inventory.item).filter(textureKey => typeof Textures.inventory.item[textureKey] != 'object').map(textureKey => new Item({
+    name: textureKey,
+    itemType: ItemType.Bonus,
+    itemQuality: ItemQuality.Normal,
+    inventoryTexture: Textures.inventory.item[textureKey],
+    attributes: {
+      [ItemAttributeType.Defense]: 1,
+      [ItemAttributeType.PhysicalDamage]: 1,
+    }
+  })),
+
+  ...Object.keys(Textures.inventory.item.gems).map(textureKey => new Item({
+    name: textureKey,
+    itemType: ItemType.Bonus,
+    itemQuality: ItemQuality.Normal,
+    inventoryTexture: Textures.inventory.item.gems[textureKey],
+    attributes: {
+      [ItemAttributeType.Defense]: 1,
+      [ItemAttributeType.PhysicalDamage]: 1,
+    }
+  })),
+
+  // Unique items
   new Item({
     name: 'Eebeeb Sword',
     itemType: ItemType.OneHandWeapon,
@@ -65,8 +101,14 @@ export const SampleItems = [
     inventoryTexture: Textures.inventory.one_handed.eebeebsword,
     equippedTexture: Textures.item.weapon.sword,
     attributes: {
-      [ItemAttributeType.Damage]: 20
-    }
+      [ItemAttributeType.PhysicalDamage]: 20,
+      [ItemAttributeType.LightningDamage]: 20,
+      [ItemAttributeType.ColdDamage]: 20,
+      [ItemAttributeType.PoisonDamage]: 20,
+      [ItemAttributeType.AttackHitChance]: 100,
+      [ItemAttributeType.FireDamage]: 20
+    },
+    description: 'Lord Eebeeb finds this joke very unfunny.ඞ'
   }),
 
   new Item({
@@ -77,19 +119,9 @@ export const SampleItems = [
     equippedTexture: Textures.item.weapon.crossbow,
     attributes: {
       // make this a ranged item
-      [ItemAttributeType.Damage]: 7
-    }
-  }),
-  
-  new Item({
-    name: 'M16A1',
-    itemType: ItemType.TwoHandWeapon,
-    itemQuality: ItemQuality.Unique,
-    inventoryTexture: Textures.inventory.two_handed.M16A1,
-    equippedTexture: Textures.item.weapon.gun,
-    attributes: {
-      // make this a ranged item
-      [ItemAttributeType.Damage]: 7
+      [ItemAttributeType.PhysicalDamage]: 7,
+      [ItemAttributeType.AttackHitChance]: 100,
+      [ItemAttributeType.FireDamage]: 3
     }
   }),
 
@@ -100,10 +132,11 @@ export const SampleItems = [
     inventoryTexture: Textures.inventory.one_handed.obsidianblade,
     equippedTexture: Textures.item.weapon.club,
     attributes: {
-      [ItemAttributeType.Damage]: 20
+      [ItemAttributeType.PhysicalDamage]: 20
     }
   }),
 
+  // Set Items
   new Item({
     name: 'Ornate Helm',
     itemType: ItemType.Head,
@@ -111,40 +144,32 @@ export const SampleItems = [
     inventoryTexture: Textures.inventory.head.ornatehelm,
     equippedTexture: Textures.item.head.ornatehelm,
     attributes: {
-      [ItemAttributeType.Armor]: 20
+      [ItemAttributeType.Defense]: 20
     }
   }),
 
-  ...Object.keys(Textures.inventory.two_handed).filter(textureKey => Textures.item.weapon[textureKey] != null).map(textureKey => new Item({
-    name: textureKey,
-    itemType: ItemType.TwoHandWeapon,
-    itemQuality: ItemQuality.Normal,
-    inventoryTexture: Textures.inventory.two_handed[textureKey],
-    equippedTexture: Textures.item.weapon[textureKey],
+  new Item({
+    name: 'Ornate Armor',
+    itemType: ItemType.Chest,
+    itemQuality: ItemQuality.Set,
+    inventoryTexture: Textures.inventory.chest.ornatearmor,
     attributes: {
-      [ItemAttributeType.Damage]: 10
+      [ItemAttributeType.Defense]: 25
     }
-  })),
+  }),
 
-  ...Object.keys(Textures.inventory.item).filter(textureKey => typeof Textures.inventory.item[textureKey] != 'object').map(textureKey => new Item({
-    name: textureKey,
-    itemType: ItemType.Bonus,
-    itemQuality: ItemQuality.Normal,
-    inventoryTexture: Textures.inventory.item[textureKey],
+  // Special items
+  new Item({
+    name: 'Frozen Crown',
+    itemType: ItemType.Head,
+    itemQuality: ItemQuality.Special,
+    inventoryTexture: Textures.inventory.head.crown,
+    equippedTexture: Textures.item.head.crown,
     attributes: {
-      [ItemAttributeType.Armor]: 1,
-      [ItemAttributeType.Damage]: 1,
+      [ItemAttributeType.Defense]: 15,
+      [ItemAttributeType.ColdResist]: 50,
+      [ItemAttributeType.ColdDamage]: 15
     }
-  })),
-
-  ...Object.keys(Textures.inventory.item.gems).map(textureKey => new Item({
-    name: textureKey,
-    itemType: ItemType.Bonus,
-    itemQuality: ItemQuality.Normal,
-    inventoryTexture: Textures.inventory.item.gems[textureKey],
-    attributes: {
-      [ItemAttributeType.Armor]: 1,
-      [ItemAttributeType.Damage]: 1,
-    }
-  })),
+  }),
+  
 ]

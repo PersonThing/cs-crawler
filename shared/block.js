@@ -1,5 +1,3 @@
-import { Sprite, Text } from 'pixi.js'
-
 class Block {
   constructor(props) {
     this.x = props.x
@@ -7,7 +5,7 @@ class Block {
     this.canWalk = props.canWalk || false
     this.canSeeThrough = props.canSeeThrough || false
     this.canShootThrough = props.canShootThrough || false
-    this.texture = props.texture || null
+    this.textures = props.textures || null
     this.alpha = 0
   }
 

@@ -1,6 +1,6 @@
 import ItemSlotType from './item-slot-type.js'
 
-const CreateItemType = ({ name, validSlotTypes, bothHands = false }) => {
+const CreateItemType = ({ name, validSlotTypes, ranged, bothHands = false }) => {
   if (name == null) {
     throw new Error('ItemType name cannot be empty')
   }
@@ -11,6 +11,7 @@ const CreateItemType = ({ name, validSlotTypes, bothHands = false }) => {
   return {
     name,
     validSlotTypes,
+    ranged,
     bothHands,
   }
 }

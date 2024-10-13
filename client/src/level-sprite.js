@@ -63,7 +63,7 @@ class LevelSprite extends Container {
 
             tile.blockGrid.forEach((blockRow) => {
               blockRow
-                .filter((b) => b.texture != null)
+                .filter((b) => b.textures != null && b.textures.length > 0)
                 .forEach((block) => {
                   if (this.isMinimap) {
                     if (block.canWalk) {
@@ -81,13 +81,15 @@ class LevelSprite extends Container {
                     block.sprite = blockGraphic
                     tile.container.addChild(blockGraphic)
                   } else {
-                    const blockSprite = Sprite.from(block.texture)
-                    blockSprite.x = block.x * this.blockSize
-                    blockSprite.y = block.y * this.blockSize
-                    blockSprite.scale.set(this.mapScale * ART_SCALE)
-                    blockSprite.alpha = block.alpha
-                    block.sprite = blockSprite
-                    tile.container.addChild(blockSprite)
+                    block.sprite = new Container()
+                    block.sprite.alpha = block.alpha
+                    block.sprite.scale.set(this.mapScale * ART_SCALE)
+                    block.sprite.x = block.x * this.blockSize
+                    block.sprite.y = block.y * this.blockSize
+                    block.textures.filter(t => t != null).forEach(texture => {
+                      block.sprite.addChild(Sprite.from(texture))
+                    })
+                    tile.container.addChild(block.sprite)
                   }
                 })
             })
