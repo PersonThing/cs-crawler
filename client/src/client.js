@@ -1,7 +1,6 @@
 import { Application } from 'pixi.js'
 import { generateSampleLevel } from '../../shared/level-builder.js'
 import { io } from 'socket.io-client'
-import { MINIMAP_HEIGHT, MINIMAP_WIDTH } from '../../shared/constants.js'
 import { Textures } from './textures.js'
 import Hud from './hud.js'
 import Minimap from './minimap.js'
@@ -35,7 +34,7 @@ const world = new World(app, levelConfig)
 app.stage.addChild(world)
 
 const pather = new Pather(levelConfig)
-const minimap = new Minimap(levelConfig, MINIMAP_WIDTH, MINIMAP_HEIGHT, false)
+const minimap = new Minimap(levelConfig, false)
 app.stage.addChild(minimap)
 
 let hud
