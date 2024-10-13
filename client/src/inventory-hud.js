@@ -4,7 +4,7 @@ import {
   INVENTORY_HEIGHT,
   INVENTORY_WIDTH,
 } from '../../shared/constants.js'
-import { Graphics, Container, Sprite } from 'pixi.js'
+import { Graphics, Container, Sprite, Text } from 'pixi.js'
 import { Textures } from './textures.js'
 import ItemSlotType from '../../shared/item-slot-type.js'
 import InventorySlot from '../../shared/inventory-slot.js'
@@ -42,7 +42,7 @@ class InventoryHud extends Container {
 
     this.content = null
     this.renderBackground()
-    
+
     player.inventory.store.subscribe((content) => {
       this.setContent(content)
     })
@@ -78,10 +78,13 @@ class InventoryHud extends Container {
     this.bg.addChild(gfx)
 
     const drawBg = (color, { x, y }) => {
-      gfx.rect(x, y, ITEM_SIZE + PADDING, ITEM_SIZE + PADDING).stroke({
-        color,
-        width: 2,
-      }).fill(0x000000)
+      gfx
+        .rect(x, y, ITEM_SIZE + PADDING, ITEM_SIZE + PADDING)
+        .stroke({
+          color,
+          width: 2,
+        })
+        .fill(0x000000)
     }
 
     const drawEquippedSlotBg = (color, inventorySlot) => {
@@ -128,7 +131,7 @@ class InventoryHud extends Container {
 
     // re-render background so equipped slot sprites go away
     this.renderBackground()
-    
+
     if (this.itemContainer != null) {
       this.removeChild(this.itemContainer)
       this.itemContainer.destroy()
@@ -151,14 +154,49 @@ class InventoryHud extends Container {
       const item = content.equipped[slotKey]
       const coords = EquippedSlotCoordinates[slotKey]
       this.drawItem(item, coords)
+
+      // if 2h weapon, render a greyed out version of sprite
+      if (slotKey === InventorySlot.MainHand.name && item.itemType.bothHands) {
+        const coords = EquippedSlotCoordinates[InventorySlot.OffHand.name]
+        this.drawItem(item, coords, true)
+      }
     })
   }
 
-  drawItem(item, { x, y }) {
+  drawItem(item, { x, y }, disabled) {
     const itemSprite = Sprite.from(item.inventoryTexture)
     itemSprite.x = x
     itemSprite.y = y
     this.itemContainer.addChild(itemSprite)
+
+    if (!disabled) {
+      const itemDescription = new Container()
+      itemDescription.x = x
+      itemDescription.y = y - 20
+
+      const itemNameText = new Text({
+        text: `${item.name}`,
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 12,
+          fill: 0xffffff,
+        },
+      })
+      itemDescription.addChild(itemNameText)
+
+      const itemTypeNameText = new Text({
+        text: `${item.itemType.name}`,
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 10,
+          fill: 0xffffff,
+        },
+      })
+      itemTypeNameText.y = 12
+      itemDescription.addChild(itemTypeNameText)
+
+      this.itemContainer.addChild(itemDescription)
+    }
   }
 }
 

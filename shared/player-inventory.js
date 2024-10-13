@@ -73,8 +73,12 @@ class PlayerInventory {
       )
       for (let k = 0; k < possibleSlots.length; k++) {
         const possibleSlotName = possibleSlots[k].name
-        if (!this.isSlotFilled(possibleSlotName) && this.equip(item, possibleSlotName)) {
-          return true
+        if (!this.isSlotFilled(possibleSlotName)) {
+          console.log('possibleSlotName', possibleSlotName, 'is empty')
+          console.log('attempting to equip item', item, 'in slot', possibleSlotName)
+          if (this.equip(item, possibleSlotName)) {
+            return true
+          }
         }
       }
     }
@@ -100,7 +104,7 @@ class PlayerInventory {
     return this.equipped[slotName] != null
       || (
         // or its an offhand slot and a 2h weapon is equipped in mainhand slot
-        slotName === InventorySlot.OffHand && this.equipped[InventorySlot.MainHand.name]?.fillsBoth
+        slotName === InventorySlot.OffHand.name && this.equipped[InventorySlot.MainHand.name]?.itemType.bothHands
       )
   }
 
@@ -115,11 +119,6 @@ class PlayerInventory {
       if (!this.putInBags(this.equipped[InventorySlot.MainHand.name])) {
         return false
       }
-    }
-
-    if (item.itemType.bothHands) {
-      // always place 2h in the mainhand
-      slotName = InventorySlot.MainHand.name
     }
     
     // put anything in that slot already in bags

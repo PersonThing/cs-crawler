@@ -70,6 +70,7 @@ class PlayerControls {
     })
 
     const generateRandomItem = () => {
+      // const sampleWeapons = SampleItems.filter(item => item.itemType.name === 'Two-Handed Weapon' || item.itemType.name === 'One-Handed Weapon')
       return structuredClone(
         SampleItems[Math.floor(Math.random() * SampleItems.length)]
       )
