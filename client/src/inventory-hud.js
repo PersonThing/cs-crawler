@@ -93,10 +93,7 @@ class InventoryHud extends Container {
         // have something equipped, no need for bg sprite
         return
       }
-      if (inventorySlot.slotType === ItemSlotType.Bonus) {
-        // no sprite for bonus yet
-        return
-      }
+
       const bgSprite = Sprite.from(
         Textures.inventory.placeholders[inventorySlot.slotType.toLowerCase()]
       )

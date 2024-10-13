@@ -123,6 +123,7 @@ export const Textures = {
       "triflail": "/assets/textures/inventory/one_handed/triflail.png"
     },
     "placeholders": {
+      "bonus": "/assets/textures/inventory/placeholders/bonus.png",
       "chest": "/assets/textures/inventory/placeholders/chest.png",
       "feet": "/assets/textures/inventory/placeholders/feet.png",
       "hands": "/assets/textures/inventory/placeholders/hands.png",
