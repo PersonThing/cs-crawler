@@ -132,7 +132,8 @@ export const Textures = {
   },
   "item": {
     "helmet": {
-      "bascinet": "/assets/textures/item/helmet/bascinet.png",
+      "base": "/assets/textures/item/helmet/base.png",
+      "basinet": "/assets/textures/item/helmet/basinet.png",
       "crown": "/assets/textures/item/helmet/crown.png",
       "greathelm": "/assets/textures/item/helmet/greathelm.png",
       "nasalhelm": "/assets/textures/item/helmet/nasalhelm.png",
