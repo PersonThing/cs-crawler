@@ -4,6 +4,7 @@ import { Textures } from '../client/src/textures.js'
 import InventorySlot from './inventory-slot.js'
 import LivingEntity from './living-entity.js'
 import PlayerInventory from './player-inventory.js'
+import ItemSlotType from './item-slot-type.js'
 
 const EQUIPPED_SLOTS_TO_RENDER = [
   InventorySlot.OffHand.name,
@@ -38,20 +39,23 @@ class Player extends LivingEntity {
     EQUIPPED_SLOTS_TO_RENDER.forEach((slotName) => {
       const item = equipped[slotName]
       if (item != null) {
-        this.attachItemSprite(item.equippedTexture)
+        this.attachItemSprite(item.equippedTexture, slotName === InventorySlot.OffHand.name)
       }
     })
 
     // if no weapons equipped, add hands texture
-    if (equipped[InventorySlot.MainHand] == null && equipped[InventorySlot.OffHand] == null) {
-      this.attachItemSprite(Textures.item.weapon.hands)
+    if (equipped[InventorySlot.MainHand.name] == null && equipped[InventorySlot.OffHand.name] == null) {
+      this.attachItemSprite(Textures.item.weapon.hands, false)
     }
   }
 
-  attachItemSprite(texture) {
+  attachItemSprite(texture, shouldMirrorTexture) {
     const sprite = Sprite.from(texture)
     sprite.anchor.set(0.5)
     this.equippedSpriteContainer.addChild(sprite)
+    if (shouldMirrorTexture) {
+      sprite.scale.x = -1
+    }
   }
 
   setLabel(label) {

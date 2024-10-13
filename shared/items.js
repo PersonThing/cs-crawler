@@ -26,23 +26,23 @@ export const SampleItems = [
     }
   })),
 
-  ...Object.keys(Textures.inventory.one_handed).map(textureKey => new Item({
+  ...Object.keys(Textures.inventory.one_handed).filter(textureKey => Textures.item.weapon[textureKey] != null).map(textureKey => new Item({
     name: `Sample Weapon ${textureKey}`,
     itemType: ItemType.OneHandWeapon,
     itemQuality: ItemQuality.Normal,
     inventoryTexture: Textures.inventory.one_handed[textureKey],
-    equippedTexture: Textures.item.weapon[textureKey] ?? Textures.item.weapon.hands,
+    equippedTexture: Textures.item.weapon[textureKey],
     attributes: {
       [ItemAttributeType.Damage]: 10
     }
   })),
 
-  ...Object.keys(Textures.inventory.two_handed).map(textureKey => new Item({
+  ...Object.keys(Textures.inventory.two_handed).filter(textureKey => Textures.item.weapon[textureKey] != null).map(textureKey => new Item({
     name: `Sample Weapon ${textureKey}`,
     itemType: ItemType.TwoHandWeapon,
     itemQuality: ItemQuality.Normal,
     inventoryTexture: Textures.inventory.two_handed[textureKey],
-    equippedTexture: Textures.item.weapon[textureKey] ?? Textures.item.weapon.hands,
+    equippedTexture: Textures.item.weapon[textureKey],
     attributes: {
       [ItemAttributeType.Damage]: 10
     }
