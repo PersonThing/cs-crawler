@@ -45,7 +45,9 @@ export const Textures = {
       }
     }
   },
+  "healthfull": "/assets/textures/healthfull.png",
   "icons": {
+    "cs-logo": "/assets/textures/icons/cs-logo.png",
     "dungeon": "/assets/textures/icons/dungeon.png"
   },
   "inventory": {
@@ -69,6 +71,8 @@ export const Textures = {
       "ornatehelm": "/assets/textures/inventory/head/ornatehelm.png",
       "vikinghelm": "/assets/textures/inventory/head/vikinghelm.png"
     },
+    "feet": {},
+    "hands": {},
     "item": {
       "board": "/assets/textures/inventory/item/board.png",
       "diamond": "/assets/textures/inventory/item/diamond.png",
