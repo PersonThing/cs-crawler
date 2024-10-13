@@ -45,7 +45,9 @@ export const Textures = {
       }
     }
   },
+  "healthfull": "/assets/textures/healthfull.png",
   "icons": {
+    "cs-logo": "/assets/textures/icons/cs-logo.png",
     "dungeon": "/assets/textures/icons/dungeon.png"
   },
   "inventory": {
@@ -67,6 +69,8 @@ export const Textures = {
       "platearmor_inventory": "/assets/textures/inventory/armor/platearmor_inventory.png",
       "vikinghelm_inventory": "/assets/textures/inventory/armor/vikinghelm_inventory.png"
     },
+    "feet": {},
+    "hands": {},
     "item": {
       "board_inventory": "/assets/textures/inventory/item/board_inventory.png",
       "diamond_inventory": "/assets/textures/inventory/item/diamond_inventory.png",
