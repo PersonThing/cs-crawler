@@ -16,3 +16,5 @@
 - mouse wheel to cycle through weapons (temp)
 - alt + mouse wheel to cycle through armors (temp)
 - tab to toggle minimap between center overlay and top-right
+- b to toggle inventory
+- to toggle debug mode, open `/shared/constants.js` and change `DEBUG` to true or false

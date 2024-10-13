@@ -1,14 +1,12 @@
 import { Sprite, Container, Graphics, Text } from 'pixi.js'
 import LevelSprite from './level-sprite'
-import { MINIMAP_SCALE } from '../../shared/constants.js'
+import { MINIMAP_SCALE, MINIMAP_WIDTH, MINIMAP_HEIGHT } from '../../shared/constants.js'
 
 class Minimap extends Sprite {
-  constructor(level, maskWidth, maskHeight, centered) {
+  constructor(level, centered) {
     super()
 
     this.level = level
-    this.maskWidth = maskWidth
-    this.maskHeight = maskHeight
 
     this.mapScale = MINIMAP_SCALE
     this.remotePlayerMarkers = {}
@@ -22,10 +20,10 @@ class Minimap extends Sprite {
     this.addChild(this.map)
 
     this.mapMask = new Graphics()
-      .rect(0, 0, maskWidth, maskHeight)
+      .rect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT)
       .fill(0xff0000)
-    this.mapMask.x = -maskWidth / 2
-    this.mapMask.y = -maskHeight / 2
+    this.mapMask.x = -MINIMAP_WIDTH / 2
+    this.mapMask.y = -MINIMAP_HEIGHT / 2
     // this.mapMask.visible = false
     this.addChild(this.mapMask)
     this.map.mask = this.mapMask
@@ -48,14 +46,14 @@ class Minimap extends Sprite {
       this.x = screenWidth / 2
       this.y = screenHeight / 2
     } else {
-      this.x = screenWidth - this.maskWidth / 2
+      this.x = screenWidth - MINIMAP_WIDTH / 2
       this.y = 100
     }
 
     if (localPlayer != null) {
       // update map
-      const maxMapWidth = this.centered ? screenWidth : this.maskWidth
-      const maxMapHeight = this.centered ? screenHeight : this.maskHeight
+      const maxMapWidth = this.centered ? screenWidth : MINIMAP_WIDTH
+      const maxMapHeight = this.centered ? screenHeight : MINIMAP_HEIGHT
       this.map.onTick(localPlayer, maxMapWidth, maxMapHeight)
 
       // update local player dot
