@@ -91,8 +91,8 @@ class PlayerControls {
       // stage is shifted to center the player
       // so we need to account for that offset
       const target = {
-        x: event.clientX - rect.left - this.world.x,
-        y: event.clientY - rect.top - this.world.y,
+        x: Math.round(event.clientX - rect.left - this.world.x),
+        y: Math.round(event.clientY - rect.top - this.world.y),
       }
 
       this.player.setTarget(target)
