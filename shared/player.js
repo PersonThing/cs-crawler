@@ -3,12 +3,12 @@ import { Textures } from '../client/src/textures.js'
 import LivingEntity from './living-entity.js'
 import PlayerInventory from './player-inventory.js'
 import InventorySlot from './inventory-slot.js'
-
+import { ART_SCALE } from './constants.js'
 
 const EQUIPPED_SLOTS_TO_RENDER = [
-  InventorySlot.OffHand.name, 
-  InventorySlot.MainHand.name, 
-  InventorySlot.Head.name
+  InventorySlot.OffHand.name,
+  InventorySlot.MainHand.name,
+  InventorySlot.Head.name,
 ]
 
 class Player extends LivingEntity {
@@ -18,22 +18,27 @@ class Player extends LivingEntity {
     this.socketId = socketId
 
     this.inventory = new PlayerInventory({}, [])
-    this.inventory.store.subscribe(content => this.setEquipped(content.equipped))
+    if (this.world) {
+      this.inventory.store.subscribe((content) =>
+        this.setEquipped(content.equipped)
+      )
+    }
   }
 
   setEquipped(equipped) {
     if (this.equippedSpriteContainer != null) {
       this.equippedSpriteContainer.destroy()
-      this.removeChild(this.equippedSpriteContainer)
+      this.entitySprite.removeChild(this.equippedSpriteContainer)
     }
 
     this.equippedSpriteContainer = new Container()
-    this.addChild(this.equippedSpriteContainer)
+    this.entitySprite.addChild(this.equippedSpriteContainer)
 
-    EQUIPPED_SLOTS_TO_RENDER.forEach(slotName => {
+    EQUIPPED_SLOTS_TO_RENDER.forEach((slotName) => {
       const item = equipped[slotName]
       if (item != null) {
         const sprite = Sprite.from(item.equippedTexture)
+        sprite.anchor.set(0.5)
         this.equippedSpriteContainer.addChild(sprite)
       }
     })

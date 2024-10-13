@@ -15,27 +15,27 @@ export const SampleItems = [
     }
   })),
 
-  // ...Object.keys(Textures.inventory.head).map(textureKey => new Item({
-  //   name: `Sample Head ${textureKey}`,
-  //   itemType: ItemType.Head,
-  //   itemQuality: ItemQuality.Normal,
-  //   inventoryTexture: Textures.inventory.head[textureKey],
-  //   equippedTexture: Textures.item.head[textureKey],
-  //   attributes: {
-  //     [ItemAttributeType.Armor]: 10
-  //   }
-  // })),
+  ...Object.keys(Textures.inventory.head).map(textureKey => new Item({
+    name: `Sample Head ${textureKey}`,
+    itemType: ItemType.Head,
+    itemQuality: ItemQuality.Normal,
+    inventoryTexture: Textures.inventory.head[textureKey],
+    equippedTexture: Textures.item.head[textureKey],
+    attributes: {
+      [ItemAttributeType.Armor]: 10
+    }
+  })),
 
-  // ...Object.keys(Textures.inventory.weapon).map(textureKey => new Item({
-  //   name: `Sample Weapon ${textureKey}`,
-  //   itemType: ItemType.OneHandWeapon,
-  //   itemQuality: ItemQuality.Normal,
-  //   inventoryTexture: Textures.inventory.weapon[textureKey],
-  //   equippedTexture: Textures.item.weapon[textureKey],
-  //   attributes: {
-  //     [ItemAttributeType.Damage]: 10
-  //   }
-  // })),
+  ...Object.keys(Textures.inventory.weapon).map(textureKey => new Item({
+    name: `Sample Weapon ${textureKey}`,
+    itemType: ItemType.OneHandWeapon,
+    itemQuality: ItemQuality.Normal,
+    inventoryTexture: Textures.inventory.weapon[textureKey],
+    equippedTexture: Textures.item.weapon[textureKey],
+    attributes: {
+      [ItemAttributeType.Damage]: 10
+    }
+  })),
 
   ...Object.keys(Textures.inventory.item).map(textureKey => new Item({
     name: `Sample Item ${textureKey}`,

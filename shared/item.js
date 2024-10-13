@@ -4,19 +4,19 @@ import ItemSlotType from './item-slot-type'
 class Item {
   constructor({ itemType, itemQuality, name, inventoryTexture, equippedTexture }) {
     if (itemType == null) {
-      throw new Error('cannot create item, invalid itemType: ', itemType)
+      throw new Error(`cannot create item, invalid itemType: ${itemType}`)
     }
     if (ItemQuality[itemQuality] == null) {
-      throw new Error('cannot create item, invalid item quality: ', itemQuality)
+      throw new Error(`cannot create item, invalid item quality: ${itemQuality}`)
     }
     if (name == null) {
-      throw new Error('cannot create item, invalid name: ', name)
+      throw new Error(`cannot create item, invalid name: ${name}`)
     }
     if (inventoryTexture == null) {
-      throw new Error('cannot create item, invalid inventory texture: ', inventoryTexture)
+      throw new Error(`cannot create item, invalid inventory texture: ${inventoryTexture}`)
     }
     if (itemType.validSlotTypes.some(st => st === ItemSlotType.Head || st === ItemSlotType.MainHand || st === ItemSlotType.OffHand) && equippedTexture == null) {
-      throw new Error('cannot create a head, mainhand, or offhand without a valid equipped texture: ', name, equippedTexture)
+      throw new Error(`cannot create a head, mainhand, or offhand without a valid equipped texture: ${name}, ${equippedTexture}`)
     }
 
     this.itemType = itemType
