@@ -153,6 +153,7 @@ export const Textures = {
       "heavycrossbow": "/assets/textures/inventory/two_handed/heavycrossbow.png",
       "lightcrossbow": "/assets/textures/inventory/two_handed/lightcrossbow.png",
       "longbow": "/assets/textures/inventory/two_handed/longbow.png",
+      "M16A1": "/assets/textures/inventory/two_handed/M16A1.png",
       "pelletshooter": "/assets/textures/inventory/two_handed/pelletshooter.png",
       "pickaxe": "/assets/textures/inventory/two_handed/pickaxe.png",
       "poisonspear": "/assets/textures/inventory/two_handed/poisonspear.png",

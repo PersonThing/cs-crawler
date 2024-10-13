@@ -36,7 +36,7 @@ export const SampleItems = [
     }
   })),
 
-  ...Object.keys(Textures.inventory.head).map(textureKey => new Item({
+  ...Object.keys(Textures.inventory.head).filter(textureKey => textureKey != 'ornatehelm').map(textureKey => new Item({
     name: textureKey,
     itemType: ItemType.Head,
     itemQuality: ItemQuality.Normal,
@@ -80,6 +80,18 @@ export const SampleItems = [
       [ItemAttributeType.Damage]: 7
     }
   }),
+  
+  new Item({
+    name: 'M16A1',
+    itemType: ItemType.TwoHandWeapon,
+    itemQuality: ItemQuality.Unique,
+    inventoryTexture: Textures.inventory.two_handed.M16A1,
+    equippedTexture: Textures.item.weapon.gun,
+    attributes: {
+      // make this a ranged item
+      [ItemAttributeType.Damage]: 7
+    }
+  }),
 
   new Item({
     name: 'Aztec',
@@ -93,15 +105,16 @@ export const SampleItems = [
   }),
 
   new Item({
-    name: '',
-    itemType: ItemType.OneHandWeapon,
-    itemQuality: ItemQuality.Unique,
-    inventoryTexture: Textures.inventory.one_handed.obsidianblade,
-    equippedTexture: Textures.item.weapon.club,
+    name: 'Ornate Helm',
+    itemType: ItemType.Head,
+    itemQuality: ItemQuality.Set,
+    inventoryTexture: Textures.inventory.head.ornatehelm,
+    equippedTexture: Textures.item.head.ornatehelm,
     attributes: {
-      [ItemAttributeType.Damage]: 20
+      [ItemAttributeType.Armor]: 20
     }
   }),
+
   ...Object.keys(Textures.inventory.two_handed).filter(textureKey => Textures.item.weapon[textureKey] != null).map(textureKey => new Item({
     name: textureKey,
     itemType: ItemType.TwoHandWeapon,

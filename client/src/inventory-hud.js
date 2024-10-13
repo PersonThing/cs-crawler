@@ -12,9 +12,7 @@ const ITEM_SIZE = 32
 const PADDING = 1
 const MARGIN = 6
 const BAG_COLS = 10
-const EQUIPPED_SLOT_COLOR = 0x00a8f3
-const BONUS_SLOT_COLOR = 0x0ed145
-const BAG_SLOT_COLOR = 0x555555
+const DEFAULT_SLOT_COLOR = 0x777777
 
 const getItemSlotCoordinates = (x, y) => {
   return {
@@ -93,12 +91,21 @@ class InventoryHud extends Container {
         .fill(0x000000)
     }
 
-    const drawEquippedSlotBg = (color, inventorySlot) => {
+    const drawEquippedSlotBg = (inventorySlot) => {
       const coords = EquippedSlotCoordinates[inventorySlot.name]
+      const item = this.content?.equipped[inventorySlot.name]
+      const color =
+        item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
       drawBg(color, coords)
 
-      // background sprite for equipped slots that don't have anything in them
-      if (this.content?.equipped[inventorySlot.name] != null) {
+      if (
+        // background sprite for equipped slots that don't have anything in them
+        this.content?.equipped[inventorySlot.name] != null ||
+        // or if it's offhand slot and 2h is equipped in main hand
+        (inventorySlot.name == InventorySlot.OffHand.name &&
+          this.content?.equipped[InventorySlot.MainHand.name] != null &&
+          this.content.equipped[InventorySlot.MainHand.name].itemType.bothHands)
+      ) {
         // have something equipped, no need for bg sprite
         return
       }
@@ -113,18 +120,21 @@ class InventoryHud extends Container {
     }
 
     const drawBagSlotBg = (index) => {
-      drawBg(BAG_SLOT_COLOR, this.getBagSlotCoordinates(index))
+      const item = this.content?.bags[index]
+      const color =
+        item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
+      drawBg(color, this.getBagSlotCoordinates(index))
     }
 
-    drawEquippedSlotBg(EQUIPPED_SLOT_COLOR, InventorySlot.Head)
-    drawEquippedSlotBg(EQUIPPED_SLOT_COLOR, InventorySlot.MainHand)
-    drawEquippedSlotBg(EQUIPPED_SLOT_COLOR, InventorySlot.OffHand)
-    drawEquippedSlotBg(EQUIPPED_SLOT_COLOR, InventorySlot.Chest)
-    drawEquippedSlotBg(EQUIPPED_SLOT_COLOR, InventorySlot.Hands)
-    drawEquippedSlotBg(EQUIPPED_SLOT_COLOR, InventorySlot.Feet)
-    drawEquippedSlotBg(BONUS_SLOT_COLOR, InventorySlot.Bonus1)
-    drawEquippedSlotBg(BONUS_SLOT_COLOR, InventorySlot.Bonus2)
-    drawEquippedSlotBg(BONUS_SLOT_COLOR, InventorySlot.Bonus3)
+    drawEquippedSlotBg(InventorySlot.Head)
+    drawEquippedSlotBg(InventorySlot.MainHand)
+    drawEquippedSlotBg(InventorySlot.OffHand)
+    drawEquippedSlotBg(InventorySlot.Chest)
+    drawEquippedSlotBg(InventorySlot.Hands)
+    drawEquippedSlotBg(InventorySlot.Feet)
+    drawEquippedSlotBg(InventorySlot.Bonus1)
+    drawEquippedSlotBg(InventorySlot.Bonus2)
+    drawEquippedSlotBg(InventorySlot.Bonus3)
 
     // draw bg for bag slots
     for (let i = 0; i < BAG_SLOTS; i++) {
@@ -183,6 +193,7 @@ class InventoryHud extends Container {
       const itemDescriptionBg = new Graphics()
       itemDescription.addChild(itemDescriptionBg)
 
+      // create text for the name
       const itemNameText = new Text({
         text: `${item.name}`,
         style: {
@@ -193,6 +204,7 @@ class InventoryHud extends Container {
       })
       itemDescription.addChild(itemNameText)
 
+      // create text for the item quality + type
       const itemTypeNameText = new Text({
         text: `${item.itemQuality} ${item.itemType.name}`,
         style: {
@@ -201,11 +213,28 @@ class InventoryHud extends Container {
           fill: ItemQualityColors[item.itemQuality],
         },
       })
-      
-      itemTypeNameText.y = 12
+      itemTypeNameText.y = 14
       itemDescription.addChild(itemTypeNameText)
-      itemDescription.visible = false
 
+      // add 1 text, with all the item's attributes
+      const itemAttributeText = new Text({
+        text: Object.keys(item.attributes)
+          .map(
+            (attributeName) =>
+              `${item.attributes[attributeName]} ${attributeName}`
+          )
+          .join('\n'),
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 11,
+          fill: 0xffffff,
+        },
+      })
+      itemAttributeText.y = 28
+      itemDescription.addChild(itemAttributeText)
+
+      // only show on mouseover
+      itemDescription.visible = false
       itemSprite.eventMode = 'static'
       itemSprite.addChild(itemDescription)
       itemSprite.on('pointerover', () => {
@@ -217,10 +246,24 @@ class InventoryHud extends Container {
 
       // draw a background and set y based on height of the description container
       itemDescription.y = -itemDescription.height
-      itemDescriptionBg.roundRect(-10, -10, ITEM_DESCRIPTION_WIDTH + 20, itemDescription.height + 20, 4).fill(0x000000).stroke({
-        width: 1,
-        color: 0x555555,
-      })
+      itemDescriptionBg
+        .roundRect(
+          -10,
+          -10,
+          ITEM_DESCRIPTION_WIDTH + 20,
+          itemDescription.height + 20,
+          4
+        )
+        .fill(0x000000)
+        .stroke({
+          width: 1,
+          color: 0x555555,
+        })
+    } else {
+      // grey it out a bit
+      // make it slightly red ?
+      itemSprite.alpha = 0.75
+      itemSprite.tint = 0x666666
     }
   }
 }

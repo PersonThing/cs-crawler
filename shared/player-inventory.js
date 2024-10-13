@@ -74,8 +74,6 @@ class PlayerInventory {
       for (let k = 0; k < possibleSlots.length; k++) {
         const possibleSlotName = possibleSlots[k].name
         if (!this.isSlotFilled(possibleSlotName)) {
-          console.log('possibleSlotName', possibleSlotName, 'is empty')
-          console.log('attempting to equip item', item, 'in slot', possibleSlotName)
           if (this.equip(item, possibleSlotName)) {
             return true
           }
