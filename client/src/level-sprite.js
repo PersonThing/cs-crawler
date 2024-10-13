@@ -96,7 +96,8 @@ class LevelSprite extends Container {
               // draw coords and blue box around tile if debug mode on
               const graphic = new Graphics()
               graphic.rect(0, 0, this.tileSize, this.tileSize)
-              graphic.stroke(0x0000ff)
+              graphic.stroke(0xffffff)
+              graphic.alpha = 0.5
               tile.container.addChild(graphic)
 
               const text = new Text({
@@ -104,7 +105,7 @@ class LevelSprite extends Container {
                 style: {
                   fontFamily: 'Arial',
                   fontSize: 12,
-                  fill: 0x00ff00,
+                  fill: 0xffffff,
                   align: 'center',
                   dropShadow: true,
                   dropShadowDistance: 1,
@@ -112,6 +113,7 @@ class LevelSprite extends Container {
                   dropShadowAlpha: 1,
                 },
               })
+              text.alpha = 0.5
               tile.container.addChild(text)
             }
 
