@@ -163,13 +163,13 @@ class InventoryHud extends Container {
     })
   }
 
-  drawItem(item, { x, y }, disabled) {
+  drawItem(item, { x, y }, isDisabledOffHand) {
     const itemSprite = Sprite.from(item.inventoryTexture)
     itemSprite.x = x
     itemSprite.y = y
     this.itemContainer.addChild(itemSprite)
 
-    if (!disabled) {
+    if (!isDisabledOffHand) {
       const itemDescription = new Container()
       itemDescription.x = x
       itemDescription.y = y - 20
@@ -189,13 +189,20 @@ class InventoryHud extends Container {
         style: {
           fontFamily: 'Arial',
           fontSize: 10,
-          fill: 0xffffff,
+          fill: 0x0ed145,
         },
       })
       itemTypeNameText.y = 12
       itemDescription.addChild(itemTypeNameText)
+      itemDescription.visibile = false
 
       this.itemContainer.addChild(itemDescription)
+      // this.itemContainer.on('pointerover', () => {
+      //   itemDescription.visibile = true
+      // })
+      // this.itemContainer.on('pointerleave', () => {
+      //   itemDescription.visible = false
+      // })
     }
   }
 }
