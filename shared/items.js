@@ -34,6 +34,7 @@ export const SampleItems = [
       [ItemAttributeType.Armor]: 8
     }
   })),
+
   ...Object.keys(Textures.inventory.head).map(textureKey => new Item({
     name: `Sample Head ${textureKey}`,
     itemType: ItemType.Head,

@@ -73,10 +73,8 @@ class PlayerInventory {
       )
       for (let k = 0; k < possibleSlots.length; k++) {
         const possibleSlotName = possibleSlots[k].name
-        if (this.equipped[possibleSlotName] == null) {
-          if (this.equip(item, possibleSlotName)) {
-            return true
-          }
+        if (!this.isSlotFilled(possibleSlotName) && this.equip(item, possibleSlotName)) {
+          return true
         }
       }
     }
@@ -97,31 +95,57 @@ class PlayerInventory {
     return false
   }
 
+  isSlotFilled(slotName) {
+    // something is directly equipped in this slot
+    return this.equipped[slotName] != null
+      || (
+        // or its an offhand slot and a 2h weapon is equipped in mainhand slot
+        slotName === InventorySlot.OffHand && this.equipped[InventorySlot.MainHand.name]?.fillsBoth
+      )
+  }
+
   // returns whether the item was successfully equipped or not
-  equip(item, equipToSlot) {
+  equip(item, slotName) {
     if (item == null) {
       throw new Error('invalid item, cant equip', item)
     }
 
-    // TODO: assert that we meet the requirements to equip this item
+    // if trying to equip offhand, but a 2h is equipped, try to put the 2h in bags first
+    if (slotName === InventorySlot.OffHand.name && this.equipped[InventorySlot.MainHand.name]?.itemType.bothHands) {
+      if (!this.putInBags(this.equipped[InventorySlot.MainHand.name])) {
+        return false
+      }
+    }
+
+    if (item.itemType.bothHands) {
+      // always place 2h in the mainhand
+      slotName = InventorySlot.MainHand.name
+    }
     
-    // if there's already another item in that slot, put it in bags first
-    if (this.equipped[equipToSlot] != null) {
-      if (!this.putInBags(this.equipped[equipToSlot])) {
-        // wasn't able to put it in bags, so we can't equip this item either
+    // put anything in that slot already in bags
+    if (this.equipped[slotName] != null) {
+      if (!this.putInBags(this.equipped[slotName])) {
+        return false
+      }
+    }
+
+    // make sure offhand is put in bags also if 2h weapon
+    if (item.itemType.bothHands && this.equipped[InventorySlot.OffHand.name] != null) {
+      if (!this.putInBags(this.equipped[InventorySlot.OffHand.name])) {
         return false
       }
     }
     
     // we're good now, force it on
 
-    // if it's in bags, remove it
+    // TODO: we should have already removed it from bags and placed it on cursor
     const ix = this.bags.findIndex((i) => item === i)
     if (ix > 0) {
       this.setBagSlot(ix, null)
     }
+
     // set in equipped
-    this.setEquippedSlot(equipToSlot, item)
+    this.setEquippedSlot(slotName, item)
     return true
   }
 }

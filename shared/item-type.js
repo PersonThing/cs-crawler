@@ -1,6 +1,6 @@
 import ItemSlotType from './item-slot-type.js'
 
-const CreateItemType = ({ name, validSlotTypes, fillsMainAndOffHand = false }) => {
+const CreateItemType = ({ name, validSlotTypes, bothHands = false }) => {
   if (name == null) {
     throw new Error('ItemType name cannot be empty')
   }
@@ -11,7 +11,7 @@ const CreateItemType = ({ name, validSlotTypes, fillsMainAndOffHand = false }) =
   return {
     name,
     validSlotTypes,
-    fillsMainAndOffHand,
+    bothHands,
   }
 }
 
@@ -20,10 +20,9 @@ const ItemType = {
     name: 'Two-Handed Weapon',
     validSlotTypes: [
       ItemSlotType.MainHand,
-      ItemSlotType.OffHand,
       ItemSlotType.Bonus,
     ],
-    fillsMainAndOffHand: true,
+    bothHands: true,
   }),
   OneHandWeapon: CreateItemType({
     name: 'One-Handed Weapon',

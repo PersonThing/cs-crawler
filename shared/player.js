@@ -6,12 +6,6 @@ import LivingEntity from './living-entity.js'
 import PlayerInventory from './player-inventory.js'
 import ItemSlotType from './item-slot-type.js'
 
-const EQUIPPED_SLOTS_TO_RENDER = [
-  InventorySlot.OffHand.name,
-  InventorySlot.MainHand.name,
-  InventorySlot.Head.name,
-]
-
 class Player extends LivingEntity {
   constructor(socketId, playerId, pather, texture, world, color) {
     super(playerId, pather, texture, world, color)
@@ -36,16 +30,20 @@ class Player extends LivingEntity {
     this.equippedSpriteContainer = new Container()
     this.entitySprite.addChild(this.equippedSpriteContainer)
 
-    EQUIPPED_SLOTS_TO_RENDER.forEach((slotName) => {
-      const item = equipped[slotName]
-      if (item != null) {
-        this.attachItemSprite(item.equippedTexture, slotName === InventorySlot.OffHand.name)
-      }
-    })
+    // render head
+    const item = equipped[InventorySlot.Head]
+    if (item != null) {
+      this.attachItemSprite(item.equippedTexture, false)
+    }
 
-    // if no weapons equipped, add hands texture
-    if (equipped[InventorySlot.MainHand.name] == null && equipped[InventorySlot.OffHand.name] == null) {
-      this.attachItemSprite(Textures.item.weapon.hands, false)
+    // render weapon/s
+    const mainHand = equipped[InventorySlot.MainHand.name]
+    const offHand = equipped[InventorySlot.OffHand.name]
+    if (mainHand != null) {
+      this.attachItemSprite(mainHand.equippedTexture, false)
+    }
+    if (!mainHand?.itemType.bothHands && offHand != null) {
+      this.attachItemSprite(offHand.equippedTexture, true)
     }
   }
 
