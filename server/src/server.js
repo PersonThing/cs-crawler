@@ -38,7 +38,7 @@ io.on('connection', (socket) => {
     playerState = {
       x: level.start.x,
       y: level.start.y,
-      target: null
+      target: null,
     }
   }
 
@@ -52,17 +52,21 @@ io.on('connection', (socket) => {
   socket.broadcast.emit('playerJoined', players[socket.id].serialize())
 
   // Handle player movement
-  socket.on('playerSetTarget', (target) => {
+  socket.on('setTarget', (target) => {
     if (players[socket.id]) {
       players[socket.id].setTarget(target)
     }
   })
 
   // temp: naively allow client to set entire inventory contents
-  socket.on('playerInventoryChange', (content) => {
+  socket.on('inventoryChanged', (content) => {
     if (players[socket.id]) {
       players[socket.id].inventory.deserialize(content)
     }
+    io.emit('playerInventoryChanged', {
+      playerId,
+      content,
+    })
   })
 
   // Remove player on disconnect
@@ -74,7 +78,7 @@ io.on('connection', (socket) => {
     playerStates[playerId] = {
       x: player.x,
       y: player.y,
-      target: player.target
+      target: player.target,
     }
 
     delete players[socket.id]
@@ -86,17 +90,19 @@ io.on('connection', (socket) => {
 // client has its own game loop
 // server is authoritative, sending state to overwrite client
 const fps = 30
-const deltaMS = 1000/fps
+const deltaMS = 1000 / fps
 setInterval(() => {
   for (const id in players) {
     const player = players[id]
     player.onTick(deltaMS)
   }
   // convert players map to map of sync properties
-  const playerSyncs = Object.fromEntries(Object.entries(players).map(([id, player]) => [id, player.serialize()]))
+  const playerSyncs = Object.fromEntries(
+    Object.entries(players).map(([id, player]) => [id, player.serialize()])
+  )
 
   io.emit('updateState', {
-    players: playerSyncs
+    players: playerSyncs,
   })
 }, deltaMS)
 

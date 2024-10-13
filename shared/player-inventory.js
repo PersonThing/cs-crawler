@@ -99,19 +99,12 @@ class PlayerInventory {
 
   // returns whether the item was successfully equipped or not
   equip(item, equipToSlot) {
-    console.log('attempting to equip', item, equipToSlot)
     if (item == null) {
       throw new Error('invalid item, cant equip', item)
     }
 
     // TODO: assert that we meet the requirements to equip this item
-
-    // if the item is in bags, remove it from bags
-    const ix = this.bags.findIndex((i) => item === i)
-    if (ix > 0) {
-      this.setBagSlot(ix, null)
-    }
-
+    
     // if there's already another item in that slot, put it in bags first
     if (this.equipped[equipToSlot] != null) {
       if (!this.putInBags(this.equipped[equipToSlot])) {
@@ -119,7 +112,15 @@ class PlayerInventory {
         return false
       }
     }
+    
+    // we're good now, force it on
 
+    // if it's in bags, remove it
+    const ix = this.bags.findIndex((i) => item === i)
+    if (ix > 0) {
+      this.setBagSlot(ix, null)
+    }
+    // set in equipped
     this.setEquippedSlot(equipToSlot, item)
     return true
   }

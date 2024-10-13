@@ -196,16 +196,6 @@ export const Textures = {
       "vikinghelm": "/assets/textures/item/head/vikinghelm.png",
       "visorhelm": "/assets/textures/item/head/visorhelm.png"
     },
-    "helmet": {
-      "base": "/assets/textures/item/helmet/base.png",
-      "basinet": "/assets/textures/item/helmet/basinet.png",
-      "crown": "/assets/textures/item/helmet/crown.png",
-      "greathelm": "/assets/textures/item/helmet/greathelm.png",
-      "nasalhelm": "/assets/textures/item/helmet/nasalhelm.png",
-      "ornatehelm": "/assets/textures/item/helmet/ornatehelm.png",
-      "skullcap": "/assets/textures/item/helmet/skullcap.png",
-      "visorhelm": "/assets/textures/item/helmet/visorhelm.png"
-    },
     "weapon": {
       "axe": "/assets/textures/item/weapon/axe.png",
       "bow": "/assets/textures/item/weapon/bow.png",

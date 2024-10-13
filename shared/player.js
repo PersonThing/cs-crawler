@@ -1,9 +1,9 @@
+import { ART_SCALE } from './constants.js'
 import { Sprite, Container } from 'pixi.js'
 import { Textures } from '../client/src/textures.js'
+import InventorySlot from './inventory-slot.js'
 import LivingEntity from './living-entity.js'
 import PlayerInventory from './player-inventory.js'
-import InventorySlot from './inventory-slot.js'
-import { ART_SCALE } from './constants.js'
 
 const EQUIPPED_SLOTS_TO_RENDER = [
   InventorySlot.OffHand.name,
@@ -12,10 +12,11 @@ const EQUIPPED_SLOTS_TO_RENDER = [
 ]
 
 class Player extends LivingEntity {
-  constructor(socketId, name, pather, texture, world, color) {
-    super(name, pather, texture, world, color)
+  constructor(socketId, playerId, pather, texture, world, color) {
+    super(playerId, pather, texture, world, color)
 
     this.socketId = socketId
+    this.playerId = playerId
 
     this.inventory = new PlayerInventory({}, [])
     if (this.world) {
@@ -37,11 +38,20 @@ class Player extends LivingEntity {
     EQUIPPED_SLOTS_TO_RENDER.forEach((slotName) => {
       const item = equipped[slotName]
       if (item != null) {
-        const sprite = Sprite.from(item.equippedTexture)
-        sprite.anchor.set(0.5)
-        this.equippedSpriteContainer.addChild(sprite)
+        this.attachItemSprite(item.equippedTexture)
       }
     })
+
+    // if no weapons equipped, add hands texture
+    if (equipped[InventorySlot.MainHand] == null && equipped[InventorySlot.OffHand] == null) {
+      this.attachItemSprite(Textures.item.weapon.hands)
+    }
+  }
+
+  attachItemSprite(texture) {
+    const sprite = Sprite.from(texture)
+    sprite.anchor.set(0.5)
+    this.equippedSpriteContainer.addChild(sprite)
   }
 
   setLabel(label) {
@@ -52,15 +62,7 @@ class Player extends LivingEntity {
     return {
       ...super.serialize(),
       socketId: this.socketId,
-      tempWeaponIndex: this.tempWeaponIndex,
-      tempArmorIndex: this.tempArmorIndex,
-      inventory: this.inventory.serialize(),
     }
-  }
-
-  syncWithServer(data) {
-    super.syncWithServer(data)
-    // this.inventory.deserialize(data.inventory)
   }
 }
 

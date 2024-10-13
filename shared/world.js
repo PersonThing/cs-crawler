@@ -1,5 +1,6 @@
 import { Container, BlurFilter, Rectangle, Graphics, Sprite } from 'pixi.js'
-import LevelSprite from '../client/src/level-sprite'
+import LevelSprite from '../client/src/level-sprite.js'
+import socket from '../client/src/socket.js'
 
 class World extends Container {
   constructor(app, levelConfig) {
@@ -19,6 +20,14 @@ class World extends Container {
     this.addChild(this.levelSprite)
 
     this.mask = this.createLightRadiusMask()
+
+    socket.on('playerInventoryChanged', ({playerId, content}) => {
+      const player = this.players.find(p => p.playerId == playerId)
+      if (player != null) {
+        player.inventory.deserialize(content)
+      }
+      // console.log('player inventory changed', playerId, content)
+    })
   }
 
   createLightRadiusMask() {

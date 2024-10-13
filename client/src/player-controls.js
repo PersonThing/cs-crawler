@@ -1,5 +1,6 @@
 import { SampleItems } from '../../shared/items.js'
-import throttle from '../../shared/throttle'
+import throttle from '../../shared/throttle.js'
+import debounce from '../../shared/debounce.js'
 import socket from './socket.js'
 
 class PlayerControls {
@@ -10,6 +11,12 @@ class PlayerControls {
     this.minimap = minimap
     this.hud = hud
     this.startListening()
+
+    // when player inventory changes, send to server
+    const debouncedSetInventory = debounce((content) => {
+      socket.emit('inventoryChanged', content)
+    }, 100)
+    this.player.inventory.store.subscribe(debouncedSetInventory)
   }
 
   startListening() {
@@ -70,7 +77,7 @@ class PlayerControls {
 
     // only pass new position to server at most every 50ms (20 times per second)
     const throttledSetTargetOnServer = throttle((target) => {
-      socket.emit('playerSetTarget', target)
+      socket.emit('setTarget', target)
     }, 50)
 
     const updateTargetPosition = (event) => {
