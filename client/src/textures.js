@@ -229,6 +229,7 @@ export const Textures = {
       "axe": "/assets/textures/object/dropped/axe.png",
       "bow": "/assets/textures/object/dropped/bow.png",
       "chest": "/assets/textures/object/dropped/chest.png",
+      "crown": "/assets/textures/object/dropped/crown.png",
       "feet": "/assets/textures/object/dropped/feet.png",
       "gun": "/assets/textures/object/dropped/gun.png",
       "hands": "/assets/textures/object/dropped/hands.png",
