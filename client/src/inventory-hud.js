@@ -170,9 +170,12 @@ class InventoryHud extends Container {
     this.itemContainer.addChild(itemSprite)
 
     if (!isDisabledOffHand) {
+      const ITEM_DESCRIPTION_WIDTH = 200
       const itemDescription = new Container()
-      itemDescription.x = x
-      itemDescription.y = y - 20
+      itemDescription.x = -ITEM_DESCRIPTION_WIDTH
+
+      const itemDescriptionBg = new Graphics()
+      itemDescription.addChild(itemDescriptionBg)
 
       const itemNameText = new Text({
         text: `${item.name}`,
@@ -185,24 +188,33 @@ class InventoryHud extends Container {
       itemDescription.addChild(itemNameText)
 
       const itemTypeNameText = new Text({
-        text: `${item.itemType.name}`,
+        text: `${item.itemQuality} ${item.itemType.name}`,
         style: {
           fontFamily: 'Arial',
           fontSize: 10,
           fill: 0x0ed145,
         },
       })
+      
       itemTypeNameText.y = 12
       itemDescription.addChild(itemTypeNameText)
-      itemDescription.visibile = false
+      itemDescription.visible = false
 
-      this.itemContainer.addChild(itemDescription)
-      // this.itemContainer.on('pointerover', () => {
-      //   itemDescription.visibile = true
-      // })
-      // this.itemContainer.on('pointerleave', () => {
-      //   itemDescription.visible = false
-      // })
+      itemSprite.eventMode = 'static'
+      itemSprite.addChild(itemDescription)
+      itemSprite.on('pointerover', () => {
+        itemDescription.visible = true
+      })
+      itemSprite.on('pointerout', () => {
+        itemDescription.visible = false
+      })
+
+      // draw a background and set y based on height of the description container
+      itemDescription.y = -itemDescription.height
+      itemDescriptionBg.roundRect(-10, -10, ITEM_DESCRIPTION_WIDTH + 20, itemDescription.height + 20, 4).fill(0x000000).stroke({
+        width: 1,
+        color: 0x555555,
+      })
     }
   }
 }

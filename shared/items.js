@@ -57,6 +57,40 @@ export const SampleItems = [
     }
   })),
 
+  new Item({
+    name: 'Eebeeb Sword',
+    itemType: ItemType.OneHandWeapon,
+    itemQuality: ItemQuality.Unique,
+    inventoryTexture: Textures.inventory.one_handed.eebeebsword,
+    equippedTexture: Textures.item.weapon.sword,
+    attributes: {
+      [ItemAttributeType.Damage]: 20
+    }
+  }),
+
+  new Item({
+    name: 'Pellet Shooter',
+    itemType: ItemType.TwoHandWeapon,
+    itemQuality: ItemQuality.Unique,
+    inventoryTexture: Textures.inventory.two_handed.pelletshooter,
+    equippedTexture: Textures.item.weapon.crossbow,
+    attributes: {
+      // make this a ranged item
+      [ItemAttributeType.Damage]: 7
+    }
+  }),
+
+  new Item({
+    name: 'Aztec',
+    itemType: ItemType.OneHandWeapon,
+    itemQuality: ItemQuality.Unique,
+    inventoryTexture: Textures.inventory.one_handed.obsidianblade,
+    equippedTexture: Textures.item.weapon.club,
+    attributes: {
+      [ItemAttributeType.Damage]: 20
+    }
+  }),
+
   ...Object.keys(Textures.inventory.two_handed).filter(textureKey => Textures.item.weapon[textureKey] != null).map(textureKey => new Item({
     name: textureKey,
     itemType: ItemType.TwoHandWeapon,
