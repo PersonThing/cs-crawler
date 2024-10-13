@@ -64,6 +64,7 @@ export const Textures = {
     "head": {
       "armet": "/assets/textures/inventory/head/armet.png",
       "bascinet": "/assets/textures/inventory/head/bascinet.png",
+      "basinet": "/assets/textures/inventory/head/basinet.png",
       "crown": "/assets/textures/inventory/head/crown.png",
       "greathelm": "/assets/textures/inventory/head/greathelm.png",
       "helm": "/assets/textures/inventory/head/helm.png",
@@ -145,13 +146,16 @@ export const Textures = {
   "item": {
     "circle": "/assets/textures/item/circle.png",
     "head": {
+      "armet": "/assets/textures/item/head/armet.png",
       "base": "/assets/textures/item/head/base.png",
       "basinet": "/assets/textures/item/head/basinet.png",
       "crown": "/assets/textures/item/head/crown.png",
       "greathelm": "/assets/textures/item/head/greathelm.png",
+      "helm": "/assets/textures/item/head/helm.png",
       "nasalhelm": "/assets/textures/item/head/nasalhelm.png",
       "ornatehelm": "/assets/textures/item/head/ornatehelm.png",
       "skullcap": "/assets/textures/item/head/skullcap.png",
+      "vikinghelm": "/assets/textures/item/head/vikinghelm.png",
       "visorhelm": "/assets/textures/item/head/visorhelm.png"
     },
     "helmet": {
