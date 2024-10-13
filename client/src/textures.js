@@ -81,21 +81,23 @@ export const Textures = {
       "vikinghelm": "/assets/textures/inventory/head/vikinghelm.png"
     },
     "item": {
-      "amber": "/assets/textures/inventory/item/amber.png",
-      "amythest": "/assets/textures/inventory/item/amythest.png",
-      "aquamarine": "/assets/textures/inventory/item/aquamarine.png",
       "board": "/assets/textures/inventory/item/board.png",
-      "diamond": "/assets/textures/inventory/item/diamond.png",
-      "emerald": "/assets/textures/inventory/item/emerald.png",
+      "gems": {
+        "amber": "/assets/textures/inventory/item/gems/amber.png",
+        "amythest": "/assets/textures/inventory/item/gems/amythest.png",
+        "aquamarine": "/assets/textures/inventory/item/gems/aquamarine.png",
+        "diamond": "/assets/textures/inventory/item/gems/diamond.png",
+        "emerald": "/assets/textures/inventory/item/gems/emerald.png",
+        "quartz": "/assets/textures/inventory/item/gems/quartz.png",
+        "ruby": "/assets/textures/inventory/item/gems/ruby.png",
+        "saphire": "/assets/textures/inventory/item/gems/saphire.png",
+        "topaz": "/assets/textures/inventory/item/gems/topaz.png"
+      },
       "orb": "/assets/textures/inventory/item/orb.png",
       "pebble": "/assets/textures/inventory/item/pebble.png",
-      "quartz": "/assets/textures/inventory/item/quartz.png",
-      "ruby": "/assets/textures/inventory/item/ruby.png",
-      "saphire": "/assets/textures/inventory/item/saphire.png",
       "shamrock": "/assets/textures/inventory/item/shamrock.png",
       "souljar": "/assets/textures/inventory/item/souljar.png",
-      "stick": "/assets/textures/inventory/item/stick.png",
-      "topaz": "/assets/textures/inventory/item/topaz.png"
+      "stick": "/assets/textures/inventory/item/stick.png"
     },
     "one_handed": {
       "bloodyclub": "/assets/textures/inventory/one_handed/bloodyclub.png",

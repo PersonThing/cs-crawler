@@ -68,11 +68,22 @@ export const SampleItems = [
     }
   })),
 
-  ...Object.keys(Textures.inventory.item).map(textureKey => new Item({
+  ...Object.keys(Textures.inventory.item).filter(textureKey => typeof Textures.inventory.item[textureKey] != 'object').map(textureKey => new Item({
     name: `Sample Item ${textureKey}`,
     itemType: ItemType.Bonus,
     itemQuality: ItemQuality.Normal,
     inventoryTexture: Textures.inventory.item[textureKey],
+    attributes: {
+      [ItemAttributeType.Armor]: 1,
+      [ItemAttributeType.Damage]: 1,
+    }
+  })),
+
+  ...Object.keys(Textures.inventory.item.gems).map(textureKey => new Item({
+    name: `Sample Item ${textureKey}`,
+    itemType: ItemType.Bonus,
+    itemQuality: ItemQuality.Normal,
+    inventoryTexture: Textures.inventory.item.gems[textureKey],
     attributes: {
       [ItemAttributeType.Armor]: 1,
       [ItemAttributeType.Damage]: 1,
