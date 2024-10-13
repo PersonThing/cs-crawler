@@ -78,9 +78,9 @@ export const Textures = {
     },
     "null_inventory": "/assets/textures/inventory/null_inventory.png",
     "placeholders": {
-      "foorwear": "/assets/textures/inventory/placeholders/foorwear.png",
-      "gloves": "/assets/textures/inventory/placeholders/gloves.png",
-      "helm": "/assets/textures/inventory/placeholders/helm.png",
+      "feet": "/assets/textures/inventory/placeholders/feet.png",
+      "hands": "/assets/textures/inventory/placeholders/hands.png",
+      "head": "/assets/textures/inventory/placeholders/head.png",
       "mainhand": "/assets/textures/inventory/placeholders/mainhand.png",
       "offhand": "/assets/textures/inventory/placeholders/offhand.png"
     },
