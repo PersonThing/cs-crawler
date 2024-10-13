@@ -131,6 +131,7 @@ export const Textures = {
     }
   },
   "item": {
+    "circle": "/assets/textures/item/circle.png",
     "helmet": {
       "base": "/assets/textures/item/helmet/base.png",
       "basinet": "/assets/textures/item/helmet/basinet.png",
@@ -143,28 +144,29 @@ export const Textures = {
     },
     "weapon": {
       "axe": "/assets/textures/item/weapon/axe.png",
-      "axe_attack": "/assets/textures/item/weapon/axe_attack.png",
       "bow": "/assets/textures/item/weapon/bow.png",
-      "bow_attack": "/assets/textures/item/weapon/bow_attack.png",
-      "circle": "/assets/textures/item/weapon/circle.png",
       "club": "/assets/textures/item/weapon/club.png",
-      "club_attack": "/assets/textures/item/weapon/club_attack.png",
       "crossbow": "/assets/textures/item/weapon/crossbow.png",
-      "crossbow_attack": "/assets/textures/item/weapon/crossbow_attack.png",
       "greatsword": "/assets/textures/item/weapon/greatsword.png",
-      "greatsword_attack": "/assets/textures/item/weapon/greatsword_attack.png",
       "gun": "/assets/textures/item/weapon/gun.png",
-      "gun_attack": "/assets/textures/item/weapon/gun_attack.png",
       "hands": "/assets/textures/item/weapon/hands.png",
-      "hands_attack": "/assets/textures/item/weapon/hands_attack.png",
       "hatchet": "/assets/textures/item/weapon/hatchet.png",
-      "hatchet_attack": "/assets/textures/item/weapon/hatchet_attack.png",
       "knife": "/assets/textures/item/weapon/knife.png",
-      "knife_attack": "/assets/textures/item/weapon/knife_attack.png",
       "spear": "/assets/textures/item/weapon/spear.png",
-      "spear_attack": "/assets/textures/item/weapon/spear_attack.png",
-      "sword": "/assets/textures/item/weapon/sword.png",
-      "sword_attack": "/assets/textures/item/weapon/sword_attack.png"
+      "sword": "/assets/textures/item/weapon/sword.png"
+    },
+    "weapon attacks": {
+      "axe_attack": "/assets/textures/item/weapon attacks/axe_attack.png",
+      "bow_attack": "/assets/textures/item/weapon attacks/bow_attack.png",
+      "club_attack": "/assets/textures/item/weapon attacks/club_attack.png",
+      "crossbow_attack": "/assets/textures/item/weapon attacks/crossbow_attack.png",
+      "greatsword_attack": "/assets/textures/item/weapon attacks/greatsword_attack.png",
+      "gun_attack": "/assets/textures/item/weapon attacks/gun_attack.png",
+      "hands_attack": "/assets/textures/item/weapon attacks/hands_attack.png",
+      "hatchet_attack": "/assets/textures/item/weapon attacks/hatchet_attack.png",
+      "knife_attack": "/assets/textures/item/weapon attacks/knife_attack.png",
+      "spear_attack": "/assets/textures/item/weapon attacks/spear_attack.png",
+      "sword_attack": "/assets/textures/item/weapon attacks/sword_attack.png"
     }
   },
   "object": {
