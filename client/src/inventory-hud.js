@@ -59,7 +59,7 @@ class InventoryHud extends Container {
         )
         bgSprite.x = drawX + padding
         bgSprite.y = drawY + padding
-        bgSprite.alpha = 0.1
+        bgSprite.alpha = 0.25
         this.addChild(bgSprite)
       }
     }
