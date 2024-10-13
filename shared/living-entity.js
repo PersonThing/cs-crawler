@@ -54,7 +54,7 @@ class LivingEntity extends Container {
   }
 
   // when state changes on the server, this is what the server will send
-  getSyncProperties() {
+  serialize() {
     return {
       label: this.label,
       x: this.x,
@@ -68,8 +68,6 @@ class LivingEntity extends Container {
   // when receiving state from the server, this is what the client will apply
   syncWithServer(data) {
     this.setLabel(data.label)
-    this.setWeapon(data.tempWeaponIndex)
-    this.setArmor(data.tempArmorIndex)
     this.setTarget(data.target)
     this.setMaxHealth(data.maxHealth)
     this.setCurrentHealth(data.currentHealth)

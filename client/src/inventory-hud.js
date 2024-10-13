@@ -158,7 +158,7 @@ class InventoryHud extends Container {
   }
 
   drawItem(item, { x, y }) {
-    const itemSprite = Sprite.from(item.texture)
+    const itemSprite = Sprite.from(item.inventoryTexture)
     itemSprite.x = x
     itemSprite.y = y
     this.itemContainer.addChild(itemSprite)

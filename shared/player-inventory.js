@@ -14,6 +14,19 @@ class PlayerInventory {
     })
   }
 
+  serialize() {
+    return {
+      equipped: this.equipped,
+      bags: this.bags,
+    }
+  }
+
+  deserialize(content) {
+    this.equipped = content.equipped
+    this.bags = content.bags
+    this.updateStore()
+  }
+
   updateStore() {
     this.store.set({
       bags: this.bags,

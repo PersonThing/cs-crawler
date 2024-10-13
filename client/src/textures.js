@@ -71,8 +71,6 @@ export const Textures = {
       "ornatehelm": "/assets/textures/inventory/head/ornatehelm.png",
       "vikinghelm": "/assets/textures/inventory/head/vikinghelm.png"
     },
-    "feet": {},
-    "hands": {},
     "item": {
       "board": "/assets/textures/inventory/item/board.png",
       "diamond": "/assets/textures/inventory/item/diamond.png",

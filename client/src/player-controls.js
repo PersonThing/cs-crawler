@@ -1,12 +1,12 @@
 import { SampleItems } from '../../shared/items.js'
 import throttle from '../../shared/throttle'
+import socket from './socket.js'
 
 class PlayerControls {
-  constructor(app, world, player, socket, minimap, hud) {
+  constructor(app, world, player, minimap, hud) {
     this.app = app
     this.world = world
     this.player = player
-    this.socket = socket
     this.minimap = minimap
     this.hud = hud
     this.startListening()
@@ -16,7 +16,6 @@ class PlayerControls {
     let isMouseDown = false
     let lastMouseEvent = null
 
-    // Start updating the target position on mousedown
     this.app.canvas.addEventListener('mousedown', (event) => {
       if (!this.player) return
 
@@ -25,7 +24,6 @@ class PlayerControls {
       updateTargetPosition(event)
     })
 
-    // Update the target position on mousemove if the mouse button is held down
     this.app.canvas.addEventListener('mousemove', (event) => {
       if (!this.player || !isMouseDown) return
 
@@ -39,36 +37,9 @@ class PlayerControls {
       }
     })
 
-    // Stop updating the target position on mouseup
     this.app.canvas.addEventListener('mouseup', (event) => {
       isMouseDown = false
       lastMouseEvent = event
-    })
-
-    // on mouse scroll, change player weapon
-    this.app.canvas.addEventListener('wheel', (event) => {
-      if (!this.player) return
-
-      // if control is pressed, swap armor, otherwise weapon
-
-      if (event.altKey) {
-        const delta = Math.sign(event.deltaY)
-        if (delta > 0) {
-          this.player.selectNextArmor()
-        } else {
-          this.player.selectPreviousArmor()
-        }
-        this.socket.emit('playerSetArmor', this.player.tempArmorIndex)
-        return
-      }
-
-      const delta = Math.sign(event.deltaY)
-      if (delta > 0) {
-        this.player.selectNextWeapon()
-      } else {
-        this.player.selectPreviousWeapon()
-      }
-      this.socket.emit('playerSetWeapon', this.player.tempWeaponIndex)
     })
 
     window.addEventListener('keydown', (event) => {
@@ -99,7 +70,7 @@ class PlayerControls {
 
     // only pass new position to server at most every 50ms (20 times per second)
     const throttledSetTargetOnServer = throttle((target) => {
-      this.socket.emit('playerSetTarget', target)
+      socket.emit('playerSetTarget', target)
     }, 50)
 
     const updateTargetPosition = (event) => {

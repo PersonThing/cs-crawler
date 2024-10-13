@@ -7,9 +7,9 @@ class Enemy extends LivingEntity {
     this.targetEntity = null
   }
 
-  getSyncProperties() {
+  serialize() {
     return {
-      ...super.getSyncProperties(),
+      ...super.serialize(),
       targetEntity: this.targetEntityId,
     }
   }

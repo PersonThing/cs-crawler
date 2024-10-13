@@ -1,7 +1,15 @@
-import { Sprite } from 'pixi.js'
+import { Sprite, Container } from 'pixi.js'
 import { Textures } from '../client/src/textures.js'
 import LivingEntity from './living-entity.js'
 import PlayerInventory from './player-inventory.js'
+import InventorySlot from './inventory-slot.js'
+
+
+const EQUIPPED_SLOTS_TO_RENDER = [
+  InventorySlot.OffHand.name, 
+  InventorySlot.MainHand.name, 
+  InventorySlot.Head.name
+]
 
 class Player extends LivingEntity {
   constructor(socketId, name, pather, texture, world, color) {
@@ -10,97 +18,44 @@ class Player extends LivingEntity {
     this.socketId = socketId
 
     this.inventory = new PlayerInventory({}, [])
+    this.inventory.store.subscribe(content => this.setEquipped(content.equipped))
+  }
 
-    // TODO: remove this - hacking some textures in quick to test graphics
-    this.weaponTextures = Object.values(Textures.item.weapon)
-    this.setWeapon(0)
-    this.armorTextures = Object.values(Textures.item.helmet)
-    this.setArmor(0)
+  setEquipped(equipped) {
+    if (this.equippedSpriteContainer != null) {
+      this.equippedSpriteContainer.destroy()
+      this.removeChild(this.equippedSpriteContainer)
+    }
+
+    this.equippedSpriteContainer = new Container()
+    this.addChild(this.equippedSpriteContainer)
+
+    EQUIPPED_SLOTS_TO_RENDER.forEach(slotName => {
+      const item = equipped[slotName]
+      if (item != null) {
+        const sprite = Sprite.from(item.equippedTexture)
+        this.equippedSpriteContainer.addChild(sprite)
+      }
+    })
   }
 
   setLabel(label) {
     super.setLabel(label)
   }
 
-  setArmor(ix) {
-    if (ix == null || ix < 0 || ix > this.armorTextures.length - 1) {
-      ix = 0
-    }
-    this.tempArmorIndex = ix
-
-    if (this.entitySprite) {
-      if (this.tempArmorSprite) {
-        this.tempArmorSprite.parent.removeChild(this.tempArmorSprite)
-        this.tempArmorSprite.destroy()
-      }
-      this.tempArmorSprite = Sprite.from(this.armorTextures[ix])
-      this.tempArmorSprite.anchor.set(0.5)
-      this.entitySprite.addChild(this.tempArmorSprite)
-    }
-  }
-
-  setWeapon(ix) {
-    if (ix == null || ix < 0 || ix > this.weaponTextures.length - 1) {
-      ix = 0
-    }
-    this.tempWeaponIndex = ix
-
-    if (this.entitySprite) {
-      if (this.tempWeaponSprite) {
-        this.tempWeaponSprite.parent.removeChild(this.tempWeaponSprite)
-        this.tempWeaponSprite.destroy()
-      }
-      this.tempWeaponSprite = Sprite.from(this.weaponTextures[ix])
-      this.tempWeaponSprite.anchor.set(0.5)
-      this.entitySprite.addChild(this.tempWeaponSprite)
-    }
-  }
-
-  selectNextArmor() {
-    this.tempArmorIndex += 1
-    if (this.tempArmorIndex > this.armorTextures.length - 1) {
-      this.tempArmorIndex = 0
-    }
-    this.setArmor(this.tempArmorIndex)
-  }
-
-  selectPreviousArmor() {
-    this.tempArmorIndex -= 1
-    if (this.tempArmorIndex < 0) {
-      this.tempArmorIndex = this.armorTextures.length - 1
-    }
-    this.setArmor(this.tempArmorIndex)
-  }
-
-  selectNextWeapon() {
-    this.tempWeaponIndex += 1
-    if (this.tempWeaponIndex > this.weaponTextures.length - 1) {
-      this.tempWeaponIndex = 0
-    }
-    this.setWeapon(this.tempWeaponIndex)
-  }
-
-  selectPreviousWeapon() {
-    this.tempWeaponIndex -= 1
-    if (this.tempWeaponIndex < 0) {
-      this.tempWeaponIndex = this.weaponTextures.length - 1
-    }
-    this.setWeapon(this.tempWeaponIndex)
-  }
-
-  getSyncProperties() {
+  serialize() {
     return {
-      ...super.getSyncProperties(),
+      ...super.serialize(),
       socketId: this.socketId,
       tempWeaponIndex: this.tempWeaponIndex,
       tempArmorIndex: this.tempArmorIndex,
+      inventory: this.inventory.serialize(),
     }
   }
 
   syncWithServer(data) {
     super.syncWithServer(data)
-    this.setWeapon(data.tempWeaponIndex)
-    this.setArmor(data.tempArmorIndex)
+    // this.inventory.deserialize(data.inventory)
   }
 }
 

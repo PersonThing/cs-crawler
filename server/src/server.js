@@ -49,7 +49,7 @@ io.on('connection', (socket) => {
   players[socket.id].setTarget(playerState.target)
 
   // Broadcast new player to all other players
-  socket.broadcast.emit('playerJoined', players[socket.id].getSyncProperties())
+  socket.broadcast.emit('playerJoined', players[socket.id].serialize())
 
   // Handle player movement
   socket.on('playerSetTarget', (target) => {
@@ -58,17 +58,10 @@ io.on('connection', (socket) => {
     }
   })
 
-  // temp: handle weapon swapping
-  socket.on('playerSetWeapon', (index) => {
+  // temp: naively allow client to set entire inventory contents
+  socket.on('playerInventoryChange', (content) => {
     if (players[socket.id]) {
-      players[socket.id].setWeapon(index)
-    }
-  })
-
-  // temp: handle armor swapping
-  socket.on('playerSetArmor', (index) => {
-    if (players[socket.id]) {
-      players[socket.id].setArmor(index)
+      players[socket.id].inventory.deserialize(content)
     }
   })
 
@@ -100,7 +93,7 @@ setInterval(() => {
     player.onTick(deltaMS)
   }
   // convert players map to map of sync properties
-  const playerSyncs = Object.fromEntries(Object.entries(players).map(([id, player]) => [id, player.getSyncProperties()]))
+  const playerSyncs = Object.fromEntries(Object.entries(players).map(([id, player]) => [id, player.serialize()]))
 
   io.emit('updateState', {
     players: playerSyncs

@@ -1,6 +1,5 @@
 import { Application } from 'pixi.js'
 import { generateSampleLevel } from '../../shared/level-builder.js'
-import { io } from 'socket.io-client'
 import { Textures } from './textures.js'
 import Hud from './hud.js'
 import Minimap from './minimap.js'
@@ -9,20 +8,11 @@ import Player from '../../shared/player'
 import PlayerControls from './player-controls'
 import preloadTextures from './preload-textures.js'
 import World from '../../shared/world.js'
+import socket from './socket.js'
 
 const remotePlayers = {}
 let localPlayer = null
 let playerControls = null
-
-const playerId =
-  localStorage.getItem('playerId') ||
-  'player-' + Math.random().toString(36).substr(2, 9)
-localStorage.setItem('playerId', playerId)
-
-// Create socket connection
-const socket = io(`http://${window.location.hostname}:3000`, {
-  query: { playerId }, // Send playerId as a query parameter, no validation for now
-})
 
 // Create pixi.js app
 const app = new Application()
@@ -114,12 +104,11 @@ const createLocalPlayer = (playerData) => {
   
   hud = new Hud(localPlayer, app.screen.width, app.screen.height)
   app.stage.addChild(hud)
-  
+
   playerControls = new PlayerControls(
     app,
     world,
     localPlayer,
-    socket,
     minimap,
     hud
   )
