@@ -67,7 +67,6 @@ export const Textures = {
       "platearmor_inventory": "/assets/textures/inventory/armor/platearmor_inventory.png",
       "vikinghelm_inventory": "/assets/textures/inventory/armor/vikinghelm_inventory.png"
     },
-    "background": "/assets/textures/inventory/background.png",
     "charm": {
       "board": "/assets/textures/inventory/charm/board.png",
       "diamond": "/assets/textures/inventory/charm/diamond.png",
@@ -78,6 +77,13 @@ export const Textures = {
       "stick": "/assets/textures/inventory/charm/stick.png"
     },
     "null_inventory": "/assets/textures/inventory/null_inventory.png",
+    "placeholders": {
+      "foorwear": "/assets/textures/inventory/placeholders/foorwear.png",
+      "gloves": "/assets/textures/inventory/placeholders/gloves.png",
+      "helm": "/assets/textures/inventory/placeholders/helm.png",
+      "mainhand": "/assets/textures/inventory/placeholders/mainhand.png",
+      "offhand": "/assets/textures/inventory/placeholders/offhand.png"
+    },
     "weapon": {
       "axe_inventory": "/assets/textures/inventory/weapon/axe_inventory.png",
       "ballista_inventory": "/assets/textures/inventory/weapon/ballista_inventory.png",
