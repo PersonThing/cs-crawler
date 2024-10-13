@@ -15,6 +15,25 @@ export const SampleItems = [
     }
   })),
 
+  ...Object.keys(Textures.inventory.hands).map(textureKey => new Item({
+    name: `Sample Hands ${textureKey}`,
+    itemType: ItemType.Hands,
+    itemQuality: ItemQuality.Normal,
+    inventoryTexture: Textures.inventory.hands[textureKey],
+    attributes: {
+      [ItemAttributeType.Armor]: 5
+    }
+  })),
+
+  ...Object.keys(Textures.inventory.feet).map(textureKey => new Item({
+    name: `Sample Feet ${textureKey}`,
+    itemType: ItemType.Feet,
+    itemQuality: ItemQuality.Normal,
+    inventoryTexture: Textures.inventory.feet[textureKey],
+    attributes: {
+      [ItemAttributeType.Armor]: 8
+    }
+  })),
   ...Object.keys(Textures.inventory.head).map(textureKey => new Item({
     name: `Sample Head ${textureKey}`,
     itemType: ItemType.Head,

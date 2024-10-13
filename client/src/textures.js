@@ -204,7 +204,7 @@ export const Textures = {
       "crossbow": "/assets/textures/item/weapon/crossbow.png",
       "greatsword": "/assets/textures/item/weapon/greatsword.png",
       "gun": "/assets/textures/item/weapon/gun.png",
-      "hands": "/assets/textures/item/weapon/hands.png",
+      "hand": "/assets/textures/item/weapon/hand.png",
       "hatchet": "/assets/textures/item/weapon/hatchet.png",
       "knife": "/assets/textures/item/weapon/knife.png",
       "spear": "/assets/textures/item/weapon/spear.png",
