@@ -75,17 +75,17 @@ class PlayerControls {
       if (event.key === 'Tab') {
         this.minimap.toggleCentered()
         event.preventDefault()
-      } else if (event.key === 'b') {
+      } else if (event.key === 'b' || event.key === 'i') {
         this.hud.toggleInventory(this.app.screen.width, this.app.screen.height)
         event.preventDefault()
-      } else if (event.key === 'i') {
+      } else if (event.key === 'n') {
         // temp: generate and pick up a random sample item
         this.player.inventory.pickup(generateRandomItem())
-      } else if (event.key === 'I') {
+      } else if (event.key === 'N') {
         // temp: fill inventory with random items
         this.player.inventory.reset()
         while (this.player.inventory.pickup(generateRandomItem())) {}
-      } else if (event.key === 'K') {
+      } else if (event.key === 'M') {
         // temp: reset inventory
         this.player.inventory.reset()
       }

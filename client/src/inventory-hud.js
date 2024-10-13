@@ -5,7 +5,6 @@ import {
   INVENTORY_WIDTH,
 } from '../../shared/constants.js'
 import { Graphics, Container, Sprite } from 'pixi.js'
-import { readonly as store } from '../../shared/inventory-store.js'
 import { Textures } from './textures.js'
 import ItemSlotType from '../../shared/item-slot-type.js'
 import InventorySlot from '../../shared/inventory-slot.js'
@@ -38,14 +37,13 @@ const EquippedSlotCoordinates = {
 }
 
 class InventoryHud extends Container {
-  constructor() {
+  constructor(player) {
     super()
 
     this.content = null
-
     this.renderBackground()
-
-    store.subscribe((content) => {
+    
+    player.inventory.store.subscribe((content) => {
       this.setContent(content)
     })
   }

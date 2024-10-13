@@ -1,16 +1,21 @@
 import { BAG_SLOTS } from './constants.js'
-import { writable as store } from './inventory-store.js'
-import ItemSlotType from './item-slot-type.js'
+import { createStore } from './create-store.js'
 import InventorySlot from './inventory-slot.js'
 
 class PlayerInventory {
   constructor() {
     this.equipped = {}
     this.bags = []
+    this.store = createStore()
+
+    this.store = createStore({
+      equipped: {},
+      bags: [],
+    })
   }
 
   updateStore() {
-    store.set({
+    this.store.set({
       bags: this.bags,
       equipped: this.equipped,
     })

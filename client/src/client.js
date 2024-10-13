@@ -39,9 +39,6 @@ app.stage.addChild(minimap)
 
 let hud
 const init = async () => {
-  hud = new Hud(app.screen.width, app.screen.height)
-  app.stage.addChild(hud)
-
   // Client-side game loop - server has authority, but client predicts and corrects
   app.ticker.maxFPS = 120
   app.ticker.add((time) => {
@@ -114,6 +111,10 @@ const createLocalPlayer = (playerData) => {
 
   playerData.label = `You`
   localPlayer = createPlayer(socket.id, playerData, 0xffffff)
+  
+  hud = new Hud(localPlayer, app.screen.width, app.screen.height)
+  app.stage.addChild(hud)
+  
   playerControls = new PlayerControls(
     app,
     world,

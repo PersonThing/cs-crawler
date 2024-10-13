@@ -5,11 +5,21 @@ import ItemAttributeType from './item-attribute-type.js'
 import { Textures } from '../client/src/textures.js'
 
 export const SampleItems = [
-  ...Object.keys(Textures.inventory.armor).map(textureKey => new Item({
-    name: `Sample Armor ${textureKey}`,
-    itemType: textureKey.indexOf('armor') > -1 ? ItemType.Chest : ItemType.Head,
+  ...Object.keys(Textures.inventory.chest).map(textureKey => new Item({
+    name: `Sample Chest ${textureKey}`,
+    itemType: ItemType.Chest,
     itemQuality: ItemQuality.Normal,
-    texture: Textures.inventory.armor[textureKey],
+    texture: Textures.inventory.chest[textureKey],
+    attributes: {
+      [ItemAttributeType.Armor]: 15
+    }
+  })),
+
+  ...Object.keys(Textures.inventory.head).map(textureKey => new Item({
+    name: `Sample Head ${textureKey}`,
+    itemType: ItemType.Head,
+    itemQuality: ItemQuality.Normal,
+    texture: Textures.inventory.head[textureKey],
     attributes: {
       [ItemAttributeType.Armor]: 10
     }
@@ -31,7 +41,8 @@ export const SampleItems = [
     itemQuality: ItemQuality.Normal,
     texture: Textures.inventory.item[textureKey],
     attributes: {
-      [ItemAttributeType.Damage]: 10
+      [ItemAttributeType.Armor]: 1,
+      [ItemAttributeType.Damage]: 1,
     }
   })),
 ]
