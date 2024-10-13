@@ -78,6 +78,7 @@ export const Textures = {
     },
     "null_inventory": "/assets/textures/inventory/null_inventory.png",
     "placeholders": {
+      "chest": "/assets/textures/inventory/placeholders/chest.png",
       "feet": "/assets/textures/inventory/placeholders/feet.png",
       "hands": "/assets/textures/inventory/placeholders/hands.png",
       "head": "/assets/textures/inventory/placeholders/head.png",
