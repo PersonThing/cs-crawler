@@ -51,7 +51,6 @@ class InventoryHud extends Container {
 
       if (itemSlotType) {
         // draw the background sprite (later: change so this only happens when nothing is equipped?)
-        if (itemSlotType == ItemSlotType.Chest) return // temp
         if (itemSlotType == ItemSlotType.Bonus) return
 
         const bgSprite = Sprite.from(
