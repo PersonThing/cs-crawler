@@ -30,21 +30,22 @@ class Player extends LivingEntity {
     this.equippedSpriteContainer = new Container()
     this.entitySprite.addChild(this.equippedSpriteContainer)
 
-    // render head
-    const item = equipped[InventorySlot.Head]
-    if (item != null) {
-      this.attachItemSprite(item.equippedTexture, false)
-    }
-
-    // render weapon/s
-    const mainHand = equipped[InventorySlot.MainHand.name]
-    const offHand = equipped[InventorySlot.OffHand.name]
-    if (mainHand != null) {
-      this.attachItemSprite(mainHand.equippedTexture, false)
-    }
-    if (!mainHand?.itemType.bothHands && offHand != null) {
-      this.attachItemSprite(offHand.equippedTexture, true)
-    }
+    Object.keys(equipped)
+      .filter(
+        (slotName) =>
+          equipped[slotName] != null &&
+          equipped[slotName].equippedTexture != null &&
+          slotName.indexOf('Bonus') === -1
+      )
+      .forEach((slotName) => {
+        const item = equipped[slotName]
+        if (item != null) {
+          this.attachItemSprite(
+            item.equippedTexture,
+            slotName === InventorySlot.OffHand.name
+          )
+        }
+      })
   }
 
   attachItemSprite(texture, shouldMirrorTexture) {
