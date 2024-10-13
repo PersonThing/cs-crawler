@@ -1,4 +1,5 @@
 import { Container } from 'pixi.js'
+import { DEBUG } from '../../shared/constants.js'
 import InventoryHud from './inventory-hud.js'
 
 class Hud extends Container {
@@ -7,6 +8,10 @@ class Hud extends Container {
     this.inventory = new InventoryHud()
     this.inventory.visible = false
     this.addChild(this.inventory)
+
+    if (DEBUG) {
+      this.toggleInventory(screenWidth, screenHeight)
+    }
   }
 
   toggleInventory(screenWidth, screenHeight) {

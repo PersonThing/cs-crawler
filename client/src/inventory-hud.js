@@ -18,9 +18,9 @@ class InventoryHud extends Container {
     // this.addChild(bg)
 
     const bg = Sprite.from(Textures.inventory.background)
-    bg.scale.x = ART_SCALE
-    bg.scale.y = ART_SCALE
-    bg.alpha = 0.5
+    bg.scale.x = 2
+    bg.scale.y = 2
+    bg.alpha = 0.7
 
     this.addChild(bg)
   }

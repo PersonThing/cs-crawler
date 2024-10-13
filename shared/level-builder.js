@@ -1,5 +1,6 @@
 import { Textures } from '../client/src/textures.js'
 import Block from './block.js'
+import { ART_SCALE } from './constants.js'
 import Level from './level.js'
 import Tile from './tile.js'
 
@@ -7,7 +8,7 @@ const textureMap = {
   0: null,
   1: Textures.tiles.rocks,
   2: Textures.tiles.stone,
-  3: Textures.tiles.blackstone,
+  3: Textures.tiles.gravel,
 }
 
 export const generateSampleLevel = () => {
@@ -222,8 +223,8 @@ export const generateSampleLevel = () => {
   ]
 
   level.start = {
-    x: 2600,
-    y: 2600,
+    x: 1750 * ART_SCALE,
+    y: 1750 * ART_SCALE,
   }
 
   return level
