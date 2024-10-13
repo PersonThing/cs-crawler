@@ -31,7 +31,8 @@ export const SampleItems = [
     itemQuality: ItemQuality.Normal,
     inventoryTexture: Textures.inventory.feet[textureKey],
     attributes: {
-      [ItemAttributeType.Armor]: 8
+      [ItemAttributeType.Armor]: 8,
+      [ItemAttributeType.MovementSpeedPercent]: 20,
     }
   })),
 
@@ -60,7 +61,7 @@ export const SampleItems = [
   new Item({
     name: 'Eebeeb Sword',
     itemType: ItemType.OneHandWeapon,
-    itemQuality: ItemQuality.Unique,
+    itemQuality: ItemQuality.Set,
     inventoryTexture: Textures.inventory.one_handed.eebeebsword,
     equippedTexture: Textures.item.weapon.sword,
     attributes: {
@@ -91,6 +92,16 @@ export const SampleItems = [
     }
   }),
 
+  new Item({
+    name: '',
+    itemType: ItemType.OneHandWeapon,
+    itemQuality: ItemQuality.Unique,
+    inventoryTexture: Textures.inventory.one_handed.obsidianblade,
+    equippedTexture: Textures.item.weapon.club,
+    attributes: {
+      [ItemAttributeType.Damage]: 20
+    }
+  }),
   ...Object.keys(Textures.inventory.two_handed).filter(textureKey => Textures.item.weapon[textureKey] != null).map(textureKey => new Item({
     name: textureKey,
     itemType: ItemType.TwoHandWeapon,

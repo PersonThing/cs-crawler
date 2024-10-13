@@ -1,13 +1,12 @@
 import {
-  ART_SCALE,
   BAG_SLOTS,
   INVENTORY_HEIGHT,
   INVENTORY_WIDTH,
 } from '../../shared/constants.js'
 import { Graphics, Container, Sprite, Text } from 'pixi.js'
 import { Textures } from './textures.js'
-import ItemSlotType from '../../shared/item-slot-type.js'
 import InventorySlot from '../../shared/inventory-slot.js'
+import ItemQuality from '../../shared/item-quality.js'
 
 const ITEM_SIZE = 32
 const PADDING = 1
@@ -34,6 +33,13 @@ const EquippedSlotCoordinates = {
   [InventorySlot.Bonus1.name]: getItemSlotCoordinates(-1, 3),
   [InventorySlot.Bonus2.name]: getItemSlotCoordinates(0, 3),
   [InventorySlot.Bonus3.name]: getItemSlotCoordinates(1, 3),
+}
+
+const ItemQualityColors = {
+  [ItemQuality.Normal]: 0xcccccc,
+  [ItemQuality.Set]: 0x0ed145,
+  [ItemQuality.Special]: 0x00a8f3,
+  [ItemQuality.Unique]: 0xff7f27,
 }
 
 class InventoryHud extends Container {
@@ -191,8 +197,8 @@ class InventoryHud extends Container {
         text: `${item.itemQuality} ${item.itemType.name}`,
         style: {
           fontFamily: 'Arial',
-          fontSize: 10,
-          fill: 0x0ed145,
+          fontSize: 11,
+          fill: ItemQualityColors[item.itemQuality],
         },
       })
       
