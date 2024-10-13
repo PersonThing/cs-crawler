@@ -225,6 +225,18 @@ export const Textures = {
     }
   },
   "object": {
+    "dropped": {
+      "axe": "/assets/textures/object/dropped/axe.png",
+      "bow": "/assets/textures/object/dropped/bow.png",
+      "chest": "/assets/textures/object/dropped/chest.png",
+      "feet": "/assets/textures/object/dropped/feet.png",
+      "gun": "/assets/textures/object/dropped/gun.png",
+      "hands": "/assets/textures/object/dropped/hands.png",
+      "head": "/assets/textures/object/dropped/head.png",
+      "mace": "/assets/textures/object/dropped/mace.png",
+      "spear": "/assets/textures/object/dropped/spear.png",
+      "sword": "/assets/textures/object/dropped/sword.png"
+    },
     "mushroom": "/assets/textures/object/mushroom.png"
   },
   "particle": {
