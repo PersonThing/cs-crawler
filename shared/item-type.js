@@ -9,7 +9,7 @@ class ItemType {
       throw new Error('ItemType must fill at least 1 slot')
 
     this.name = name
-    this.slotType = validSlotTypes
+    this.validSlotTypes = validSlotTypes
     this.fillsMainAndOffHand = fillsMainAndOffHand
   }
 }

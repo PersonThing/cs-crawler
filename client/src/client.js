@@ -1,14 +1,15 @@
 import { Application } from 'pixi.js'
 import { generateSampleLevel } from '../../shared/level-builder.js'
 import { io } from 'socket.io-client'
+import { MINIMAP_HEIGHT, MINIMAP_WIDTH } from '../../shared/constants.js'
 import { Textures } from './textures.js'
-import preloadTextures from './preload-textures.js'
+import Hud from './hud.js'
+import Minimap from './minimap.js'
+import Pather from '../../shared/pather'
 import Player from '../../shared/player'
 import PlayerControls from './player-controls'
-import Pather from '../../shared/pather'
-import Minimap from './minimap.js'
+import preloadTextures from './preload-textures.js'
 import World from '../../shared/world.js'
-import Hud from './hud.js'
 
 const remotePlayers = {}
 let localPlayer = null
@@ -34,7 +35,7 @@ const world = new World(app, levelConfig)
 app.stage.addChild(world)
 
 const pather = new Pather(levelConfig)
-const minimap = new Minimap(levelConfig, 400, 200, false)
+const minimap = new Minimap(levelConfig, MINIMAP_WIDTH, MINIMAP_HEIGHT, false)
 app.stage.addChild(minimap)
 
 let hud

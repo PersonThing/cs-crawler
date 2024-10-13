@@ -1,11 +1,13 @@
 import {
   ART_SCALE,
-  INVENTORY_WIDTH,
+  BAG_SLOTS,
   INVENTORY_HEIGHT,
+  INVENTORY_WIDTH,
 } from '../../shared/constants.js'
 import { Graphics, Container, Sprite } from 'pixi.js'
 import { Textures } from './textures.js'
 import ItemSlotType from '../../shared/item-slot-type.js'
+
 
 class InventoryHud extends Container {
   constructor() {
@@ -78,20 +80,24 @@ class InventoryHud extends Container {
     drawItemBg(BONUS_SLOT_COLOR, 0, 3, ItemSlotType.Bonus)
     drawItemBg(BONUS_SLOT_COLOR, 1, 3, ItemSlotType.Bonus)
 
-    // bags
-    const slots = 60
-    const cols = 10
-    for (let i = 0; i < slots; i++) {
-      const x = i % cols
-      const y = Math.floor(i / cols)
+    // draw bg for bag slots
+    const BAG_COLS = 10
+    for (let i = 0; i < BAG_SLOTS; i++) {
+      const x = i % BAG_COLS
+      const y = Math.floor(i / BAG_COLS)
       drawItemBg(BAG_SLOT_COLOR, x, y)
     }
+  }
 
-    // draw bg for bag slots
-
-    // render equipped items
-
-    // render bagged items
+  setItems(playerInventory) {
+    Object.keys(ItemSlotType).forEach(itemSlotType => {
+      // render item if not already rendered
+    })
+    for (let i=0; i<BAG_SLOTS; i++) {
+      if (playerInventory.bags[i] != null) {
+        // render item to the right bag slot
+      }
+    }
   }
 }
 
