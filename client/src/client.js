@@ -47,7 +47,12 @@ const init = async () => {
   app.ticker.maxFPS = 120
   app.ticker.add((time) => {
     world.onTick(time, localPlayer, app.screen.width, app.screen.height)
-    minimap.onTick(localPlayer, remotePlayers, app.screen.width, app.screen.height)
+    minimap.onTick(
+      localPlayer,
+      remotePlayers,
+      app.screen.width,
+      app.screen.height
+    )
   })
 
   socket.on('updateState', (state) => {

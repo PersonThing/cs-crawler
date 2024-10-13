@@ -1,12 +1,15 @@
 import { Sprite } from 'pixi.js'
 import { Textures } from '../client/src/textures.js'
 import LivingEntity from './living-entity.js'
+import PlayerInventory from './player-inventory.js'
 
 class Player extends LivingEntity {
   constructor(socketId, name, pather, texture, world, color) {
     super(name, pather, texture, world, color)
 
     this.socketId = socketId
+
+    this.inventory = new PlayerInventory({}, [])
 
     // TODO: remove this - hacking some textures in quick to test graphics
     this.weaponTextures = Object.values(Textures.item.weapon)

@@ -1,3 +1,4 @@
+import { SampleItems } from '../../shared/items.js'
 import throttle from '../../shared/throttle'
 
 class PlayerControls {
@@ -77,8 +78,24 @@ class PlayerControls {
       } else if (event.key === 'b') {
         this.hud.toggleInventory(this.app.screen.width, this.app.screen.height)
         event.preventDefault()
+      } else if (event.key === 'i') {
+        // temp: generate and pick up a random sample item
+        this.player.inventory.pickup(generateRandomItem())
+      } else if (event.key === 'I') {
+        // temp: fill inventory with random items
+        this.player.inventory.reset()
+        while (this.player.inventory.pickup(generateRandomItem())) {}
+      } else if (event.key === 'U') {
+        // temp: reset inventory
+        this.player.inventory.reset()
       }
     })
+
+    const generateRandomItem = () => {
+      return structuredClone(
+        SampleItems[Math.floor(Math.random() * SampleItems.length)]
+      )
+    }
 
     // only pass new position to server at most every 50ms (20 times per second)
     const throttledSetTargetOnServer = throttle((target) => {
