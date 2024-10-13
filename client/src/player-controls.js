@@ -85,7 +85,7 @@ class PlayerControls {
         // temp: fill inventory with random items
         this.player.inventory.reset()
         while (this.player.inventory.pickup(generateRandomItem())) {}
-      } else if (event.key === 'U') {
+      } else if (event.key === 'K') {
         // temp: reset inventory
         this.player.inventory.reset()
       }

@@ -25,11 +25,11 @@ export const SampleItems = [
     }
   })),
 
-  ...Object.keys(Textures.inventory.charm).map(textureKey => new Item({
-    name: `Sample Charm ${textureKey}`,
+  ...Object.keys(Textures.inventory.item).map(textureKey => new Item({
+    name: `Sample Item ${textureKey}`,
     itemType: ItemType.Bonus,
     itemQuality: ItemQuality.Normal,
-    texture: Textures.inventory.charm[textureKey],
+    texture: Textures.inventory.item[textureKey],
     attributes: {
       [ItemAttributeType.Damage]: 10
     }

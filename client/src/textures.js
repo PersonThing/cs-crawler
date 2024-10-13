@@ -67,14 +67,14 @@ export const Textures = {
       "platearmor_inventory": "/assets/textures/inventory/armor/platearmor_inventory.png",
       "vikinghelm_inventory": "/assets/textures/inventory/armor/vikinghelm_inventory.png"
     },
-    "charm": {
-      "board": "/assets/textures/inventory/charm/board.png",
-      "diamond": "/assets/textures/inventory/charm/diamond.png",
-      "orb": "/assets/textures/inventory/charm/orb.png",
-      "pebble": "/assets/textures/inventory/charm/pebble.png",
-      "shamrock": "/assets/textures/inventory/charm/shamrock.png",
-      "souljar": "/assets/textures/inventory/charm/souljar.png",
-      "stick": "/assets/textures/inventory/charm/stick.png"
+    "item": {
+      "board_inventory": "/assets/textures/inventory/item/board_inventory.png",
+      "diamond_inventory": "/assets/textures/inventory/item/diamond_inventory.png",
+      "orb_inventory": "/assets/textures/inventory/item/orb_inventory.png",
+      "pebble_inventory": "/assets/textures/inventory/item/pebble_inventory.png",
+      "shamrock_inventory": "/assets/textures/inventory/item/shamrock_inventory.png",
+      "souljar_inventory": "/assets/textures/inventory/item/souljar_inventory.png",
+      "stick_inventory": "/assets/textures/inventory/item/stick_inventory.png"
     },
     "null_inventory": "/assets/textures/inventory/null_inventory.png",
     "placeholders": {
@@ -85,6 +85,7 @@ export const Textures = {
       "mainhand": "/assets/textures/inventory/placeholders/mainhand.png",
       "offhand": "/assets/textures/inventory/placeholders/offhand.png"
     },
+    "ui": "/assets/textures/inventory/ui.png",
     "weapon": {
       "axe_inventory": "/assets/textures/inventory/weapon/axe_inventory.png",
       "ballista_inventory": "/assets/textures/inventory/weapon/ballista_inventory.png",
