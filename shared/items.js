@@ -93,7 +93,29 @@ export const SampleItems = [
     }
   })),
 
-  // Unique items
+  //Rare Items
+  new Item({
+    name: 'Ornate Helm',
+    itemType: ItemType.Head,
+    itemQuality: ItemQuality.Rare,
+    inventoryTexture: Textures.inventory.head.ornatehelm,
+    equippedTexture: Textures.item.head.ornatehelm,
+    attributes: {
+      [ItemAttributeType.Defense]: 20
+    }
+  }),
+
+  new Item({
+    name: 'Ornate Armor',
+    itemType: ItemType.Chest,
+    itemQuality: ItemQuality.Rare,
+    inventoryTexture: Textures.inventory.chest.ornatearmor,
+    attributes: {
+      [ItemAttributeType.Defense]: 25
+    }
+  }),
+
+  // Unique Items
   new Item({
     name: 'Eebeeb Sword',
     itemType: ItemType.OneHandWeapon,
@@ -136,29 +158,7 @@ export const SampleItems = [
     }
   }),
 
-  // Set Items
-  new Item({
-    name: 'Ornate Helm',
-    itemType: ItemType.Head,
-    itemQuality: ItemQuality.Set,
-    inventoryTexture: Textures.inventory.head.ornatehelm,
-    equippedTexture: Textures.item.head.ornatehelm,
-    attributes: {
-      [ItemAttributeType.Defense]: 20
-    }
-  }),
-
-  new Item({
-    name: 'Ornate Armor',
-    itemType: ItemType.Chest,
-    itemQuality: ItemQuality.Set,
-    inventoryTexture: Textures.inventory.chest.ornatearmor,
-    attributes: {
-      [ItemAttributeType.Defense]: 25
-    }
-  }),
-
-  // Special items
+  // Special Items
   new Item({
     name: 'Frozen Crown',
     itemType: ItemType.Head,
@@ -171,5 +171,7 @@ export const SampleItems = [
       [ItemAttributeType.ColdDamage]: 15
     }
   }),
-  
+
+  // Set Items
+
 ]

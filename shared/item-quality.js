@@ -1,7 +1,8 @@
 const ItemQuality = {
   Normal: 'Normal',
-  Special: 'Special',
+  Rare: 'Rare',
   Unique: 'Unique',
+  Special: 'Special',
   Set: 'Set',
 }
 
