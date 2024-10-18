@@ -3,9 +3,9 @@ import { DEBUG } from '../../shared/constants.js'
 import InventoryHud from './inventory-hud.js'
 
 class Hud extends Container {
-  constructor(player, screenWidth, screenHeight) {
+  constructor(app, player, screenWidth, screenHeight) {
     super()
-    this.inventory = new InventoryHud(player)
+    this.inventory = new InventoryHud(app, player.inventory)
     this.inventory.visible = false
     this.addChild(this.inventory)
 

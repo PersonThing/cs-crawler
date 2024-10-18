@@ -1,17 +1,15 @@
-import {
-  BAG_SLOTS,
-  INVENTORY_HEIGHT,
-  INVENTORY_WIDTH,
-} from '../../shared/constants.js'
+import { BAG_SLOTS } from '../../shared/constants.js'
 import { Graphics, Container, Sprite, Text } from 'pixi.js'
 import { Textures } from './textures.js'
 import InventorySlot from '../../shared/inventory-slot.js'
 import ItemQuality from '../../shared/item-quality.js'
 
 const ITEM_SIZE = 32
-const PADDING = 1
-const MARGIN = 6
+const PADDING = 2
+const MARGIN = 5
 const BAG_COLS = 10
+const INVENTORY_HEIGHT = (ITEM_SIZE + PADDING + MARGIN) * 11.5
+const INVENTORY_WIDTH = (ITEM_SIZE + PADDING + MARGIN) * BAG_COLS + MARGIN * 2
 const DEFAULT_SLOT_COLOR = 0x777777
 
 const getItemSlotCoordinates = (x, y) => {
@@ -41,15 +39,42 @@ const ItemQualityColors = {
 }
 
 class InventoryHud extends Container {
-  constructor(player) {
+  constructor(app, playerInventory) {
     super()
 
     this.content = null
     this.renderBackground()
 
-    player.inventory.store.subscribe((content) => {
+    this.playerInventory = playerInventory
+    this.playerInventory.store.subscribe(content => {
       this.setContent(content)
     })
+
+    // kill any click events that bubble through, so player doesn't move when clicking inside inventory
+    this.eventMode = 'static'
+    this.on('mousedown', e => {
+      e.stopPropagation()
+      e.preventDefault()
+      return false
+    })
+
+    this.cursorPosition = { x: 0, y: 0 }
+
+    // move cursor item with mouse
+    app.canvas.addEventListener('mousemove', e => {
+      this.cursorItemPosition = {
+        x: e.clientX - this.x - ITEM_SIZE / 2,
+        y: e.clientY - this.y - ITEM_SIZE / 2,
+      }
+      if (this.cursorItem != null) {
+        this.setCursorItemPosition()
+      }
+    })
+  }
+
+  setCursorItemPosition() {
+    this.cursorItem.x = this.cursorBg.x = this.cursorItemPosition.x
+    this.cursorItem.y = this.cursorBg.y = this.cursorItemPosition.y
   }
 
   getBagSlotCoordinates(index) {
@@ -61,7 +86,27 @@ class InventoryHud extends Container {
     }
   }
 
+  drawItemBg(color, { x, y }) {
+    const g = new Graphics()
+      .rect(0, 0, ITEM_SIZE + PADDING, ITEM_SIZE + PADDING)
+      .stroke({
+        color,
+        width: 2,
+      })
+      .fill(0x000000)
+    g.x = x
+    g.y = y
+    this.bg.addChild(g)
+    return g
+  }
+
   renderBackground() {
+    if (this.cursorItem != null) {
+      this.cursorItem.destroy()
+      this.cursorItem = null
+      this.cursorBg.destroy()
+      this.cursorBg = null
+    }
     if (this.bg) {
       this.removeChild(this.bg)
       this.bg.destroy()
@@ -81,22 +126,11 @@ class InventoryHud extends Container {
     gfx.y = 0
     this.bg.addChild(gfx)
 
-    const drawBg = (color, { x, y }) => {
-      gfx
-        .rect(x, y, ITEM_SIZE + PADDING, ITEM_SIZE + PADDING)
-        .stroke({
-          color,
-          width: 2,
-        })
-        .fill(0x000000)
-    }
-
-    const drawEquippedSlotBg = (inventorySlot) => {
+    const drawEquippedSlotBg = inventorySlot => {
       const coords = EquippedSlotCoordinates[inventorySlot.name]
       const item = this.content?.equipped[inventorySlot.name]
-      const color =
-        item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
-      drawBg(color, coords)
+      const color = item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
+      this.drawItemBg(color, coords)
 
       if (
         // background sprite for equipped slots that don't have anything in them
@@ -116,14 +150,23 @@ class InventoryHud extends Container {
       bgSprite.x = coords.x + PADDING
       bgSprite.y = coords.y + PADDING
       bgSprite.alpha = 0.25
+      bgSprite.eventMode = 'static'
+      bgSprite.on('mousedown', e => {
+        console.log('empty equipped slot click', inventorySlot.name)
+        this.playerInventory.clickEquippedSlot(inventorySlot.name)
+      })
       this.bg.addChild(bgSprite)
     }
 
-    const drawBagSlotBg = (index) => {
+    const drawBagSlotBg = index => {
       const item = this.content?.bags[index]
-      const color =
-        item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
-      drawBg(color, this.getBagSlotCoordinates(index))
+      const color = item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
+      const slotBg = this.drawItemBg(color, this.getBagSlotCoordinates(index))
+      slotBg.eventMode = 'static'
+      slotBg.on('mousedown', e => {
+        console.log('empty bag slot click', index)
+        this.playerInventory.clickBagSlot(index)
+      })
     }
 
     drawEquippedSlotBg(InventorySlot.Head)
@@ -157,32 +200,71 @@ class InventoryHud extends Container {
     this.addChild(this.itemContainer)
 
     // bags
-    for (let i = 0; i < BAG_SLOTS; i++) {
-      const item = content.bags[i]
+    for (let index = 0; index < BAG_SLOTS; index++) {
+      const item = content.bags[index]
       if (item != null) {
-        const coords = this.getBagSlotCoordinates(i)
-        this.drawItem(item, coords)
+        const coords = this.getBagSlotCoordinates(index)
+        const itemSprite = this.drawItem(item, coords)
+        itemSprite.on('mousedown', e => {
+          console.log('filled bag slot click', index)
+          this.playerInventory.clickBagSlot(index)
+        })
       }
     }
 
     // equipped
-    Object.keys(content.equipped).forEach((slotKey) => {
-      const item = content.equipped[slotKey]
-      const coords = EquippedSlotCoordinates[slotKey]
-      this.drawItem(item, coords)
+    Object.keys(content.equipped).forEach(slotName => {
+      const item = content.equipped[slotName]
+      if (item == null) {
+        return
+      }
+
+      const coords = EquippedSlotCoordinates[slotName]
+      const itemSprite = this.drawItem(item, coords)
+      itemSprite.on('mousedown', e => {
+        console.log('filled equipped slot click', slotName)
+        this.playerInventory.clickEquippedSlot(slotName)
+      })
 
       // if 2h weapon, render a greyed out version of sprite
-      if (slotKey === InventorySlot.MainHand.name && item.itemType.bothHands) {
+      if (slotName === InventorySlot.MainHand.name && item.itemType.bothHands) {
         const coords = EquippedSlotCoordinates[InventorySlot.OffHand.name]
         this.drawItem(item, coords, true)
+        // itemSprite.on('mousedown', (e) => {
+        //   console.log('filled 2h slot offhand click', slotName)
+        //   this.playerInventory.clickEquippedSlot(slotName)
+        // })
       }
     })
+
+    // cursor
+    if (content.cursor != null) {
+      const color = ItemQualityColors[content.cursor.itemQuality]
+      this.cursorBg = this.drawItemBg(color, { x: 0, y: 0 })
+      this.cursorBg.eventMode = 'none'
+      this.cursorItem = this.drawItem(content.cursor, { x: 0, y: 0 })
+      this.cursorItem.eventMode = 'none'
+      this.setCursorItemPosition()
+      // TODO move these with mouse
+    }
   }
 
   drawItem(item, { x, y }, isDisabledOffHand) {
     const itemSprite = Sprite.from(item.inventoryTexture)
     itemSprite.x = x
     itemSprite.y = y
+    if (item.itemType.bothHands) {
+      const text2h = new Text({
+        text: '2h',
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 10,
+          fill: 0xffffff,
+        },
+      })
+      text2h.x = PADDING
+      itemSprite.addChild(text2h)
+    }
     this.itemContainer.addChild(itemSprite)
 
     if (!isDisabledOffHand) {
@@ -217,7 +299,7 @@ class InventoryHud extends Container {
       // attributes + description
       const itemAttributeText = new Text({
         text: Object.keys(item.attributes)
-          .map((attributeName) => {
+          .map(attributeName => {
             const attributeValue = item.attributes[attributeName]
             let symbol = '+'
             if (attributeValue < 0) {
@@ -253,13 +335,7 @@ class InventoryHud extends Container {
       itemDescription.x = -itemDescription.width
       itemDescription.y = -itemDescription.height
       itemDescriptionBg
-        .roundRect(
-          -10,
-          -10,
-          itemDescription.width + 20,
-          itemDescription.height + 20,
-          4
-        )
+        .roundRect(-10, -10, itemDescription.width + 20, itemDescription.height + 20, 4)
         .fill(0x000000)
         .stroke({
           width: 1,
@@ -271,6 +347,7 @@ class InventoryHud extends Container {
       itemSprite.alpha = 0.75
       itemSprite.tint = 0x666666
     }
+    return itemSprite
   }
 }
 

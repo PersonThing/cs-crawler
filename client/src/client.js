@@ -102,7 +102,7 @@ const createLocalPlayer = (playerData) => {
   playerData.label = `You`
   localPlayer = createPlayer(socket.id, playerData, 0xffffff)
   
-  hud = new Hud(localPlayer, app.screen.width, app.screen.height)
+  hud = new Hud(app, localPlayer, app.screen.width, app.screen.height)
   app.stage.addChild(hud)
 
   playerControls = new PlayerControls(
