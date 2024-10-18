@@ -26,6 +26,22 @@ class PlayerControls {
     this.app.canvas.addEventListener('mousedown', (event) => {
       if (!this.player) return
 
+      // if item on cursor, drop it
+      if (this.player.inventory.cursor != null) {
+        // stage is shifted to center the player
+        // so we need to account for that offset
+        const target = {
+          x: this.player.x,
+          y: this.player.y,
+        }
+        this.world.placeItem(this.player.inventory.cursor, target)
+        this.player.inventory.setCursor(null)
+        return
+      }
+
+
+      // otherwise we can move
+
       isMouseDown = true
       lastMouseEvent = event
       updateTargetPosition(event)

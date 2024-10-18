@@ -1,8 +1,8 @@
 import { BAG_SLOTS } from '../../shared/constants.js'
 import { Graphics, Container, Sprite, Text } from 'pixi.js'
+import { ItemQualityColors } from '../../shared/item-quality.js'
 import { Textures } from './textures.js'
 import InventorySlot from '../../shared/inventory-slot.js'
-import ItemQuality from '../../shared/item-quality.js'
 
 const ITEM_SIZE = 32
 const PADDING = 2
@@ -31,51 +31,45 @@ const EquippedSlotCoordinates = {
   [InventorySlot.Bonus3.name]: getItemSlotCoordinates(1, 3),
 }
 
-const ItemQualityColors = {
-  [ItemQuality.Normal]: 0xcccccc,
-  [ItemQuality.Set]: 0x0ed145,
-  [ItemQuality.Special]: 0x00a8f3,
-  [ItemQuality.Rare]: 0xb83dba,
-  [ItemQuality.Unique]: 0xff7f27,
-}
-
 class InventoryHud extends Container {
-  constructor(app, playerInventory) {
+  constructor(app, player) {
     super()
 
+    this.app = app
+    
     this.content = null
     this.renderBackground()
-
-    this.playerInventory = playerInventory
+    
+    this.playerInventory = player.inventory
     this.playerInventory.store.subscribe(content => {
       this.setContent(content)
     })
 
-    // kill any click events that bubble through, so player doesn't move when clicking inside inventory
-    this.eventMode = 'static'
-    this.on('mousedown', e => {
-      e.stopPropagation()
-      e.preventDefault()
-      return false
-    })
-
+    // track cursor position and move cursor item with mouse
     this.cursorPosition = { x: 0, y: 0 }
 
-    // move cursor item with mouse
-    app.canvas.addEventListener('mousemove', e => {
-      this.cursorItemPosition = {
-        x: e.clientX - this.x - ITEM_SIZE / 2,
-        y: e.clientY - this.y - ITEM_SIZE / 2,
+    this.app.canvas.addEventListener('mousemove', event => {
+      this.cursorPosition = {
+        x: event.clientX - this.x - ITEM_SIZE / 2,
+        y: event.clientY - this.y - ITEM_SIZE / 2,
       }
       if (this.cursorItem != null) {
         this.setCursorItemPosition()
       }
     })
+
+    // kill any click events that bubble through, so player doesn't move when clicking inside inventory
+    this.eventMode = 'static'
+    this.on('mousedown', event => {
+      event.stopPropagation()
+      event.preventDefault()
+      return false
+    })
   }
 
   setCursorItemPosition() {
-    this.cursorItem.x = this.cursorBg.x = this.cursorItemPosition.x
-    this.cursorItem.y = this.cursorBg.y = this.cursorItemPosition.y
+    this.cursorItem.x = this.cursorBg.x = this.cursorPosition.x
+    this.cursorItem.y = this.cursorBg.y = this.cursorPosition.y
   }
 
   getBagSlotCoordinates(index) {
@@ -152,7 +146,7 @@ class InventoryHud extends Container {
       bgSprite.y = coords.y + PADDING
       bgSprite.alpha = 0.25
       bgSprite.eventMode = 'static'
-      bgSprite.on('mousedown', e => {
+      bgSprite.on('mousedown', () => {
         console.log('empty equipped slot click', inventorySlot.name)
         this.playerInventory.clickEquippedSlot(inventorySlot.name)
       })
@@ -164,7 +158,7 @@ class InventoryHud extends Container {
       const color = item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
       const slotBg = this.drawItemBg(color, this.getBagSlotCoordinates(index))
       slotBg.eventMode = 'static'
-      slotBg.on('mousedown', e => {
+      slotBg.on('mousedown', () => {
         console.log('empty bag slot click', index)
         this.playerInventory.clickBagSlot(index)
       })
@@ -206,7 +200,7 @@ class InventoryHud extends Container {
       if (item != null) {
         const coords = this.getBagSlotCoordinates(index)
         const itemSprite = this.drawItem(item, coords)
-        itemSprite.on('mousedown', e => {
+        itemSprite.on('mousedown', () => {
           console.log('filled bag slot click', index)
           this.playerInventory.clickBagSlot(index)
         })
@@ -222,7 +216,7 @@ class InventoryHud extends Container {
 
       const coords = EquippedSlotCoordinates[slotName]
       const itemSprite = this.drawItem(item, coords)
-      itemSprite.on('mousedown', e => {
+      itemSprite.on('mousedown', () => {
         console.log('filled equipped slot click', slotName)
         this.playerInventory.clickEquippedSlot(slotName)
       })

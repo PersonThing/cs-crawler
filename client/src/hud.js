@@ -5,7 +5,7 @@ import InventoryHud from './inventory-hud.js'
 class Hud extends Container {
   constructor(app, player, screenWidth, screenHeight) {
     super()
-    this.inventory = new InventoryHud(app, player.inventory)
+    this.inventory = new InventoryHud(app, player)
     this.inventory.visible = false
     this.addChild(this.inventory)
 
