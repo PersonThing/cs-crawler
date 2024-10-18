@@ -158,7 +158,6 @@ class PlayerInventory {
     }
 
     // if trying to equip 2h, but an offhand is equipped, try to put the offhand in bags first
-    console.log(slotName, item.itemType.bothHands)
     if (
       slotName === InventorySlot.MainHand.name &&
       item.itemType.bothHands &&
