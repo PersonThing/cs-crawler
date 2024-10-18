@@ -1,10 +1,8 @@
-import { ART_SCALE } from './constants.js'
 import { Sprite, Container } from 'pixi.js'
-import { Textures } from '../client/src/textures.js'
 import InventorySlot from './inventory-slot.js'
 import LivingEntity from './living-entity.js'
 import PlayerInventory from './player-inventory.js'
-import ItemSlotType from './item-slot-type.js'
+import { Textures } from '../client/src/textures.js'
 
 class Player extends LivingEntity {
   constructor(socketId, playerId, pather, texture, world, color) {
@@ -46,6 +44,16 @@ class Player extends LivingEntity {
           )
         }
       })
+
+    // if no mainhand equipped, render a hand
+    if (equipped[InventorySlot.MainHand.name] == null) {
+      this.attachItemSprite(Textures.item.weapon.hand, false)
+    }
+
+    // if no offhand equipped, and no 2h mainhand equipped, render a hand
+    if (equipped[InventorySlot.OffHand.name] == null && equipped[InventorySlot.MainHand.name]?.itemType.bothHands != true) {
+      this.attachItemSprite(Textures.item.weapon.hand, true)
+    }
   }
 
   attachItemSprite(texture, shouldMirrorTexture) {

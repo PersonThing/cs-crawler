@@ -30,7 +30,7 @@ app.stage.addChild(minimap)
 let hud
 const init = async () => {
   // Client-side game loop - server has authority, but client predicts and corrects
-  app.ticker.maxFPS = 120
+  // app.ticker.maxFPS = 120
   app.ticker.add((time) => {
     world.onTick(time, localPlayer, app.screen.width, app.screen.height)
     minimap.onTick(
