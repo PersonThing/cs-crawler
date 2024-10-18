@@ -3,7 +3,7 @@ import { Container, Graphics, Text, Sprite } from 'pixi.js'
 
 const PADDING = 3
 
-class ItemLabel extends Container {
+class GroundItem extends Container {
   constructor(itemWrapper) {
     super()
 
@@ -41,4 +41,4 @@ class ItemLabel extends Container {
   }
 }
 
-export default ItemLabel
+export default GroundItem

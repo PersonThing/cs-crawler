@@ -1,7 +1,7 @@
 import { Container, BlurFilter, Rectangle, Graphics, Sprite, Text } from 'pixi.js'
 import LevelSprite from '../client/src/level-sprite.js'
 import socket from '../client/src/socket.js'
-import ItemLabel from '../client/src/item-label.js'
+import GroundItem from '../client/src/ground-item.js'
 
 class World extends Container {
   constructor(app, levelConfig) {
@@ -23,9 +23,6 @@ class World extends Container {
 
     this.itemsContainer = new Container()
     this.addChild(this.itemsContainer)
-
-    this.itemLabelsContainer = new Container()
-    this.addChild(this.itemLabelsContainer)
 
     this.mask = this.createLightRadiusMask()
 
@@ -173,7 +170,7 @@ class World extends Container {
 
   renderItem(itemWrapper) {
     console.log('rendering item to ground', itemWrapper.item, itemWrapper.position)
-    itemWrapper.sprite = new ItemLabel(itemWrapper)
+    itemWrapper.sprite = new GroundItem(itemWrapper)
     this.itemsContainer.addChild(itemWrapper.sprite)
     // todo: when they click the label, pick it up
   }
