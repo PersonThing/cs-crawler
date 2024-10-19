@@ -97,12 +97,12 @@ setInterval(() => {
     player.onTick(deltaMS)
   }
   // convert players map to map of sync properties
-  const playerSyncs = Object.fromEntries(
+  const playerData = Object.fromEntries(
     Object.entries(players).map(([id, player]) => [id, player.serialize()])
   )
 
   io.emit('updateState', {
-    players: playerSyncs,
+    players: playerData,
   })
 }, deltaMS)
 

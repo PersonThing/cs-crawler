@@ -1,5 +1,5 @@
 import { BAG_SLOTS } from './constants.js'
-import { createStore } from './create-store.js'
+import createStore from './create-store.js'
 import InventorySlot from './inventory-slot.js'
 
 class PlayerInventory {

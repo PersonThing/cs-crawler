@@ -1,23 +1,23 @@
 import { Container } from 'pixi.js'
 import { DEBUG } from '../../shared/constants.js'
 import InventoryHud from './inventory-hud.js'
+import screenSizeStore from './screen-size-store.js'
 
 class Hud extends Container {
-  constructor(app, player, screenWidth, screenHeight) {
+  constructor(app, player) {
     super()
     this.inventory = new InventoryHud(app, player)
-    this.inventory.visible = false
     this.addChild(this.inventory)
+    this.inventory.visible = DEBUG
 
-    if (DEBUG) {
-      this.toggleInventory(screenWidth, screenHeight)
-    }
+    screenSizeStore.subscribe(({ width, height }) => {
+      this.inventory.x = width - this.inventory.width
+      this.inventory.y = height - this.inventory.height
+    })
   }
 
-  toggleInventory(screenWidth, screenHeight) {
+  toggleInventory() {
     this.inventory.visible = !this.inventory.visible
-    this.inventory.x = screenWidth - this.inventory.width
-    this.inventory.y = screenHeight - this.inventory.height
   }
 }
 

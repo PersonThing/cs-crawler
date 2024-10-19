@@ -1,4 +1,4 @@
-import { createStore } from './create-store.js'
+import createStore from './create-store.js'
 
 const { subscribe, set } = createStore({
   equipped: {},

@@ -123,9 +123,9 @@ class World extends Container {
     if (position == null || position.x == null || position.y == null) {
       return null
     }
-    const radius = 40
-    const step = 10
-    const maxRadius = 100
+    const radius = 30
+    const step = 4
+    const maxRadius = 200
     const maxSteps = maxRadius / step
     let bestPosition = position
     let bestDistance = 0
@@ -172,7 +172,10 @@ class World extends Container {
     console.log('rendering item to ground', itemWrapper.item, itemWrapper.position)
     itemWrapper.sprite = new GroundItem(itemWrapper)
     this.itemsContainer.addChild(itemWrapper.sprite)
-    // todo: when they click the label, pick it up
+
+    // itemWrapper.sprite.on('mousedown', () => {
+    //   playerTargetStore.set(itemWrapper.item)
+    // })
   }
 }
 

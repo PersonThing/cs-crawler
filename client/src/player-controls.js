@@ -2,6 +2,7 @@ import { SampleItems } from '../../shared/items.js'
 import throttle from '../../shared/throttle.js'
 import debounce from '../../shared/debounce.js'
 import socket from './socket.js'
+import cursorPositionStore from './cursor-position-store.js'
 
 class PlayerControls {
   constructor(app, world, player, minimap, hud) {
@@ -13,7 +14,7 @@ class PlayerControls {
     this.startListening()
 
     // when player inventory changes, send to server
-    const debouncedSetInventory = debounce((content) => {
+    const debouncedSetInventory = debounce(content => {
       socket.emit('inventoryChanged', content)
     }, 100)
     this.player.inventory.store.subscribe(debouncedSetInventory)
@@ -21,9 +22,8 @@ class PlayerControls {
 
   startListening() {
     let isMouseDown = false
-    let lastMouseEvent = null
 
-    this.app.canvas.addEventListener('mousedown', (event) => {
+    this.app.canvas.addEventListener('mousedown', event => {
       if (!this.player) return
 
       // if item on cursor, drop it
@@ -39,33 +39,35 @@ class PlayerControls {
         return
       }
 
-
       // otherwise we can move
 
       isMouseDown = true
-      lastMouseEvent = event
-      updateTargetPosition(event)
+      updateTargetPosition()
     })
 
-    this.app.canvas.addEventListener('mousemove', (event) => {
+    this.app.canvas.addEventListener('mousemove', event => {
+      const rect = this.app.canvas.getBoundingClientRect()
+      cursorPositionStore.set({
+        x: Math.round(event.clientX - rect.left - this.world.x),
+        y: Math.round(event.clientY - rect.top - this.world.y),
+      })
+      
       if (!this.player || !isMouseDown) return
 
-      lastMouseEvent = event
-      updateTargetPosition(event)
+      updateTargetPosition()
     })
 
-    this.app.ticker.add((time) => {
-      if (isMouseDown && lastMouseEvent) {
-        updateTargetPosition(lastMouseEvent)
+    this.app.ticker.add(time => {
+      if (isMouseDown) {
+        updateTargetPosition()
       }
     })
 
-    this.app.canvas.addEventListener('mouseup', (event) => {
+    this.app.canvas.addEventListener('mouseup', event => {
       isMouseDown = false
-      lastMouseEvent = event
     })
 
-    window.addEventListener('keydown', (event) => {
+    window.addEventListener('keydown', event => {
       if (event.key === 'Tab') {
         this.minimap.toggleCentered()
         event.preventDefault()
@@ -82,31 +84,27 @@ class PlayerControls {
       } else if (event.key === ',') {
         // temp: reset inventory
         this.player.inventory.reset()
+      } else if (event.key === 'g') {
+        for (let i=0; i<10; i++) {
+          this.world.placeItem(generateRandomItem(), this.player.position)
+        }
+      } else if (event.key === 'h') {
+        this.world.items.forEach(i => this.world.removeItem(i.item))
       }
     })
 
     const generateRandomItem = () => {
       // const sampleWeapons = SampleItems.filter(item => item.itemType.name === 'Two-Handed Weapon' || item.itemType.name === 'One-Handed Weapon')
-      return structuredClone(
-        SampleItems[Math.floor(Math.random() * SampleItems.length)]
-      )
+      return structuredClone(SampleItems[Math.floor(Math.random() * SampleItems.length)])
     }
 
     // only pass new position to server at most every 50ms (20 times per second)
-    const throttledSetTargetOnServer = throttle((target) => {
+    const throttledSetTargetOnServer = throttle(target => {
       socket.emit('setTarget', target)
     }, 50)
 
-    const updateTargetPosition = (event) => {
-      const rect = this.app.canvas.getBoundingClientRect()
-
-      // stage is shifted to center the player
-      // so we need to account for that offset
-      const target = {
-        x: Math.round(event.clientX - rect.left - this.world.x),
-        y: Math.round(event.clientY - rect.top - this.world.y),
-      }
-
+    const updateTargetPosition = () => {
+      const target = cursorPositionStore.get()
       this.player.setTarget(target)
       throttledSetTargetOnServer(target)
     }

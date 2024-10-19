@@ -1,6 +1,7 @@
+import { MINIMAP_SCALE, MINIMAP_WIDTH, MINIMAP_HEIGHT } from '../../shared/constants.js'
 import { Sprite, Container, Graphics, Text } from 'pixi.js'
 import LevelSprite from './level-sprite'
-import { MINIMAP_SCALE, MINIMAP_WIDTH, MINIMAP_HEIGHT } from '../../shared/constants.js'
+import screenSizeStore from './screen-size-store.js'
 
 class Minimap extends Sprite {
   constructor(level, centered) {
@@ -41,19 +42,19 @@ class Minimap extends Sprite {
     this.map.tileContainer.alpha = this.centered ? 0.25 : 0.5
   }
 
-  onTick(localPlayer, remotePlayers, screenWidth, screenHeight) {
-    if (this.centered) {
-      this.x = screenWidth / 2
-      this.y = screenHeight / 2
-    } else {
-      this.x = screenWidth - MINIMAP_WIDTH / 2
-      this.y = 100
-    }
-
+  onTick(localPlayer, remotePlayers) {
     if (localPlayer != null) {
       // update map
-      const maxMapWidth = this.centered ? screenWidth : MINIMAP_WIDTH
-      const maxMapHeight = this.centered ? screenHeight : MINIMAP_HEIGHT
+      const { width, height } = screenSizeStore.get()
+      if (this.centered) {
+        this.x = width / 2
+        this.y = height / 2
+      } else {
+        this.x = width - MINIMAP_WIDTH / 2
+        this.y = 100
+      }
+      const maxMapWidth = this.centered ? width : MINIMAP_WIDTH
+      const maxMapHeight = this.centered ? height : MINIMAP_HEIGHT
       this.map.onTick(localPlayer, maxMapWidth, maxMapHeight)
 
       // update local player dot
