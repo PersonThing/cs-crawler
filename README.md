@@ -20,4 +20,6 @@
 - `n` to generate and pick up a random item (temp)
 - `m` to completely fill inventory and bags with generated items (temp)
 - `,` to clear inventory and bags (temp)
+- `g` to generate 9 random items on the ground around you
+- click an item on the ground to pick it up
 - to toggle debug mode, open `/shared/constants.js` and change `DEBUG` to true or false
