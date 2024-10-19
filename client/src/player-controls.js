@@ -1,8 +1,10 @@
-import { SampleItems } from '../../shared/items.js'
+import { generateRandomItem, generateRandomItemOfType } from '../../shared/items.js'
 import throttle from '../../shared/throttle.js'
 import debounce from '../../shared/debounce.js'
 import socket from './socket.js'
 import cursorPositionStore from './cursor-position-store.js'
+import ItemType from '../../shared/item-type.js'
+import playerItemTargetStore from './player-item-target-store.js'
 
 class PlayerControls {
   constructor(app, world, player, minimap, hud) {
@@ -18,6 +20,12 @@ class PlayerControls {
       socket.emit('inventoryChanged', content)
     }, 100)
     this.player.inventory.store.subscribe(debouncedSetInventory)
+
+    playerItemTargetStore.subscribe(target => {
+      if (this.player) {
+        this.player.setTargetItem(target)
+      }
+    })
   }
 
   startListening() {
@@ -85,18 +93,13 @@ class PlayerControls {
         // temp: reset inventory
         this.player.inventory.reset()
       } else if (event.key === 'g') {
-        for (let i=0; i<10; i++) {
+        for (let i=0; i<9; i++) {
           this.world.placeItem(generateRandomItem(), this.player.position)
         }
       } else if (event.key === 'h') {
         this.world.items.forEach(i => this.world.removeItem(i.item))
       }
     })
-
-    const generateRandomItem = () => {
-      // const sampleWeapons = SampleItems.filter(item => item.itemType.name === 'Two-Handed Weapon' || item.itemType.name === 'One-Handed Weapon')
-      return structuredClone(SampleItems[Math.floor(Math.random() * SampleItems.length)])
-    }
 
     // only pass new position to server at most every 50ms (20 times per second)
     const throttledSetTargetOnServer = throttle(target => {

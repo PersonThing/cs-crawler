@@ -2,6 +2,7 @@ import { Container, BlurFilter, Rectangle, Graphics, Sprite, Text } from 'pixi.j
 import LevelSprite from '../client/src/level-sprite.js'
 import socket from '../client/src/socket.js'
 import GroundItem from '../client/src/ground-item.js'
+import playerItemTargetStore from '../client/src/player-item-target-store.js'
 
 class World extends Container {
   constructor(app, levelConfig) {
@@ -173,9 +174,9 @@ class World extends Container {
     itemWrapper.sprite = new GroundItem(itemWrapper)
     this.itemsContainer.addChild(itemWrapper.sprite)
 
-    // itemWrapper.sprite.on('mousedown', () => {
-    //   playerTargetStore.set(itemWrapper.item)
-    // })
+    itemWrapper.sprite.on('mousedown', () => {
+      playerItemTargetStore.set(itemWrapper)
+    })
   }
 }
 

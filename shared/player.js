@@ -1,8 +1,9 @@
+import { BLOCK_SIZE } from './constants.js'
 import { Sprite, Container } from 'pixi.js'
+import { Textures } from '../client/src/textures.js'
 import InventorySlot from './inventory-slot.js'
 import LivingEntity from './living-entity.js'
 import PlayerInventory from './player-inventory.js'
-import { Textures } from '../client/src/textures.js'
 
 class Player extends LivingEntity {
   constructor(socketId, playerId, pather, texture, world, color) {
@@ -17,6 +18,31 @@ class Player extends LivingEntity {
         this.setEquipped(content.equipped)
       )
     }
+  }
+
+  onTick(delta) {
+    super.onTick(delta)
+
+    if (this.targetItem != null) {
+      // check if we're close enough to pick up the item
+      const distance = Math.hypot(
+        this.targetItem.position.x - this.x,
+        this.targetItem.position.y - this.y
+      )
+
+      // if we're within 1 block, good enough
+      if (distance < BLOCK_SIZE * 2) {
+        if (this.inventory.pickup(this.targetItem.item)) {
+          this.world.removeItem(this.targetItem.item)
+          this.targetItem = null
+        }
+      }
+    }
+  }
+
+  setTargetItem(targetItem) {
+    this.targetItem = targetItem
+    console.log('set target item', targetItem)
   }
 
   setEquipped(equipped) {

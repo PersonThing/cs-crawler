@@ -5,6 +5,8 @@ import http from 'http'
 import Pather from '../../shared/pather.js'
 import Player from '../../shared/player.js'
 
+// import { players, enemies, groundItems } from '../../shared/game-state.js'
+
 const app = express()
 const server = http.createServer(app)
 const io = new Server(server, {

@@ -175,3 +175,12 @@ export const SampleItems = [
   // Set Items
 
 ]
+
+export const generateRandomItem = () => {
+  return structuredClone(SampleItems[Math.floor(Math.random() * SampleItems.length)])
+}
+
+export const generateRandomItemOfType = (itemTypes) => {
+  const possibleItemsOfType = SampleItems.filter(item => itemTypes.includes(item.itemType))
+  return structuredClone(possibleItemsOfType[Math.floor(Math.random() * possibleItemsOfType.length)])
+}
