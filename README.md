@@ -13,14 +13,13 @@
 
 # Controls
 - `click` to move
-- `mouse wheel` to cycle through weapons (temp)
-- `alt` + `mouse wheel` to cycle through armors (temp)
 - `tab` to toggle minimap between center overlay and top-right
 - `b` to toggle inventory
+- `alt` to show labels of all items on the ground
+- click an item on the ground to pick it up (it will auto-equip if you have an available slot for it)
 - `n` to generate and pick up a random item (temp)
 - `m` to completely fill inventory and bags with generated items (temp)
 - `,` to clear inventory and bags (temp)
-- `g` to generate 9 random items on the ground around you
-- `h` to remove all items from the ground
-- click an item on the ground to pick it up
+- `g` to generate 9 random items on the ground around you (temp)
+- `h` to remove all items from the ground (temp)
 - to toggle debug mode, open `/shared/constants.js` and change `DEBUG` to true or false
