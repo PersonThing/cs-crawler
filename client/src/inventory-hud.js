@@ -6,17 +6,17 @@ import InventorySlot from '../../shared/inventory-slot.js'
 import InventoryItem from './inventory-item.js'
 
 const ITEM_SIZE = 32
-const PADDING = 4
+const PADDING = 1
 const MARGIN = 5
 const BAG_COLS = 10
-const INVENTORY_HEIGHT = (ITEM_SIZE + PADDING + MARGIN) * 11.5
-const INVENTORY_WIDTH = (ITEM_SIZE + PADDING + MARGIN) * BAG_COLS + MARGIN * 2
+const INVENTORY_HEIGHT = (ITEM_SIZE + PADDING * 2 + MARGIN) * 11 + MARGIN
+const INVENTORY_WIDTH = (ITEM_SIZE + PADDING * 2 + MARGIN) * BAG_COLS + MARGIN
 const DEFAULT_SLOT_COLOR = 0x777777
 
 const getItemSlotCoordinates = (x, y) => {
   return {
-    x: x * (ITEM_SIZE + PADDING + MARGIN) + INVENTORY_WIDTH / 2 - ITEM_SIZE / 2,
-    y: y * (ITEM_SIZE + PADDING + MARGIN) + 20,
+    x: x * (ITEM_SIZE + PADDING * 2 + MARGIN) + INVENTORY_WIDTH / 2 - ITEM_SIZE / 2,
+    y: y * (ITEM_SIZE + PADDING * 2 + MARGIN) + 20,
   }
 }
 
@@ -37,10 +37,10 @@ class InventoryHud extends Container {
     super()
 
     this.app = app
-    
+
     this.content = null
     this.renderBackground()
-    
+
     this.playerInventory = player.inventory
     this.playerInventory.store.subscribe(content => {
       this.setContent(content)
@@ -77,8 +77,8 @@ class InventoryHud extends Container {
     const x = index % BAG_COLS
     const y = Math.floor(index / BAG_COLS)
     return {
-      x: x * (ITEM_SIZE + PADDING + MARGIN) + MARGIN + 2,
-      y: y * (ITEM_SIZE + PADDING + MARGIN) + 212,
+      x: x * (ITEM_SIZE + PADDING * 2 + MARGIN) + MARGIN,
+      y: y * (ITEM_SIZE + PADDING * 2 + MARGIN) + 200,
     }
   }
 
