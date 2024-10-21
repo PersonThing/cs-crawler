@@ -22,7 +22,6 @@ class LivingEntity extends Container {
     this.pather = pather
     this.showPaths = true
 
-    this.isMoving = false
     // if we're on client, we have a stage and texture to render ourself
     if (this.world && this.entityTexture) {
       this.initSprite()
@@ -98,8 +97,6 @@ class LivingEntity extends Container {
       return
     }
 
-    this.setMoving(true)
-
     // Update position based on target
     const dx = this.tempTarget.x - this.x
     const dy = this.tempTarget.y - this.y
@@ -114,12 +111,7 @@ class LivingEntity extends Container {
       this.x = this.tempTarget.x
       this.y = this.tempTarget.y
       this.tempTarget = null
-      this.setMoving(false)
     }
-  }
-
-  setMoving(isMoving) {
-    this.isMoving = isMoving
   }
 
   setPosition(x, y) {
@@ -142,7 +134,6 @@ class LivingEntity extends Container {
     // target is the same as current position
     if (target.x == this.x && target.y == this.y) {
       this.target = null
-      this.setMoving(false)
       return
     }
 

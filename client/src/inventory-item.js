@@ -95,10 +95,6 @@ export default class InventoryItem extends Container {
       itemDescriptionBg
         .roundRect(-10, -10, itemDescription.width + 20, itemDescription.height + 20, 4)
         .fill(0x000000)
-        .stroke({
-          width: 1,
-          color: 0x555555,
-        })
     } else {
       // grey it out a bit
       // make it slightly red ?
