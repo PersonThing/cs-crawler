@@ -14,7 +14,7 @@ const textureMap = {
   6: Textures.particle.fire2,
 }
 
-export const generateSampleLevel = () => {
+const generateSampleLevel = () => {
   const level = new Level()
   const Tiles = {
     DoorRightTop: [
@@ -247,3 +247,5 @@ export const generateSampleLevel = () => {
 
   return level
 }
+
+export default generateSampleLevel

@@ -4,6 +4,7 @@ import { Textures } from '../client/src/textures.js'
 import InventorySlot from './inventory-slot.js'
 import LivingEntity from './living-entity.js'
 import PlayerInventory from './player-inventory.js'
+import EntityStats from './entity-stats.js'
 
 class Player extends LivingEntity {
   constructor(socketId, playerId, pather, texture, world, color) {
@@ -13,11 +14,13 @@ class Player extends LivingEntity {
     this.playerId = playerId
 
     this.inventory = new PlayerInventory({}, [])
-    if (this.world) {
-      this.inventory.store.subscribe((content) =>
+    this.inventory.store.subscribe((content) => {
+      if (this.world) {
         this.setEquipped(content.equipped)
-      )
-    }
+      }
+    })
+
+    this.stats = new EntityStats(this)
   }
 
   onTick(delta) {
@@ -46,6 +49,9 @@ class Player extends LivingEntity {
   }
 
   setEquipped(equipped) {
+    // this is only relevant for rendering, can skip on server
+    if (!this.world) return;
+
     if (this.equippedSpriteContainer != null) {
       this.equippedSpriteContainer.destroy()
       this.entitySprite.removeChild(this.equippedSpriteContainer)

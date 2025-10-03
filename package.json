@@ -29,6 +29,7 @@
     "pixi-filters": "^6.0.5",
     "pixi.js": "^8.4.1",
     "socket.io": "^4.8.0",
-    "socket.io-client": "^4.8.0"
+    "socket.io-client": "^4.8.0",
+    "wavefunctioncollapse": "^2.1.0"
   }
 }

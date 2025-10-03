@@ -59,7 +59,7 @@ class PlayerControls {
         x: Math.round(event.clientX - rect.left - this.world.x),
         y: Math.round(event.clientY - rect.top - this.world.y),
       })
-      
+
       if (!this.player || !isMouseDown) return
 
       updateTargetPosition()
@@ -76,28 +76,44 @@ class PlayerControls {
     })
 
     window.addEventListener('keydown', event => {
-      if (event.key === 'Tab') {
-        this.minimap.toggleCentered()
-        event.preventDefault()
-      } else if (event.key === 'b' || event.key === 'i') {
-        this.hud.toggleInventory(this.app.screen.width, this.app.screen.height)
-        event.preventDefault()
-      } else if (event.key === 'n') {
-        // temp: generate and pick up a random sample item
-        this.player.inventory.pickup(generateRandomItem())
-      } else if (event.key === 'm') {
-        // temp: fill inventory with random items
-        this.player.inventory.reset()
-        while (this.player.inventory.pickup(generateRandomItem())) {}
-      } else if (event.key === ',') {
-        // temp: reset inventory
-        this.player.inventory.reset()
-      } else if (event.key === 'g') {
-        for (let i=0; i<9; i++) {
-          this.world.placeItem(generateRandomItem(), this.player.position)
-        }
-      } else if (event.key === 'h') {
-        this.world.items.forEach(i => this.world.removeItem(i.item))
+      switch (event.key) {
+        case 'Tab':
+          this.minimap.toggleCentered()
+          event.preventDefault()
+          break
+        case 'b':
+        case 'i':
+          this.hud.toggleInventory(this.app.screen.width, this.app.screen.height)
+          event.preventDefault()
+          break
+        case 'c':
+          this.hud.toggleCharacterSheet(this.app.screen.width, this.app.screen.height)
+          event.preventDefault()
+          break
+        case 'n':
+          // temp: generate and pick up a random sample item
+          this.player.inventory.pickup(generateRandomItem())
+          break
+        case 'm':
+          // temp: fill inventory with random items
+          this.player.inventory.reset()
+          while (this.player.inventory.pickup(generateRandomItem())) {}
+          break
+        case ',':
+          // temp: reset inventory
+          this.player.inventory.reset()
+          break
+        case 'g':
+          // temp: generate a bunch of items on the ground around the player
+          for (let i = 0; i < 9; i++) {
+            this.world.placeItem(generateRandomItem(), this.player.position)
+          }
+          break
+        case 'h':
+          this.world.items.forEach(i => this.world.removeItem(i.item))
+          break
+        default:
+          return // exit this handler for other keys
       }
     })
 

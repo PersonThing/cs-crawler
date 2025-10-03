@@ -7,7 +7,6 @@ class PlayerInventory {
     this.equipped = {}
     this.bags = []
     this.cursor = null
-    this.store = createStore()
 
     this.store = createStore({
       equipped: {},

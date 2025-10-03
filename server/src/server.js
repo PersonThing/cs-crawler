@@ -1,4 +1,3 @@
-import { generateSampleLevel } from '../../shared/level-builder.js'
 import { Server } from 'socket.io'
 import express from 'express'
 import http from 'http'
@@ -27,32 +26,46 @@ const players = {} // Object to store player information
 const playerStates = {}
 
 // Load the level and pather
-const level = generateSampleLevel()
-const pather = new Pather(level)
+let level = null
+let pather = null
+// new Pather(level)
 
 io.on('connection', (socket) => {
   const playerId = socket.handshake.query.playerId
   console.log('Player connected: ' + playerId, socket.id)
 
-  // try to get playerState from memory, or create new one
-  let playerState = playerStates[playerId]
-  if (playerState == null) {
-    playerState = {
-      x: level.start.x,
-      y: level.start.y,
-      target: null,
-    }
+  // create a level (uses first client to do so since we need client-side canvas (for now))
+  if (level == null) {
+    console.log('requesting level')
+    socket.emit('requestCreateLevel')
   }
+  socket.on('setLevel', (levelConfig) => {
+    console.log('setLevel', levelConfig)
+    level = levelConfig
+    pather = new Pather(level)
+    io.emit('setLevel', level)
+  })
 
-  // Create a new player when they connect
-  // set x position from the size of the players object
-  players[socket.id] = new Player(socket.id, playerId, pather)
-  players[socket.id].setPosition(playerState.x, playerState.y)
-  players[socket.id].setTarget(playerState.target)
+  socket.on('createPlayer', () => {
+    // try to get playerState from memory, or create new one
+    let playerState = playerStates[playerId]
+    if (playerState == null) {
+      playerState = {
+        x: level.start.x,
+        y: level.start.y,
+        target: null,
+      }
+    }
+    // Create a new player when they connect
+    // set x position from the size of the players object
+    players[socket.id] = new Player(socket.id, playerId, pather)
+    players[socket.id].setPosition(playerState.x, playerState.y)
+    players[socket.id].setTarget(playerState.target)
 
-  // Broadcast new player to all other players
-  socket.broadcast.emit('playerJoined', players[socket.id].serialize())
-
+    // Broadcast new player to all other players
+    socket.broadcast.emit('playerJoined', players[socket.id].serialize())
+  })
+  
   // Handle player movement
   socket.on('setTarget', (target) => {
     if (players[socket.id]) {
@@ -77,13 +90,15 @@ io.on('connection', (socket) => {
 
     // update player state in playerStates before removing them
     const player = players[socket.id]
-    playerStates[playerId] = {
-      x: player.x,
-      y: player.y,
-      target: player.target,
+    if (player != null) {
+      playerStates[playerId] = {
+        x: player.x,
+        y: player.y,
+        target: player.target,
+      }
+      
+      delete players[socket.id]
     }
-
-    delete players[socket.id]
     io.emit('playerDisconnected', socket.id) // Notify others
   })
 })

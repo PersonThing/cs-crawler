@@ -1,5 +1,4 @@
 import { Application } from 'pixi.js'
-import { generateSampleLevel } from '../../shared/level-builder.js'
 import { Textures } from './textures.js'
 import Hud from './hud.js'
 import Minimap from './minimap.js'
@@ -9,26 +8,75 @@ import PlayerControls from './player-controls.js'
 import preloadTextures from './preload-textures.js'
 import World from '../../shared/world.js'
 import socket from './socket.js'
+import generateLevel from '../../shared/level-builder-wfc.js'
+import generateSampleLevel from '../../shared/level-builder.js'
 
-const remotePlayers = {}
-let localPlayer = null
-let playerControls = null
+const init = async (levelConfig) => {
+  const createPlayer = (socketId, playerData, color = 0xffffff) => {
+    const player = new Player(
+      socketId,
+      playerData.label,
+      pather,
+      Textures.player.base,
+      world,
+      color
+    )
+    player.setPosition(playerData.x, playerData.y)
+    player.setTarget(playerData.target)
+    world.addPlayer(player)
+    return player
+  }
+  
+  const createRemotePlayer = (socketId, playerData) => {
+    const remotePlayer = createPlayer(socketId, playerData, 0x00ff00)
+    remotePlayers[socketId] = remotePlayer
+  }
+  
+  const removeRemotePlayer = (socketId) => {
+    remotePlayers[socketId].onDestroy()
+    world.removePlayer(remotePlayers[socketId])
+    delete remotePlayers[socketId]
+  }
+  
+  const createLocalPlayer = (playerData) => {
+    if (localPlayer != null) {
+      localPlayer.onDestroy()
+      world.removePlayer(localPlayer)
+    }
+  
+    playerData.label = `You`
+    localPlayer = createPlayer(socket.id, playerData, 0xffffff)
+    
+    hud = new Hud(app, localPlayer, app.screen.width, app.screen.height)
+    app.stage.addChild(hud)
+  
+    playerControls = new PlayerControls(
+      app,
+      world,
+      localPlayer,
+      minimap,
+      hud
+    )
+  }
 
-// Create pixi.js app
-const app = new Application()
-await app.init({ background: 0x000000, resizeTo: window })
-document.body.appendChild(app.canvas)
-
-const levelConfig = generateSampleLevel()
-const world = new World(app, levelConfig)
-app.stage.addChild(world)
-
-const pather = new Pather(levelConfig)
-const minimap = new Minimap(levelConfig, false)
-app.stage.addChild(minimap)
-
-let hud
-const init = async () => {
+  const remotePlayers = {}
+  let localPlayer = null
+  let playerControls = null
+  
+  // Create pixi.js app
+  const app = new Application()
+  await app.init({ background: 0x000000, resizeTo: window })
+  document.body.appendChild(app.canvas)
+  
+  const world = new World(app, levelConfig)
+  app.stage.addChild(world)
+  
+  const pather = new Pather(levelConfig)
+  const minimap = new Minimap(levelConfig, false)
+  app.stage.addChild(minimap)
+  
+  let hud
+  
   // Client-side game loop - server has authority, but client predicts and corrects
   // app.ticker.maxFPS = 120
   app.ticker.add((time) => {
@@ -67,51 +115,13 @@ const init = async () => {
   })
 }
 
-const createPlayer = (socketId, playerData, color = 0xffffff) => {
-  const player = new Player(
-    socketId,
-    playerData.label,
-    pather,
-    Textures.player.base,
-    world,
-    color
-  )
-  player.setPosition(playerData.x, playerData.y)
-  player.setTarget(playerData.target)
-  world.addPlayer(player)
-  return player
-}
+socket.on('setLevel', async (levelConfig) => {
+  await preloadTextures()
+  init(levelConfig)
+  socket.emit('createPlayer')
+})
 
-const createRemotePlayer = (socketId, playerData) => {
-  const remotePlayer = createPlayer(socketId, playerData, 0x00ff00)
-  remotePlayers[socketId] = remotePlayer
-}
-
-const removeRemotePlayer = (socketId) => {
-  remotePlayers[socketId].onDestroy()
-  world.removePlayer(remotePlayers[socketId])
-  delete remotePlayers[socketId]
-}
-
-const createLocalPlayer = (playerData) => {
-  if (localPlayer != null) {
-    localPlayer.onDestroy()
-    world.removePlayer(localPlayer)
-  }
-
-  playerData.label = `You`
-  localPlayer = createPlayer(socket.id, playerData, 0xffffff)
-  
-  hud = new Hud(app, localPlayer, app.screen.width, app.screen.height)
-  app.stage.addChild(hud)
-
-  playerControls = new PlayerControls(
-    app,
-    world,
-    localPlayer,
-    minimap,
-    hud
-  )
-}
-
-preloadTextures().then(init)
+socket.on('requestCreateLevel', () => {
+  const level = generateSampleLevel();
+  socket.emit('setLevel', level)
+})
