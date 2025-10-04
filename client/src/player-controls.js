@@ -39,9 +39,17 @@ class PlayerControls {
 
   startListening() {
     let isMouseDown = false
+    let isRightMouseDown = false
 
     this.app.canvas.addEventListener('mousedown', event => {
       if (!this.player) return
+
+      // handle right-click for attacking
+      if (event.button === 2) {
+        this.player.startAttacking(cursorPositionStore.get())
+        isRightMouseDown = true
+        return
+      }
 
       // if item on cursor, drop it
       if (this.player.inventory.cursor != null) {
@@ -62,6 +70,12 @@ class PlayerControls {
       updateTargetPosition()
     })
 
+    // Prevent context menu on right-click, it will be used for attacking
+    this.app.canvas.addEventListener('contextmenu', event => {
+      event.preventDefault()
+      return false
+    })
+
     this.app.canvas.addEventListener('mousemove', event => {
       const rect = this.app.canvas.getBoundingClientRect()
       cursorPositionStore.set({
@@ -75,12 +89,19 @@ class PlayerControls {
     })
 
     this.app.ticker.add(time => {
-      if (isMouseDown) {
+      if (isRightMouseDown) {
+        this.player.attackTarget = cursorPositionStore.get()
+      } else if (isMouseDown) {
         updateTargetPosition()
       }
     })
 
     this.app.canvas.addEventListener('mouseup', event => {
+      if (event.button === 2) {
+        this.player.stopAttacking()
+        isRightMouseDown = false
+        return
+      }
       isMouseDown = false
     })
 
@@ -98,7 +119,7 @@ class PlayerControls {
     window.addEventListener('keydown', event => {
       const key = event.key.toLowerCase()
       switch (key) {
-        case 'Tab':
+        case 'a':
           this.minimap.toggleCentered()
           event.preventDefault()
           break
@@ -148,8 +169,10 @@ class PlayerControls {
 
     const updateTargetPosition = () => {
       const target = cursorPositionStore.get()
-      this.player.setTarget(target)
-      throttledSetTargetOnServer(target)
+      if (isMouseDown) {
+        this.player.setTarget(target)
+        throttledSetTargetOnServer(target)
+      }
     }
   }
 }

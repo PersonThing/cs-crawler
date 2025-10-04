@@ -13,7 +13,7 @@ export const SampleItems = [
         itemQuality: ItemQuality.Normal,
         inventoryTexture: Textures.inventory.chest[textureKey],
         attributes: {
-          [ItemAttributeType.Defense]: 15,
+          [ItemAttributeType.Defense]: 10,
         },
       })
   ),
@@ -39,7 +39,7 @@ export const SampleItems = [
         itemQuality: ItemQuality.Normal,
         inventoryTexture: Textures.inventory.feet[textureKey],
         attributes: {
-          [ItemAttributeType.Defense]: 8,
+          [ItemAttributeType.Defense]: 5,
           [ItemAttributeType.MovementSpeedPercent]: 20,
         },
       })

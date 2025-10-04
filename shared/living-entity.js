@@ -17,6 +17,7 @@ class LivingEntity extends Container {
 
     this.path = []
     this.target = null
+    this.attackTarget = null
     this.tempTarget = null
 
     this.pather = pather
@@ -82,10 +83,14 @@ class LivingEntity extends Container {
 
   onTick(deltaMs) {
     this.moveTowardTarget(deltaMs)
+    if (this.attacking) {
+      this.rotateToward(this.attackTarget)
+    }
   }
 
   moveTowardTarget(deltaMs) {
     if (this.tempTarget == null && this.path.length) {
+      console.log('moving to next path point')
       this.targetNextPathPoint()
     }
 
@@ -96,6 +101,8 @@ class LivingEntity extends Container {
     if (this.tempTarget == null) {
       return
     }
+
+    console.log('still moving', this.tempTarget, this.x, this.y)
 
     // Update position based on target
     const dx = this.tempTarget.x - this.x
@@ -140,6 +147,24 @@ class LivingEntity extends Container {
     this.target = target
     this.path = this.pather.findPath(this, target)
     this.targetNextPathPoint()
+  }
+
+  stopMoving() {
+    this.target = null
+    this.tempTarget = null
+    this.path = []
+    console.log('stopping move')
+  }
+
+  startAttacking(targetPoint) {
+    this.attacking = true
+    this.attackTarget = targetPoint
+    this.stopMoving()
+  }
+
+  stopAttacking() {
+    this.attacking = false
+    this.attackTarget = null
   }
 
   setMaxHealth(maxHealth) {

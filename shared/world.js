@@ -4,6 +4,8 @@ import GroundItem from '../client/src/ground-item.js'
 import playerItemTargetStore from '../client/src/player-item-target-store.js'
 import socket from '../client/src/socket.js'
 
+const PARALLAX_SCALE = 1.1
+
 class World extends Container {
   constructor(app, levelConfig) {
     super()
@@ -21,6 +23,13 @@ class World extends Container {
 
     this.levelSprite = new LevelSprite(levelConfig, 1, false)
     this.addChild(this.levelSprite)
+
+    // add another level sprite slightly scaled up for parallax effect
+    this.levelSpriteParallax = new LevelSprite(levelConfig, PARALLAX_SCALE, false, true)
+    // this.levelSpriteParallax.tileContainer.alpha = 0.25
+    this.levelSpriteParallax.mask = null
+
+    this.addChild(this.levelSpriteParallax)
 
     this.itemsContainer = new Container()
     this.addChild(this.itemsContainer)
@@ -45,14 +54,14 @@ class World extends Container {
   }
 
   createLightRadiusMask() {
-    const radius = 700
-    const blurSize = 500
+    const radius = 600
+    const blurSize = 200
     let circle = new Graphics().circle(radius + blurSize, radius + blurSize, radius).fill(0xff0000)
     circle.alpha = 1
 
     const blurFilter = new BlurFilter()
     blurFilter.blur = blurSize
-    blurFilter.quality = 10
+    blurFilter.quality = 3
     circle.filters = [blurFilter]
 
     const bounds = new Rectangle(0, 0, (radius + blurSize) * 2, (radius + blurSize) * 2)
@@ -78,6 +87,11 @@ class World extends Container {
 
     // update the rendered level
     this.levelSprite.onTick(localPlayer, screenWidth, screenHeight)
+
+    // update the parallax level + center it on player
+    this.levelSpriteParallax.onTick(localPlayer, screenWidth, screenHeight)
+    this.levelSpriteParallax.x = this.x * (PARALLAX_SCALE - 1) - 90
+    this.levelSpriteParallax.y = this.y * (PARALLAX_SCALE - 1) - 70
 
     // update players
     this.players.forEach(player => {

@@ -1,17 +1,19 @@
 import { Container, Sprite, Graphics, Text } from 'pixi.js'
 import { ART_SCALE, BLOCK_SIZE, DEBUG } from '../../shared/constants.js'
+import { Textures } from './textures.js'
 
 const partialRevealDistance = 400
 const fullRevealDistance = 200
 
 class LevelSprite extends Container {
-  constructor(level, mapScale, isMinimap) {
+  constructor(level, mapScale, isMinimap, isParallax) {
     super()
     this.level = JSON.parse(JSON.stringify(level))
     this.mapScale = mapScale
     this.blockSize = BLOCK_SIZE * this.mapScale * ART_SCALE
     this.tileSize = this.blockSize * 10
     this.isMinimap = isMinimap
+    this.isParallax = isParallax
     this.tileContainer = new Container()
     this.addChild(this.tileContainer)
   }
@@ -21,12 +23,8 @@ class LevelSprite extends Container {
 
     // only render the tiles around the local player
     // figure out which tile the local player is inside
-    const playerTileX = Math.floor(
-      (localPlayer.x * this.mapScale) / this.tileSize
-    )
-    const playerTileY = Math.floor(
-      (localPlayer.y * this.mapScale) / this.tileSize
-    )
+    const playerTileX = Math.floor((localPlayer.x * this.mapScale) / this.tileSize)
+    const playerTileY = Math.floor((localPlayer.y * this.mapScale) / this.tileSize)
 
     // compute the bounds of the screen in tiles
     const numTilesWide = Math.ceil(maxWidth / this.tileSize)
@@ -61,10 +59,10 @@ class LevelSprite extends Container {
             tile.container.x = tileX * this.tileSize
             tile.container.y = tileY * this.tileSize
 
-            tile.blockGrid.forEach((blockRow) => {
+            tile.blockGrid.forEach(blockRow => {
               blockRow
-                .filter((b) => b.textures != null && b.textures.length > 0)
-                .forEach((block) => {
+                .filter(b => b.textures != null && b.textures.length > 0)
+                .forEach(block => {
                   if (this.isMinimap) {
                     if (block.canWalk) {
                       // dont draw anything for walkable areas
@@ -75,26 +73,48 @@ class LevelSprite extends Container {
                     blockGraphic.x = block.x * this.blockSize
                     blockGraphic.y = block.y * this.blockSize
                     blockGraphic.alpha = block.alpha
-                    blockGraphic
-                      .rect(0, 0, this.blockSize, this.blockSize)
-                      .fill(0xffffff)
+                    blockGraphic.rect(0, 0, this.blockSize, this.blockSize).fill(0xffffff)
                     block.sprite = blockGraphic
                     tile.container.addChild(blockGraphic)
-                  } else {
+                  } else if (this.isParallax) {
+                    if (block.canWalk) {
+                      // dont draw anything for walkable areas
+                      return
+                    }
+
                     block.sprite = new Container()
-                    block.sprite.alpha = block.alpha
+                    block.sprite.alpha = 1
                     block.sprite.scale.set(this.mapScale * ART_SCALE)
                     block.sprite.x = block.x * this.blockSize
                     block.sprite.y = block.y * this.blockSize
-                    block.textures.filter(t => t != null).forEach(texture => {
-                      block.sprite.addChild(Sprite.from(texture))
-                    })
+                    block.sprite.addChild(Sprite.from(Textures.tiles.stone))
+                    // const tint = new Graphics()
+                    // tint.alpha = 0.35
+                    // tint.rect(0, 0, this.blockSize / this.mapScale / ART_SCALE, this.blockSize  / this.mapScale/ ART_SCALE).fill(0x000000)
+                    // // draw border around tint
+                    // // tint.rect(0, 0, this.blockSize / this.mapScale / ART_SCALE, this.blockSize  / this.mapScale/ ART_SCALE).stroke({
+                    // //   width: 2,
+                    // //   color: 0xff0000,
+                    // // })
+                    // block.sprite.addChild(tint)
+                    tile.container.addChild(block.sprite)
+                  } else {
+                    block.sprite = new Container()
+                    block.sprite.alpha = 1
+                    block.sprite.scale.set(this.mapScale * ART_SCALE)
+                    block.sprite.x = block.x * this.blockSize
+                    block.sprite.y = block.y * this.blockSize
+                    block.textures
+                      .filter(t => t != null)
+                      .forEach(texture => {
+                        block.sprite.addChild(Sprite.from(texture))
+                      })
                     tile.container.addChild(block.sprite)
                   }
                 })
             })
 
-            if (DEBUG && !this.isMinimap){
+            if (DEBUG && !this.isMinimap) {
               // draw coords and blue box around tile if debug mode on
               const graphic = new Graphics()
               graphic.rect(0, 0, this.tileSize, this.tileSize)
@@ -124,7 +144,9 @@ class LevelSprite extends Container {
           }
 
           // update visibility of blocks based on whether the player has discovered them or not
-          this.updateBlockVisibility(localPlayer, tile)
+          if (this.isMinimap) {
+            this.updateBlockVisibility(localPlayer, tile)
+          }
         }
       })
     })
@@ -140,14 +162,12 @@ class LevelSprite extends Container {
 
   updateBlockVisibility(localPlayer, tile) {
     // return
-    tile.blockGrid.forEach((blockRow) => {
+    tile.blockGrid.forEach(blockRow => {
       blockRow
-        .filter((b) => b.sprite != null)
-        .forEach((block) => {
-          const dx =
-            tile.container.x + block.sprite.x - localPlayer.x * this.mapScale
-          const dy =
-            tile.container.y + block.sprite.y - localPlayer.y * this.mapScale
+        .filter(b => b.sprite != null)
+        .forEach(block => {
+          const dx = tile.container.x + block.sprite.x - localPlayer.x * this.mapScale
+          const dy = tile.container.y + block.sprite.y - localPlayer.y * this.mapScale
 
           // if block.sprite is within 200px of the player, set it to discovered
           const distance = Math.sqrt(dx * dx + dy * dy)
