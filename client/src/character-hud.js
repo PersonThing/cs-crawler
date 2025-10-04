@@ -1,9 +1,9 @@
 import { Graphics, Container, Text } from 'pixi.js'
 
 const STAT_SIZE = 18
-const STAT_MARGIN = 4
-const CHARACTER_SHEET_WIDTH = 200
-const CHARACTER_SHEET_HEIGHT = 300
+const STAT_MARGIN = 8
+const WIDTH = 200
+const HEIGHT = 300
 
 class InventoryHud extends Container {
   constructor(app, player) {
@@ -22,7 +22,7 @@ class InventoryHud extends Container {
       this.renderStats()
     })
 
-    // kill any click events that bubble through, so player doesn't move when clicking inside character sheet
+    // kill any click events that bubble through
     this.eventMode = 'static'
     this.on('mousedown', event => {
       event.stopPropagation()
@@ -40,7 +40,7 @@ class InventoryHud extends Container {
     this.addChild(this.bg)
 
     const gfx = new Graphics()
-      .roundRect(0, 0, CHARACTER_SHEET_WIDTH, CHARACTER_SHEET_HEIGHT, 6)
+      .roundRect(0, 0, WIDTH, HEIGHT, 6)
       .fill(0x333333)
       .stroke({
         color: 0x555555,
@@ -82,7 +82,7 @@ class InventoryHud extends Container {
         const statText = new Text({
           text: `${statName}: ${statValue}`,
           style: {
-            fontSize: 12,
+            fontSize: 14,
             fill: 0xffffff,
           },
           x: 20,

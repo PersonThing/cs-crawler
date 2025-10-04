@@ -59,7 +59,7 @@ class InventoryHud extends Container {
       }
     })
 
-    // kill any click events that bubble through, so player doesn't move when clicking inside inventory
+    // kill any click events that bubble through
     this.eventMode = 'static'
     this.on('mousedown', event => {
       event.stopPropagation()

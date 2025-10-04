@@ -96,7 +96,8 @@ class PlayerControls {
     })
 
     window.addEventListener('keydown', event => {
-      switch (event.key) {
+      const key = event.key.toLowerCase()
+      switch (key) {
         case 'Tab':
           this.minimap.toggleCentered()
           event.preventDefault()
@@ -110,13 +111,16 @@ class PlayerControls {
           this.hud.toggleCharacterSheet()
           event.preventDefault()
           break
+        case 'h':
+          this.hud.toggleHelp()
+          event.preventDefault()
+          break
         case 'n':
           // temp: generate and pick up a random sample item
           this.player.inventory.pickup(generateRandomItem())
           break
         case 'm':
           // temp: fill inventory with random items
-          this.player.inventory.reset()
           while (this.player.inventory.pickup(generateRandomItem())) {}
           break
         case ',':
@@ -129,7 +133,7 @@ class PlayerControls {
             this.world.placeItem(generateRandomItem(), this.player.position)
           }
           break
-        case 'h':
+        case 'v':
           this.world.items.forEach(i => this.world.removeItem(i.item))
           break
         default:

@@ -89,7 +89,7 @@ class LivingEntity extends Container {
       this.targetNextPathPoint()
     }
 
-    if (this.world) {
+    if (this.world && DEBUG) {
       this.drawPathLine()
     }
 

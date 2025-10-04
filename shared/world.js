@@ -197,7 +197,7 @@ class World extends Container {
   renderItem(itemWrapper) {
     itemWrapper.sprite = new GroundItem(itemWrapper)
     this.itemsContainer.addChild(itemWrapper.sprite)
-    itemWrapper.sprite.on('mousedown', () => {
+    itemWrapper.sprite.on('pointerdown', () => {
       playerItemTargetStore.set(itemWrapper)
     })
   }

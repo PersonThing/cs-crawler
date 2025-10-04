@@ -207,9 +207,18 @@ export const SampleItems = [
   // Set Items
 ]
 
+export const generateItemId = () => {
+  // avoid crypto.randomUUID(), it's not available everywhere
+  return (
+    Date.now().toString(36) +
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+  )
+}
+
 export const stampItemId = item => {
   return {
-    id: crypto.randomUUID(),
+    id: generateItemId(),
     ...item,
   }
 }

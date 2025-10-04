@@ -1,4 +1,4 @@
-const DEBUG = true
+const DEBUG = false
 const ART_SCALE = 1.5
 const BLOCK_SIZE = 32
 const MINIMAP_HEIGHT = 300

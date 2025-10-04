@@ -3,6 +3,7 @@ import { DEBUG } from '../../shared/constants.js'
 import InventoryHud from './inventory-hud.js'
 import screenSizeStore from './screen-size-store.js'
 import CharacterHud from './character-hud.js'
+import HelpHud from './help-hud.js'
 
 class Hud extends Container {
   constructor(app, player) {
@@ -15,6 +16,10 @@ class Hud extends Container {
     this.character = new CharacterHud(app, player)
     this.addChild(this.character)
     this.character.visible = DEBUG
+
+    this.help = new HelpHud(app)
+    this.addChild(this.help)
+    this.help.visible = false
     
     screenSizeStore.subscribe(({ width, height }) => {
       // inventory aligned to bottom right of screen
@@ -23,6 +28,10 @@ class Hud extends Container {
 
       // character sheet aligned to bottom left of screen
       this.character.y = height - this.character.height
+
+      // help sheet aligned to top left of screen
+      this.help.x = 10
+      this.help.y = 10
     })
 
   }
@@ -33,6 +42,10 @@ class Hud extends Container {
 
   toggleCharacterSheet() {
     this.character.visible = !this.character.visible
+  }
+
+  toggleHelp() {
+    this.help.visible = !this.help.visible
   }
 }
 
