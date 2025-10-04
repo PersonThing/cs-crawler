@@ -60,13 +60,16 @@ class InventoryHud extends Container {
     this.bg.addChild(gfx)
 
     // stats text
-    const title = new Text('Character Sheet', {
-      fontSize: 14,
-      fill: 0xffffff,
-      fontWeight: 'bold',
+    const title = new Text({
+      text: 'Character stats',
+      style: {
+        fontSize: 20,
+        fill: 0xffffff,
+        fontWeight: 'bold',
+      },
+      x: 10,
+      y: 10,
     })
-    title.x = 10
-    title.y = 10
     this.bg.addChild(title)
   }
 
@@ -84,12 +87,15 @@ class InventoryHud extends Container {
       .sort()
       .forEach((statName, index) => {
         const statValue = this.stats[statName]
-        const statText = new Text(`${statName}: ${statValue}`, {
-          fontSize: 12,
-          fill: 0xffffff,
+        const statText = new Text({
+          text: `${statName}: ${statValue}`,
+          style: {
+            fontSize: 12,
+            fill: 0xffffff,
+          },
+          x: 20,
+          y: 50 + index * (STAT_SIZE + STAT_MARGIN),
         })
-        statText.x = 10
-        statText.y = 50 + index * (STAT_SIZE + STAT_MARGIN)
         this.statContainer.addChild(statText)
       })
   }

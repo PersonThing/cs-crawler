@@ -22,65 +22,57 @@ app.use(express.static('../client/dist'))
 
 const players = {} // Object to store player information
 
-// store player state in memory
-const playerStates = {}
-
 // Load the level and pather
 let level = null
 let pather = null
 
-io.on('connection', (socket) => {
+io.on('connection', socket => {
   const playerId = socket.handshake.query.playerId
-  console.log('Player connected: ' + playerId, socket.id)
+  let player = players[playerId]
 
-  // create a level (uses first client to do so since we need client-side canvas (for now))
-  if (level == null) {
-    // request the client initializes the level
-    console.log('requesting level')
-    socket.emit('requestCreateLevel')
-  } else {
-    // send level to the client
-    socket.emit('setLevel', level)
-  }
+  // broadcast new player to all other players
+  socket.on('createPlayer', () => {
+    player = players[playerId]
+    if (player) {
+      // Player reconnecting - update their socketId and mark as connected
+      player.socketId = socket.id
+      player.isConnected = true
+    } else {
+      // New player - create from scratch
+      const label = playerId
+      console.log('Creating player: ' + playerId, socket.id)
+      player = new Player(socket.id, label, playerId, pather)
+      player.setPosition(level.start.x, level.start.y)
+      player.isConnected = true
+      players[playerId] = player
+    }
+    socket.broadcast.emit('playerJoined', player.serialize())
+  })
 
-  socket.on('setLevel', (levelConfig) => {
-    console.log('setLevel', levelConfig)
+  // create a level, or ask the client to create it
+  // ** uses client to do so since we need client-side canvas (for now)
+  socket.on('setLevel', levelConfig => {
     level = levelConfig
     pather = new Pather(level)
     io.emit('setLevel', level)
   })
+  if (level == null) {
+    socket.emit('requestLevel')
+  } else {
+    socket.emit('setLevel', level)
+  }
 
-  socket.on('createPlayer', () => {
-    // try to get playerState from memory, or create new one
-    let playerState = playerStates[playerId]
-    if (playerState == null) {
-      playerState = {
-        x: level.start.x,
-        y: level.start.y,
-        target: null,
-      }
-    }
-    // Create a new player when they connect
-    // set x position from the size of the players object
-    players[socket.id] = new Player(socket.id, playerId, pather)
-    players[socket.id].setPosition(playerState.x, playerState.y)
-    players[socket.id].setTarget(playerState.target)
-
-    // Broadcast new player to all other players
-    socket.broadcast.emit('playerJoined', players[socket.id].serialize())
-  })
-  
   // Handle player movement
-  socket.on('setTarget', (target) => {
-    if (players[socket.id]) {
-      players[socket.id].setTarget(target)
+  socket.on('setTarget', target => {
+    if (player && player.isConnected) {
+      player.setTarget(target)
     }
   })
 
   // temp: naively allow client to set entire inventory contents
-  socket.on('inventoryChanged', (content) => {
-    if (players[socket.id]) {
-      players[socket.id].inventory.deserialize(content)
+  socket.on('inventoryChanged', content => {
+    if (player && player.isConnected) {
+      player.inventory.deserialize(content)
     }
     io.emit('playerInventoryChanged', {
       playerId,
@@ -91,19 +83,13 @@ io.on('connection', (socket) => {
   // Remove player on disconnect
   socket.on('disconnect', () => {
     console.log('Player disconnected: ' + playerId, socket.id)
-
-    // update player state in playerStates before removing them
-    const player = players[socket.id]
-    if (player != null) {
-      playerStates[playerId] = {
-        x: player.x,
-        y: player.y,
-        target: player.target,
-      }
-      
-      delete players[socket.id]
+    if (player) {
+      // Mark player as disconnected but keep their data
+      player.isConnected = false
+      player.socketId = null
     }
-    io.emit('playerDisconnected', socket.id) // Notify others
+    // Notify others using the playerId for consistency
+    io.emit('playerDisconnected', playerId)
   })
 })
 
@@ -113,17 +99,19 @@ io.on('connection', (socket) => {
 const fps = 30
 const deltaMS = 1000 / fps
 setInterval(() => {
-  for (const id in players) {
-    const player = players[id]
-    player.onTick(deltaMS)
+  // Only update connected players
+  const connectedPlayersData = {}
+
+  for (const playerId in players) {
+    const player = players[playerId]
+    if (player.isConnected) {
+      player.onTick(deltaMS)
+      connectedPlayersData[playerId] = player.serialize()
+    }
   }
-  // convert players map to map of sync properties
-  const playerData = Object.fromEntries(
-    Object.entries(players).map(([id, player]) => [id, player.serialize()])
-  )
 
   io.emit('updateState', {
-    players: playerData,
+    players: connectedPlayersData,
   })
 }, deltaMS)
 

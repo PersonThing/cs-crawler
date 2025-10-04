@@ -79,26 +79,27 @@ const init = async levelConfig => {
   })
 
   socket.on('updateState', state => {
-    Object.keys(remotePlayers).forEach(socketId => {
-      if (!state.players[socketId]) {
+    Object.keys(remotePlayers).forEach(playerId => {
+      if (!state.players[playerId]) {
         // remote players that has disconnected
-        removeRemotePlayer(socketId)
+        removeRemotePlayer(playerId)
       }
     })
-    Object.entries(state.players).forEach(([socketId, player]) => {
-      if (socketId === socket.id) {
+    Object.entries(state.players).forEach(([playerId, player]) => {
+      if (player.socketId === socket.id) {
         // local player
         if (!localPlayer) {
-          createLocalPlayer(state.players[socket.id])
+          console.log('creating local player', player)
+          createLocalPlayer(player)
         } else {
-          localPlayer.syncWithServer(state.players[socket.id])
+          localPlayer.syncWithServer(player)
         }
-      } else if (!remotePlayers[socketId]) {
+      } else if (!remotePlayers[playerId]) {
         // new remote player
-        createRemotePlayer(socketId, player)
+        createRemotePlayer(playerId, player)
       } else {
         // existing remote player
-        remotePlayers[socketId].syncWithServer(player)
+        remotePlayers[playerId].syncWithServer(player)
       }
     })
   })
@@ -111,7 +112,8 @@ socket.on('setLevel', async levelConfig => {
   socket.emit('createPlayer')
 })
 
-socket.on('requestCreateLevel', () => {
+socket.on('requestLevel', () => {
   const level = generateSampleLevel()
+  console.log('server requested level, created: ', level)
   socket.emit('setLevel', level)
 })
