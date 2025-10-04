@@ -3,7 +3,6 @@ import { Textures } from './textures.js'
 
 const STAT_SIZE = 18
 const STAT_MARGIN = 4
-const DEFAULT_SLOT_COLOR = 0x777777
 const CHARACTER_SHEET_WIDTH = 200
 const CHARACTER_SHEET_HEIGHT = 300
 
@@ -23,9 +22,12 @@ class InventoryHud extends Container {
     this.content = null
     this.renderBackground()
 
-    this.playerInventory = player.inventory
-    this.playerInventory.store.subscribe(content => {
-      this.setStats(content)
+    this.stats = {}
+
+    this.playerStats = player.stats
+    this.playerStats.store.subscribe(stats => {
+      this.stats = stats
+      this.renderStats()
     })
 
     // kill any click events that bubble through, so player doesn't move when clicking inside character sheet
@@ -56,9 +58,43 @@ class InventoryHud extends Container {
     gfx.x = 0
     gfx.y = 0
     this.bg.addChild(gfx)
+
+    // stats text
+    const title = new Text('Character Sheet', {
+      fontSize: 14,
+      fill: 0xffffff,
+      fontWeight: 'bold',
+    })
+    title.x = 10
+    title.y = 10
+    this.bg.addChild(title)
   }
 
-  setContent(content) {
+  renderStats() {
+    // clear old stats
+    if (this.statContainer) {
+      this.removeChild(this.statContainer)
+      this.statContainer.destroy()
+    }
+    this.statContainer = new Container()
+    this.addChild(this.statContainer)
+
+    // render new stats
+    Object.keys(this.stats)
+      .sort()
+      .forEach((statName, index) => {
+        const statValue = this.stats[statName]
+        const statText = new Text(`${statName}: ${statValue}`, {
+          fontSize: 12,
+          fill: 0xffffff,
+        })
+        statText.x = 10
+        statText.y = 50 + index * (STAT_SIZE + STAT_MARGIN)
+        this.statContainer.addChild(statText)
+      })
+  }
+
+  setStats(content) {
     this.content = content
 
     // re-render background so equipped slot sprites go away

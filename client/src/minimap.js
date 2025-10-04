@@ -16,19 +16,39 @@ class Minimap extends Sprite {
     this.y = 0
     this.anchor.set(0.5)
 
-    this.map = new LevelSprite(this.level, this.mapScale, true)
-    this.map.sortableChildren = true
-    this.addChild(this.map)
+    this.createLevelSprite()
 
-    this.mapMask = new Graphics()
-      .rect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT)
-      .fill(0xff0000)
+    this.mapMask = new Graphics().rect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT).fill(0xff0000)
     this.mapMask.x = -MINIMAP_WIDTH / 2
     this.mapMask.y = -MINIMAP_HEIGHT / 2
     // this.mapMask.visible = false
     this.addChild(this.mapMask)
     this.map.mask = this.mapMask
     this.setCentered(centered)
+  }
+
+  // bug with zoom in / out breaking the map.. not sure why
+  zoomIn() {
+    this.mapScale = Math.min(this.mapScale + 0.05, 2)
+    this.createLevelSprite()
+  }
+
+  zoomOut() {
+    this.mapScale = Math.max(this.mapScale - 0.05, 0.1)
+    this.createLevelSprite()
+  }
+
+  createLevelSprite() {
+    if (this.map != null) {
+      this.removeChild(this.map)
+      this.localPlayerMarker = null
+      this.remotePlayerMarkers = {}
+      this.map.destroy()
+    }
+    this.map = new LevelSprite(this.level, this.mapScale, true)
+    this.map.sortableChildren = true
+    this.map.mask = this.mapMask
+    this.addChild(this.map)
   }
 
   toggleCentered() {
@@ -73,17 +93,14 @@ class Minimap extends Sprite {
       if (remotePlayers != null) {
         Object.entries(remotePlayers).forEach(([id, player]) => {
           if (!this.remotePlayerMarkers[id]) {
-            this.remotePlayerMarkers[id] = this.makePlayerMarker(
-              player.label,
-              0x00ff00
-            )
+            this.remotePlayerMarkers[id] = this.makePlayerMarker(player.label, 0x00ff00)
           }
           this.remotePlayerMarkers[id].x = player.x * this.mapScale
           this.remotePlayerMarkers[id].y = player.y * this.mapScale
         })
         Object.keys(this.remotePlayerMarkers)
-          .filter((id) => !remotePlayers[id])
-          .forEach((id) => {
+          .filter(id => !remotePlayers[id])
+          .forEach(id => {
             this.map.removeChild(this.remotePlayerMarkers[id])
             delete this.remotePlayerMarkers[id]
           })

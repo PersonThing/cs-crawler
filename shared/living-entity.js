@@ -212,7 +212,7 @@ class LivingEntity extends Container {
         .moveTo(lastPoint.x, lastPoint.y)
         .lineTo(p.x, p.y)
         .stroke({
-          width: 5,
+          width: 3,
           color: 0xffffff,
           alpha: i == 0 ? 0.5 : 0.3,
         })

@@ -33,7 +33,6 @@ class EntityStats {
 
     // todo: apply temporary buffs/debuffs
 
-    console.log('calculated stats', stats)
     this.store.set(stats)
   }
 

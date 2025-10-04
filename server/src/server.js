@@ -28,7 +28,6 @@ const playerStates = {}
 // Load the level and pather
 let level = null
 let pather = null
-// new Pather(level)
 
 io.on('connection', (socket) => {
   const playerId = socket.handshake.query.playerId
@@ -36,9 +35,14 @@ io.on('connection', (socket) => {
 
   // create a level (uses first client to do so since we need client-side canvas (for now))
   if (level == null) {
+    // request the client initializes the level
     console.log('requesting level')
     socket.emit('requestCreateLevel')
+  } else {
+    // send level to the client
+    socket.emit('setLevel', level)
   }
+
   socket.on('setLevel', (levelConfig) => {
     console.log('setLevel', levelConfig)
     level = levelConfig

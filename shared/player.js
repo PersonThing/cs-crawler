@@ -7,18 +7,18 @@ import PlayerInventory from './player-inventory.js'
 import EntityStats from './entity-stats.js'
 
 class Player extends LivingEntity {
-  constructor(socketId, playerId, pather, texture, world, color) {
-    super(playerId, pather, texture, world, color)
+  constructor(socketId, label, playerId, pather, texture, world, color) {
+    super(label, pather, texture, world, color)
 
     this.socketId = socketId
     this.playerId = playerId
 
-    this.inventory = new PlayerInventory({}, [])
-    this.inventory.store.subscribe((content) => {
-      if (this.world) {
+    this.inventory = new PlayerInventory(playerId)
+    if (this.world) {
+      this.inventory.store.subscribe((content) => {
         this.setEquipped(content.equipped)
-      }
-    })
+      })
+    }
 
     this.stats = new EntityStats(this)
   }
@@ -45,7 +45,6 @@ class Player extends LivingEntity {
 
   setTargetItem(targetItem) {
     this.targetItem = targetItem
-    console.log('set target item', targetItem)
   }
 
   setEquipped(equipped) {
@@ -105,6 +104,7 @@ class Player extends LivingEntity {
     return {
       ...super.serialize(),
       socketId: this.socketId,
+      playerId: this.playerId,
     }
   }
 }

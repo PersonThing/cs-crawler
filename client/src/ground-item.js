@@ -52,6 +52,7 @@ class GroundItem extends Container {
     textBg.rect(0, 0, text.width + PADDING * 2, text.height + PADDING * 2).fill(0x000000)
     textBg.x = text.x - PADDING
     textBg.y = text.y - PADDING
+    textBg.alpha = 0.5
     textBg.visible = false
 
 

@@ -1,30 +1,36 @@
 import { BAG_SLOTS } from './constants.js'
-import createStore from './create-store.js'
 import InventorySlot from './inventory-slot.js'
+import createPersistedStore from './create-persisted-store.js'
 
 class PlayerInventory {
-  constructor() {
-    this.equipped = {}
-    this.bags = []
-    this.cursor = null
-
-    this.store = createStore({
+  constructor(playerId) {
+    // could use player's id for key if we want to support multiple players on same client
+    this.store = createPersistedStore(`inventory_${playerId}`, {
       equipped: {},
       bags: [],
       cursor: null,
     })
+
+    // load from store initially
+    const { equipped, bags, cursor } = this.store.get()
+    this.equipped = equipped || {}
+    this.bags = bags || []
+    this.cursor = cursor || null
   }
 
   serialize() {
+    const values = this.store.get()
     return {
-      equipped: this.equipped,
-      bags: this.bags,
+      equipped: values.equipped,
+      bags: values.bags,
+      cursor: values.cursor,
     }
   }
 
   deserialize(content) {
-    this.equipped = content.equipped
-    this.bags = content.bags
+    this.equipped = content.equipped || {}
+    this.bags = content.bags || []
+    this.cursor = content.cursor || null
     this.updateStore()
   }
 

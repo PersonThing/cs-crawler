@@ -74,6 +74,17 @@ class PlayerControls {
     this.app.canvas.addEventListener('mouseup', event => {
       isMouseDown = false
     })
+    
+    // add scroll listener to zoom minimap in/out
+    this.app.canvas.addEventListener('wheel', event => {
+      if (event.deltaY < 0) {
+        this.minimap.zoomIn()
+      } else {
+        this.minimap.zoomOut()
+      }
+      event.preventDefault()
+      return false
+    })
 
     window.addEventListener('keydown', event => {
       switch (event.key) {
@@ -83,11 +94,11 @@ class PlayerControls {
           break
         case 'b':
         case 'i':
-          this.hud.toggleInventory(this.app.screen.width, this.app.screen.height)
+          this.hud.toggleInventory()
           event.preventDefault()
           break
         case 'c':
-          this.hud.toggleCharacterSheet(this.app.screen.width, this.app.screen.height)
+          this.hud.toggleCharacterSheet()
           event.preventDefault()
           break
         case 'n':
