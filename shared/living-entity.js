@@ -1,5 +1,7 @@
 import { Sprite, Container, Graphics, Text } from 'pixi.js'
 import { ART_SCALE, DEBUG } from './constants.js'
+import { Textures } from '../client/src/textures.js'
+import InventorySlot from './inventory-slot.js'
 
 class LivingEntity extends Container {
   constructor(label, pather, texture, world, color, maxHealth, currentHealth) {
@@ -51,6 +53,18 @@ class LivingEntity extends Container {
     })
     this.spriteLabel.anchor.set(0.5, 2.5)
     this.addChild(this.spriteLabel)
+
+    // add a shadow sprite below player
+    this.shadowSprite = Sprite.from(this.entityTexture)
+    this.shadowSprite.anchor.set(0.5, 0.4)
+    this.shadowSprite.alpha = 0.25
+    // blur the shadow
+    this.shadowSprite.scale.x = ART_SCALE * 1.5
+    this.shadowSprite.scale.y = ART_SCALE * 1.5
+    this.shadowSprite.tint = 0x000000
+    this.addChildAt(this.shadowSprite, 0)
+
+    this.equipped = {}
   }
 
   // when state changes on the server, this is what the server will send
@@ -71,7 +85,7 @@ class LivingEntity extends Container {
     this.setTarget(data.target)
     this.setMaxHealth(data.maxHealth)
     this.setCurrentHealth(data.currentHealth)
-    
+
     // need to figure out a way to reconcile position without feeling choppy
     // const dx = this.x - data.x
     // const dy = this.y - data.y
@@ -85,6 +99,44 @@ class LivingEntity extends Container {
     this.moveTowardTarget(deltaMs)
     if (this.attacking) {
       this.rotateToward(this.attackTarget)
+
+      // if enough time has passed, animate attack again
+      if (this.lastAttackTime == null || deltaMs - this.lastAttackTime > 200) {
+        console.log('animate an attack', deltaMs)
+        // const mainHandEquipped = this.equipped[InventorySlot.MainHand.name]
+        // const offhandEquipped = this.equipped[InventorySlot.OffHand.name]
+
+        // if (mainHandEquipped != null && mainHandEquipped.itemType.bothHands === true) {
+        //   // 2h weapon in main hand, animate that
+        //   this.animateAttack(InventorySlot.MainHand.name, mainHandEquipped.attackingTexture)
+        // } else {
+        //   // animate both hands
+        //   if (mainHandEquipped != null) {
+        //     this.animateAttack(InventorySlot.MainHand.name, mainHandEquipped.attackingTexture)
+        //   }
+        //   if (offhandEquipped != null) {
+        //     this.animateAttack(InventorySlot.OffHand.name, offhandEquipped.attackingTexture)
+        //   }
+        // }
+        this.lastAttackTime = deltaMs
+      }
+      console.log(deltaMs)
+    }
+  }
+
+  animateAttack(slotName, attackingTexture) {
+    if (this.equippedSpriteContainer == null) return
+    const sprite = this.equippedSpriteContainer.children.find(s => {
+      // find the sprite by matching texture
+      return s.attackingTexture === attackingTexture || s.texture === Textures.item.weapon.hand
+    })
+    // set sprite texture to the attackingTexture for 100 ms, then back to normal
+    if (sprite != null && attackingTexture != null && sprite.texture !== attackingTexture) {
+      const originalTexture = sprite.texture
+      sprite.texture = attackingTexture
+      setTimeout(() => {
+        sprite.texture = originalTexture
+      }, 100)
     }
   }
 
@@ -101,8 +153,6 @@ class LivingEntity extends Container {
     if (this.tempTarget == null) {
       return
     }
-
-    console.log('still moving', this.tempTarget, this.x, this.y)
 
     // Update position based on target
     const dx = this.tempTarget.x - this.x
@@ -131,9 +181,7 @@ class LivingEntity extends Container {
       // target is null
       target == null ||
       // target hasn't changed
-      (this.target != null &&
-        target.x === this.target.x &&
-        target.y === this.target.y)
+      (this.target != null && target.x === this.target.x && target.y === this.target.y)
     ) {
       return
     }
@@ -150,10 +198,10 @@ class LivingEntity extends Container {
   }
 
   stopMoving() {
+    // TODO: this doesn't work, something else is setting target after we clear it
     this.target = null
     this.tempTarget = null
     this.path = []
-    console.log('stopping move')
   }
 
   startAttacking(targetPoint) {
@@ -181,7 +229,7 @@ class LivingEntity extends Container {
     if (this.label != 'You') {
       this.label = label
     }
-    
+
     if (this.spriteLabel) {
       this.spriteLabel.text = this.label
       if (DEBUG) {
@@ -245,6 +293,59 @@ class LivingEntity extends Container {
         .fill(0xffffff)
       lastPoint = p
     })
+  }
+
+  setEquipped(equipped) {
+    this.equipped = equipped
+
+    // this is only relevant for rendering, can skip on server
+    if (!this.world) return
+
+    if (this.equippedSpriteContainer != null) {
+      this.equippedSpriteContainer.destroy()
+      this.entitySprite.removeChild(this.equippedSpriteContainer)
+    }
+
+    this.equippedSpriteContainer = new Container()
+    this.entitySprite.addChild(this.equippedSpriteContainer)
+
+    Object.keys(equipped)
+      .filter(
+        slotName =>
+          equipped[slotName] != null &&
+          equipped[slotName].equippedTexture != null &&
+          !slotName.includes('Bonus')
+      )
+      .forEach(slotName => {
+        const item = equipped[slotName]
+        if (item != null) {
+          this.attachItemSprite(item.equippedTexture, slotName)
+        }
+      })
+
+    // if no mainhand equipped, render a hand
+    if (equipped[InventorySlot.MainHand.name] == null) {
+      this.attachItemSprite(Textures.item.weapon.hand, InventorySlot.MainHand.name)
+    }
+
+    // if no offhand equipped, and no 2h mainhand equipped, render a hand
+    if (
+      equipped[InventorySlot.OffHand.name] == null &&
+      equipped[InventorySlot.MainHand.name]?.itemType.bothHands != true
+    ) {
+      this.attachItemSprite(Textures.item.weapon.hand, InventorySlot.OffHand.name)
+    }
+  }
+
+  attachItemSprite(texture, slotName) {
+    const sprite = Sprite.from(texture)
+    sprite.anchor.set(0.5)
+    this.equippedSpriteContainer.addChild(sprite)
+
+    // flip the sprite if offhand
+    if (slotName === InventorySlot.OffHand.name) {
+      sprite.scale.x = -1
+    }
   }
 }
 

@@ -191,17 +191,17 @@ export const Textures = {
       "sword": "/assets/textures/item/weapon/sword.png"
     },
     "weapon_attacks": {
-      "axe_attack": "/assets/textures/item/weapon_attacks/axe_attack.png",
-      "bow_attack": "/assets/textures/item/weapon_attacks/bow_attack.png",
-      "club_attack": "/assets/textures/item/weapon_attacks/club_attack.png",
-      "crossbow_attack": "/assets/textures/item/weapon_attacks/crossbow_attack.png",
-      "greatsword_attack": "/assets/textures/item/weapon_attacks/greatsword_attack.png",
-      "gun_attack": "/assets/textures/item/weapon_attacks/gun_attack.png",
-      "hands_attack": "/assets/textures/item/weapon_attacks/hands_attack.png",
-      "hatchet_attack": "/assets/textures/item/weapon_attacks/hatchet_attack.png",
-      "knife_attack": "/assets/textures/item/weapon_attacks/knife_attack.png",
-      "spear_attack": "/assets/textures/item/weapon_attacks/spear_attack.png",
-      "sword_attack": "/assets/textures/item/weapon_attacks/sword_attack.png"
+      "axe": "/assets/textures/item/weapon_attacks/axe.png",
+      "bow": "/assets/textures/item/weapon_attacks/bow.png",
+      "club": "/assets/textures/item/weapon_attacks/club.png",
+      "crossbow": "/assets/textures/item/weapon_attacks/crossbow.png",
+      "greatsword": "/assets/textures/item/weapon_attacks/greatsword.png",
+      "gun": "/assets/textures/item/weapon_attacks/gun.png",
+      "hand": "/assets/textures/item/weapon_attacks/hand.png",
+      "hatchet": "/assets/textures/item/weapon_attacks/hatchet.png",
+      "knife": "/assets/textures/item/weapon_attacks/knife.png",
+      "spear": "/assets/textures/item/weapon_attacks/spear.png",
+      "sword": "/assets/textures/item/weapon_attacks/sword.png"
     }
   },
   "object": {

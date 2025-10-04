@@ -119,7 +119,7 @@ class PlayerControls {
     window.addEventListener('keydown', event => {
       const key = event.key.toLowerCase()
       switch (key) {
-        case 'a':
+        case 'tab':
           this.minimap.toggleCentered()
           event.preventDefault()
           break
@@ -132,7 +132,7 @@ class PlayerControls {
           this.hud.toggleCharacterSheet()
           event.preventDefault()
           break
-        case 'h':
+        case 'f1':
           this.hud.toggleHelp()
           event.preventDefault()
           break

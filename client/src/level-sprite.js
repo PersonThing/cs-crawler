@@ -88,15 +88,6 @@ class LevelSprite extends Container {
                     block.sprite.x = block.x * this.blockSize
                     block.sprite.y = block.y * this.blockSize
                     block.sprite.addChild(Sprite.from(Textures.tiles.stone))
-                    // const tint = new Graphics()
-                    // tint.alpha = 0.35
-                    // tint.rect(0, 0, this.blockSize / this.mapScale / ART_SCALE, this.blockSize  / this.mapScale/ ART_SCALE).fill(0x000000)
-                    // // draw border around tint
-                    // // tint.rect(0, 0, this.blockSize / this.mapScale / ART_SCALE, this.blockSize  / this.mapScale/ ART_SCALE).stroke({
-                    // //   width: 2,
-                    // //   color: 0xff0000,
-                    // // })
-                    // block.sprite.addChild(tint)
                     tile.container.addChild(block.sprite)
                   } else {
                     block.sprite = new Container()

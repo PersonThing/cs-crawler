@@ -71,6 +71,7 @@ export const SampleItems = [
           itemQuality: ItemQuality.Normal,
           inventoryTexture: Textures.inventory.one_handed[textureKey],
           equippedTexture: Textures.item.weapon[textureKey],
+          attackingTexture: Textures.item.weapon_attacks[textureKey],
           attributes: {
             [ItemAttributeType.PhysicalDamage]: 10,
             [ItemAttributeType.AttackSpeedPercent]: 20,
@@ -88,6 +89,7 @@ export const SampleItems = [
           itemQuality: ItemQuality.Normal,
           inventoryTexture: Textures.inventory.two_handed[textureKey],
           equippedTexture: Textures.item.weapon[textureKey],
+          attackingTexture: Textures.item.weapon_attacks[textureKey],
           attributes: {
             [ItemAttributeType.PhysicalDamage]: 10,
             [ItemAttributeType.MovementSpeedPercent]: -5,
@@ -154,6 +156,7 @@ export const SampleItems = [
     itemQuality: ItemQuality.Set,
     inventoryTexture: Textures.inventory.one_handed.eebeebsword,
     equippedTexture: Textures.item.weapon.sword,
+    attackingTexture: Textures.item.weapon_attacks.sword,
     attributes: {
       [ItemAttributeType.PhysicalDamage]: 20,
       [ItemAttributeType.LightningDamage]: 20,
@@ -171,6 +174,7 @@ export const SampleItems = [
     itemQuality: ItemQuality.Unique,
     inventoryTexture: Textures.inventory.two_handed.pelletshooter,
     equippedTexture: Textures.item.weapon.crossbow,
+    attackingTexture: Textures.item.weapon_attacks.crossbow,
     attributes: {
       // make this a ranged item
       [ItemAttributeType.PhysicalDamage]: 7,
@@ -185,6 +189,7 @@ export const SampleItems = [
     itemQuality: ItemQuality.Unique,
     inventoryTexture: Textures.inventory.one_handed.obsidianblade,
     equippedTexture: Textures.item.weapon.club,
+    attackingTexture: Textures.item.weapon_attacks.club,
     attributes: {
       [ItemAttributeType.PhysicalDamage]: 20,
     },

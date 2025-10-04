@@ -3,7 +3,7 @@ import { Graphics, Container, Text } from 'pixi.js'
 const keyBindings = [
   { key: 'I or B', action: 'Toggle Inventory' },
   { key: 'C', action: 'Toggle Character Sheet' },
-  { key: 'H', action: 'Toggle Help' },
+  { key: 'F1', action: 'Toggle Help' },
   { key: 'Left click', action: 'Move' },
   { key: 'Tab', action: 'Toggle minimap' },
 

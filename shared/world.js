@@ -24,15 +24,15 @@ class World extends Container {
     this.levelSprite = new LevelSprite(levelConfig, 1, false)
     this.addChild(this.levelSprite)
 
+    this.itemsContainer = new Container()
+    this.addChild(this.itemsContainer)
+
     // add another level sprite slightly scaled up for parallax effect
     this.levelSpriteParallax = new LevelSprite(levelConfig, PARALLAX_SCALE, false, true)
     // this.levelSpriteParallax.tileContainer.alpha = 0.25
     this.levelSpriteParallax.mask = null
 
     this.addChild(this.levelSpriteParallax)
-
-    this.itemsContainer = new Container()
-    this.addChild(this.itemsContainer)
 
     this.mask = this.createLightRadiusMask()
     
@@ -90,8 +90,8 @@ class World extends Container {
 
     // update the parallax level + center it on player
     this.levelSpriteParallax.onTick(localPlayer, screenWidth, screenHeight)
-    this.levelSpriteParallax.x = this.x * (PARALLAX_SCALE - 1) - 90
-    this.levelSpriteParallax.y = this.y * (PARALLAX_SCALE - 1) - 70
+    this.levelSpriteParallax.x = this.x * (PARALLAX_SCALE - 1) - 75
+    this.levelSpriteParallax.y = this.y * (PARALLAX_SCALE - 1) - 65
 
     // update players
     this.players.forEach(player => {

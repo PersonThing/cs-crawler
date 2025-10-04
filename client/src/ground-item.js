@@ -13,12 +13,17 @@ class GroundItem extends Container {
 
     const color = ItemQualityColors[itemWrapper.item.itemQuality]
 
-    // draw a background behind the item colored by item quality
-    const spriteBg = new Graphics().circle(0, 0, 15).fill(color)
+    // circle drawn should be a bit darker
+    const circleColor =
+      (((ItemQualityColors[itemWrapper.item.itemQuality] & 0xff0000) >> 1) & 0xff0000) |
+      (((ItemQualityColors[itemWrapper.item.itemQuality] & 0x00ff00) >> 1) & 0x00ff00) |
+      (((ItemQualityColors[itemWrapper.item.itemQuality] & 0x0000ff) >> 1) & 0x0000ff)
 
+    // draw a background behind the item colored by item quality
+    const spriteBg = new Graphics().circle(0, 0, 15).fill(circleColor)
     spriteBg.alpha = 0.25
-    spriteBg.scale.y = 0.5
-    spriteBg.y = 10
+    // spriteBg.scale.y = 0.5
+    spriteBg.y = 0
 
     this.addChild(spriteBg)
 
@@ -54,7 +59,6 @@ class GroundItem extends Container {
     textBg.y = text.y - PADDING
     textBg.alpha = 0.5
     textBg.visible = false
-
 
     let hovering = false
     spriteBg.alpha = 0.5
