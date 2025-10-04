@@ -21,6 +21,7 @@ const io = new Server(server, {
 app.use(express.static('../client/dist'))
 
 const players = {} // Object to store player information
+let worldItems = [] // Array to store items on the ground
 
 // Load the level and pather
 let level = null
@@ -80,6 +81,23 @@ io.on('connection', socket => {
     })
   })
 
+  socket.on('worldItemPlaced', itemWrapper => {
+    console.log('world item placed by client', itemWrapper)
+    // validate items
+    if (itemWrapper.item == null || itemWrapper.position == null) {
+      console.log('Invalid itemWrapper received, ignoring', itemWrapper)
+      return
+    }
+    worldItems.push(itemWrapper)
+    socket.broadcast.emit('worldItemPlaced', itemWrapper)
+  })
+
+  socket.on('worldItemRemoved', itemId => {
+    console.log('world item removed by client', itemId)
+    worldItems = worldItems.filter(i => i.item.id !== itemId)
+    socket.broadcast.emit('worldItemRemoved', itemId)
+  })
+
   // Remove player on disconnect
   socket.on('disconnect', () => {
     console.log('Player disconnected: ' + playerId, socket.id)
@@ -89,7 +107,7 @@ io.on('connection', socket => {
       player.socketId = null
     }
     // Notify others using the playerId for consistency
-    io.emit('playerDisconnected', playerId)
+    socket.broadcast.emit('playerDisconnected', playerId)
   })
 })
 
@@ -112,6 +130,7 @@ setInterval(() => {
 
   io.emit('updateState', {
     players: connectedPlayersData,
+    worldItems: worldItems,
   })
 }, deltaMS)
 

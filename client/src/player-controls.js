@@ -20,10 +20,19 @@ class PlayerControls {
       socket.emit('inventoryChanged', content)
     }, 100)
     this.player.inventory.store.subscribe(debouncedSetInventory)
-
     playerItemTargetStore.subscribe(target => {
       if (this.player) {
         this.player.setTargetItem(target)
+      }
+    })
+
+    // when other player inventories change, update it
+    socket.on('playerInventoryChanged', ({ playerId, content }) => {
+      const px = this.world.players.find(p => p.playerId == playerId)
+      if (px != null && px != this.player) {
+        // hack to not update inv from server for local player since client is in charge of inv state for now
+        px.inventory.deserialize(content)
+        console.log('player inventory changed', playerId, content)
       }
     })
   }
@@ -74,7 +83,7 @@ class PlayerControls {
     this.app.canvas.addEventListener('mouseup', event => {
       isMouseDown = false
     })
-    
+
     // add scroll listener to zoom minimap in/out
     this.app.canvas.addEventListener('wheel', event => {
       if (event.deltaY < 0) {

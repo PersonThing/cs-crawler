@@ -69,6 +69,9 @@ class InventoryHud extends Container {
   }
 
   setCursorItemPosition() {
+    if (this.cursorPosition == null) {
+      return
+    }
     this.cursorItem.x = this.cursorBg.x = this.cursorPosition.x
     this.cursorItem.y = this.cursorBg.y = this.cursorPosition.y
   }

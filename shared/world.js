@@ -1,8 +1,8 @@
 import { Container, BlurFilter, Rectangle, Graphics, Sprite, Text } from 'pixi.js'
 import LevelSprite from '../client/src/level-sprite.js'
-import socket from '../client/src/socket.js'
 import GroundItem from '../client/src/ground-item.js'
 import playerItemTargetStore from '../client/src/player-item-target-store.js'
+import socket from '../client/src/socket.js'
 
 class World extends Container {
   constructor(app, levelConfig) {
@@ -26,13 +26,21 @@ class World extends Container {
     this.addChild(this.itemsContainer)
 
     this.mask = this.createLightRadiusMask()
-
-    socket.on('playerInventoryChanged', ({ playerId, content }) => {
-      const player = this.players.find(p => p.playerId == playerId)
-      if (player != null) {
-        player.inventory.deserialize(content)
+    
+    // listen to item changes from server
+    socket.on('worldItemPlaced', itemWrapper => {
+      console.log('world item placed from server', itemWrapper.item?.id)
+      if (!this.items.find(i => i.item.id === itemWrapper.item.id)) {
+        this.placeItem(itemWrapper.item, itemWrapper.position, false)
       }
-      // console.log('player inventory changed', playerId, content)
+    })
+
+    socket.on('worldItemRemoved', itemId => {
+      console.log('world item removed from server', itemId)
+      const itemWrapper = this.items.find(i => i.item.id === itemId)
+      if (itemWrapper) {
+        this.removeItem(itemWrapper.item, false)
+      }
     })
   }
 
@@ -87,6 +95,14 @@ class World extends Container {
         this.renderItem(itemWrapper)
       }
     })
+
+    // unrender any items that are no longer in the items store
+    this.itemsContainer.children.forEach(sprite => {
+      const itemWrapper = this.items.find(i => i.sprite === sprite)
+      if (!itemWrapper) {
+        this.itemsContainer.removeChild(sprite)
+      }
+    })
   }
 
   addPlayer(player) {
@@ -99,7 +115,7 @@ class World extends Container {
     this.removeChild(player)
   }
 
-  placeItem(item, position) {
+  placeItem(item, position, sendToServer = true) {
     position = this.getBestAvailableItemPosition(position)
 
     console.log('placing item on ground', item, position)
@@ -109,11 +125,16 @@ class World extends Container {
     if (position == null || position.x == null || position.y == null) {
       throw new Error('cannot place item with invalid position', position)
     }
-    this.items.push({
+    const itemWrapper = {
       item,
       position,
       rendered: false,
-    })
+    }
+    this.items.push(itemWrapper)
+    if (sendToServer) {
+      console.log('placing item on server', itemWrapper.item?.id)
+      socket.emit('worldItemPlaced', itemWrapper)
+    }
   }
 
   // given a position {x, y}, return the best available position to place an item
@@ -159,7 +180,7 @@ class World extends Container {
     return bestPosition
   }
 
-  removeItem(item) {
+  removeItem(item, sendToServer = true) {
     console.log('removing item', item)
     const itemWrapper = this.items.find(itemWrapper => itemWrapper.item === item)
     if (itemWrapper == null) {
@@ -167,13 +188,15 @@ class World extends Container {
     }
     this.items = this.items.filter(i => i !== itemWrapper)
     this.itemsContainer.removeChild(itemWrapper.sprite)
+    if (sendToServer) {
+      console.log('removing item from server', itemWrapper.item?.id)
+      socket.emit('worldItemRemoved', itemWrapper.item.id)
+    }
   }
 
   renderItem(itemWrapper) {
-    console.log('rendering item to ground', itemWrapper.item, itemWrapper.position)
     itemWrapper.sprite = new GroundItem(itemWrapper)
     this.itemsContainer.addChild(itemWrapper.sprite)
-
     itemWrapper.sprite.on('mousedown', () => {
       playerItemTargetStore.set(itemWrapper)
     })

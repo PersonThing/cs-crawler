@@ -64,7 +64,7 @@ class Player extends LivingEntity {
         (slotName) =>
           equipped[slotName] != null &&
           equipped[slotName].equippedTexture != null &&
-          slotName.indexOf('Bonus') === -1
+          !slotName.includes('Bonus')
       )
       .forEach((slotName) => {
         const item = equipped[slotName]
