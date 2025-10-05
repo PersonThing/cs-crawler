@@ -4,11 +4,12 @@ import PlayerInventory from './player-inventory.js'
 import EntityStats from './entity-stats.js'
 
 class Player extends LivingEntity {
-  constructor(socketId, label, playerId, pather, texture, world, color) {
-    super(label, pather, texture, world, color)
+  constructor(socketId, username, playerId, pather, texture, world, color) {
+    super(username, pather, texture, world, color)
 
     this.socketId = socketId
     this.playerId = playerId
+    this.username = username
 
     this.inventory = new PlayerInventory(playerId)
     if (this.world) {
@@ -53,6 +54,7 @@ class Player extends LivingEntity {
       ...super.serialize(),
       socketId: this.socketId,
       playerId: this.playerId,
+      username: this.username,
     }
   }
 }

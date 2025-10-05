@@ -16,11 +16,13 @@ import playersStore from '../../shared/state/players-store.js'
 import appStore from './state/app-store.js'
 import { LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '../../shared/constants.js'
 
+import usernameStore from './state/username-store.js'
+
 const init = async levelConfig => {
-  const createPlayer = (socketId, label, playerData, color) => {
+  const createPlayer = (socketId, username, playerData, color) => {
     const player = new Player(
       socketId,
-      label,
+      username,
       playerData.playerId,
       pather,
       Textures.player.base,
@@ -34,7 +36,7 @@ const init = async levelConfig => {
   }
 
   const createRemotePlayer = (socketId, playerData) => {
-    const remotePlayer = createPlayer(socketId, playerData.playerId, playerData, OTHER_PLAYER_COLOR)
+    const remotePlayer = createPlayer(socketId, playerData.username, playerData, OTHER_PLAYER_COLOR)
     remotePlayers[socketId] = remotePlayer
   }
 
@@ -51,7 +53,7 @@ const init = async levelConfig => {
       world.removePlayer(localPlayer)
     }
 
-    localPlayer = createPlayer(socket.id, 'You', playerData, LOCAL_PLAYER_COLOR)
+    localPlayer = createPlayer(socket.id, usernameStore.get(), playerData, LOCAL_PLAYER_COLOR)
     localPlayerStore.set(localPlayer)
 
     hud = new Hud()

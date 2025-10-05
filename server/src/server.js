@@ -29,9 +29,17 @@ let pather = null
 
 io.on('connection', socket => {
   const playerId = socket.handshake.query.playerId
+  let username = socket.handshake.query.username
+
   let player = players[playerId]
 
   console.log('Player connected: ' + playerId, socket.id)
+
+  socket.on('setUsername', username => {
+    username = username
+    console.log('username set for player ' + playerId + ': ' + username)
+    if (player) player.username = username
+  })
 
   // broadcast new player to all other players
   socket.on('createPlayer', () => {

@@ -45,9 +45,9 @@ class PlayersHud extends Container {
     let y = 10
     for (const playerId in players) {
       const player = players[playerId]
-      const label = player.label || playerId
+      const username = player.username
       const text = new Text({
-        text: `${label}
+        text: `${username}
 healthbar here
 manabar here`,
         style: {

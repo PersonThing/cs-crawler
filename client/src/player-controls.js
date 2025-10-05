@@ -8,6 +8,7 @@ import playerItemTargetStore from './state/player-item-target-store.js'
 import { DEBUG } from '../../shared/constants.js'
 import playersStore from '../../shared/state/players-store.js'
 import localPlayerStore from '../../shared/state/local-player-store.js'
+import usernameStore from './state/username-store.js'
 
 class PlayerControls {
   constructor(app, world, minimap, hud) {
@@ -164,6 +165,12 @@ class PlayerControls {
         case 'v':
           this.world.items.forEach(i => this.world.removeItem(i.item))
           break
+        case 'f3':
+          // prompt the user for a new username
+          const newUsername = prompt('Enter new username:', usernameStore.get() || '')
+          if (newUsername != null && newUsername.trim().length > 0) {
+            usernameStore.set(newUsername.trim())
+          }
         default:
           return // exit this handler for other keys
       }
