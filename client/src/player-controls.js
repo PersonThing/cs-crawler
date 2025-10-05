@@ -39,7 +39,6 @@ class PlayerControls {
       if (px != null && px != this.player) {
         // hack to not update inv from server for local player since client is in charge of inv state for now
         px.inventory.deserialize(content)
-        console.log('player inventory changed', playerId, content)
       }
     })
   }
@@ -160,9 +159,7 @@ class PlayerControls {
           break
         case 'g':
           // temp: generate a bunch of items on the ground around the player
-          for (let i = 0; i < 9; i++) {
-            this.world.placeItem(generateRandomItem(), this.player.position)
-          }
+          this.world.placeItem(generateRandomItem(), this.player.position)
           break
         case 'v':
           this.world.items.forEach(i => this.world.removeItem(i.item))

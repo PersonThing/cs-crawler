@@ -14,6 +14,7 @@ import generateSampleLevel from '../../shared/level-builder.js'
 import localPlayerStore from '../../shared/state/local-player.js'
 import playersStore from '../../shared/state/players.js'
 import appStore from './app-store.js'
+import { LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '../../shared/constants.js'
 
 const init = async levelConfig => {
   const createPlayer = (socketId, label, playerData, color) => {
@@ -33,7 +34,7 @@ const init = async levelConfig => {
   }
 
   const createRemotePlayer = (socketId, playerData) => {
-    const remotePlayer = createPlayer(socketId, playerData.playerId, playerData, 0x00ff00)
+    const remotePlayer = createPlayer(socketId, playerData.playerId, playerData, OTHER_PLAYER_COLOR)
     remotePlayers[socketId] = remotePlayer
   }
 
@@ -50,7 +51,7 @@ const init = async levelConfig => {
       world.removePlayer(localPlayer)
     }
 
-    localPlayer = createPlayer(socket.id, 'You', playerData, 0x00aaff)
+    localPlayer = createPlayer(socket.id, 'You', playerData, LOCAL_PLAYER_COLOR)
     localPlayerStore.set(localPlayer)
 
     hud = new Hud()
@@ -96,7 +97,6 @@ const init = async levelConfig => {
       if (player.socketId === socket.id) {
         // local player
         if (!localPlayer) {
-          console.log('creating local player', player)
           createLocalPlayer(player)
         } else {
           localPlayer.syncWithServer(player)
@@ -113,7 +113,6 @@ const init = async levelConfig => {
 }
 
 socket.on('setLevel', async levelConfig => {
-  console.log('set level called')
   await preloadTextures()
   init(levelConfig)
   socket.emit('createPlayer')
@@ -121,6 +120,5 @@ socket.on('setLevel', async levelConfig => {
 
 socket.on('requestLevel', () => {
   const level = generateSampleLevel()
-  console.log('server requested level, created: ', level)
   socket.emit('setLevel', level)
 })

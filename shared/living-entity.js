@@ -134,7 +134,7 @@ class LivingEntity extends Container {
 
       // if enough time has passed, animate attack again
       if (this.lastAttackTime == null || deltaMs - this.lastAttackTime > 200) {
-        console.log('animate an attack', deltaMs)
+        // console.log('animate an attack', deltaMs)
         // const mainHandEquipped = this.equipped[InventorySlot.MainHand.name]
         // const offhandEquipped = this.equipped[InventorySlot.OffHand.name]
 
@@ -152,7 +152,7 @@ class LivingEntity extends Container {
         // }
         this.lastAttackTime = deltaMs
       }
-      console.log(deltaMs)
+      // console.log(deltaMs)
     }
   }
 

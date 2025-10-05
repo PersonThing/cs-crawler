@@ -28,17 +28,17 @@ class Minimap extends Sprite {
     this.setCentered(centered)
 
     // draw a border around minimap
-    const border = new Graphics()
-      .roundRect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT, 6)
-      .fill(HUD_FILL_COLOR)
-      .stroke({
-        color: HUD_BORDER_COLOR,
-        width: 4,
-      })
-    border.alpha = 0.5
-    border.x = -MINIMAP_WIDTH / 2
-    border.y = -MINIMAP_HEIGHT / 2
-    this.addChild(border)
+    // const border = new Graphics()
+    //   .roundRect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT, 6)
+    //   .fill(HUD_FILL_COLOR)
+    //   .stroke({
+    //     color: HUD_BORDER_COLOR,
+    //     width: 4,
+    //   })
+    // border.alpha = 0.5
+    // border.x = -MINIMAP_WIDTH / 2
+    // border.y = -MINIMAP_HEIGHT / 2
+    // this.addChild(border)
   }
   
   zoomIn() {

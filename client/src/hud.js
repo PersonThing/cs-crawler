@@ -38,7 +38,7 @@ class Hud extends Container {
       this.help.y = 10
 
       // players list aligned to top right of screen, under minimap
-      this.players.x = width - this.players.width
+      this.players.x = width - 150
       this.players.y = MINIMAP_HEIGHT + 10
     })
 

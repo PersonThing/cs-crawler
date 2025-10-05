@@ -31,6 +31,8 @@ io.on('connection', socket => {
   const playerId = socket.handshake.query.playerId
   let player = players[playerId]
 
+  console.log('Player connected: ' + playerId, socket.id)
+
   // broadcast new player to all other players
   socket.on('createPlayer', () => {
     if (!level) {
@@ -46,7 +48,6 @@ io.on('connection', socket => {
     } else {
       // New player - create from scratch
       const label = playerId
-      console.log('Creating player: ' + playerId, socket.id)
       player = new Player(socket.id, label, playerId, pather)
       player.setPosition(level.start.x, level.start.y)
       player.isConnected = true
@@ -90,7 +91,6 @@ io.on('connection', socket => {
   })
 
   socket.on('worldItemPlaced', itemWrapper => {
-    console.log('world item placed by client', itemWrapper)
     // validate items
     if (itemWrapper.item == null || itemWrapper.position == null) {
       console.log('Invalid itemWrapper received, ignoring', itemWrapper)
@@ -105,7 +105,6 @@ io.on('connection', socket => {
   })
 
   socket.on('worldItemRemoved', itemId => {
-    console.log('world item removed by client', itemId)
     worldItems = worldItems.filter(i => i.item.id !== itemId)
     socket.broadcast.emit('worldItemRemoved', itemId)
   })

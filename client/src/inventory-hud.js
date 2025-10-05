@@ -165,7 +165,6 @@ class InventoryHud extends Container {
       bgSprite.alpha = 0.25
       bgSprite.eventMode = 'static'
       bgSprite.on('mousedown', () => {
-        console.log('empty equipped slot click', inventorySlot.name)
         this.playerInventory.clickEquippedSlot(inventorySlot.name)
       })
       this.bg.addChild(bgSprite)
@@ -177,7 +176,6 @@ class InventoryHud extends Container {
       const slotBg = this.drawItemBg(color, this.getBagSlotCoordinates(index))
       slotBg.eventMode = 'static'
       slotBg.on('mousedown', () => {
-        console.log('empty bag slot click', index)
         this.playerInventory.clickBagSlot(index)
       })
     }
@@ -219,7 +217,6 @@ class InventoryHud extends Container {
         const coords = this.getBagSlotCoordinates(index)
         const itemSprite = this.drawItem(item, coords)
         itemSprite.on('mousedown', () => {
-          console.log('filled bag slot click', index)
           this.playerInventory.clickBagSlot(index)
         })
       }
@@ -235,7 +232,6 @@ class InventoryHud extends Container {
       const coords = EquippedSlotCoordinates[slotName]
       const itemSprite = this.drawItem(item, coords)
       itemSprite.on('mousedown', () => {
-        console.log('filled equipped slot click', slotName)
         this.playerInventory.clickEquippedSlot(slotName)
       })
 

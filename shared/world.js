@@ -41,14 +41,12 @@ class World extends Container {
 
     // listen to item changes from server
     socket.on('worldItemPlaced', itemWrapper => {
-      console.log('world item placed from server', itemWrapper.item?.id)
       if (!this.items.find(i => i.item.id === itemWrapper.item.id)) {
         this.placeItem(itemWrapper.item, itemWrapper.position, false)
       }
     })
 
     socket.on('worldItemRemoved', itemId => {
-      console.log('world item removed from server', itemId)
       const itemWrapper = this.items.find(i => i.item.id === itemId)
       if (itemWrapper) {
         this.removeItem(itemWrapper.item, false)
@@ -56,7 +54,6 @@ class World extends Container {
     })
 
     socket.on('currentWorldItems', worldItems => {
-      console.log('current world items from server', worldItems)
       worldItems.forEach(itemWrapper => {
         if (!this.items.find(i => i.item.id === itemWrapper.item.id)) {
           this.placeItem(itemWrapper.item, itemWrapper.position, false)
@@ -151,7 +148,6 @@ class World extends Container {
   placeItem(item, position, sendToServer = true) {
     position = this.getBestAvailableItemPosition(position)
 
-    console.log('placing item on ground', item, position)
     if (item == null) {
       throw new Error('cannot place null item')
     }
@@ -165,7 +161,6 @@ class World extends Container {
     }
     this.items.push(itemWrapper)
     if (sendToServer) {
-      console.log('placing item on server', itemWrapper.item?.id)
       socket.emit('worldItemPlaced', itemWrapper)
     }
   }
