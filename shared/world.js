@@ -74,7 +74,7 @@ class World extends Container {
     circle.alpha = 1
 
     const blurFilter = new BlurFilter()
-    blurFilter.blur = blurSize
+    blurFilter.strength = blurSize
     blurFilter.quality = 3
     circle.filters = [blurFilter]
 

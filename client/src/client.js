@@ -13,6 +13,7 @@ import generateSampleLevel from '../../shared/level-builder.js'
 
 import localPlayerStore from '../../shared/state/local-player.js'
 import playersStore from '../../shared/state/players.js'
+import appStore from './app-store.js'
 
 const init = async levelConfig => {
   const createPlayer = (socketId, label, playerData, color) => {
@@ -52,7 +53,7 @@ const init = async levelConfig => {
     localPlayer = createPlayer(socket.id, 'You', playerData, 0x00aaff)
     localPlayerStore.set(localPlayer)
 
-    hud = new Hud(app, app.screen.width, app.screen.height)
+    hud = new Hud()
     app.stage.addChild(hud)
 
     playerControls = new PlayerControls(app, world, minimap, hud)
@@ -63,6 +64,7 @@ const init = async levelConfig => {
 
   // Create pixi.js app
   const app = new Application()
+  appStore.set(app)
   await app.init({ background: 0x000000, resizeTo: window })
   document.body.appendChild(app.canvas)
 

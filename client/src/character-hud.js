@@ -9,10 +9,8 @@ const WIDTH = 200
 const HEIGHT = 300
 
 class CharacterHud extends Container {
-  constructor(app) {
+  constructor() {
     super()
-
-    this.app = app
 
     this.content = null
     this.renderBackground()

@@ -7,6 +7,7 @@ import InventoryItem from './inventory-item.js'
 
 import localPlayerStore from '../../shared/state/local-player.js'
 
+import appStore from './app-store.js'
 
 const ITEM_SIZE = 32
 const PADDING = 1
@@ -36,11 +37,8 @@ const EquippedSlotCoordinates = {
 }
 
 class InventoryHud extends Container {
-  constructor(app) {
+  constructor() {
     super()
-
-
-    this.app = app
 
     this.content = null
     this.renderBackground()
@@ -55,7 +53,7 @@ class InventoryHud extends Container {
     // track cursor position and move cursor item with mouse
     this.cursorPosition = { x: 0, y: 0 }
 
-    this.app.canvas.addEventListener('mousemove', event => {
+    appStore?.get().canvas.addEventListener('mousemove', event => {
       this.cursorPosition = {
         x: event.clientX - this.x - ITEM_SIZE / 2,
         y: event.clientY - this.y - ITEM_SIZE / 2,

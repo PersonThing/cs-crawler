@@ -1,17 +1,17 @@
 import { Graphics, Container, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '../../shared/constants.js'
 
+import playersStore from '../../shared/state/players.js'
+
 const WIDTH = 200
 const HEIGHT = 300
 
 class PlayersHud extends Container {
-  constructor(app, player) {
+  constructor() {
     super()
-
-    this.app = app
-
-    this.content = null
-    this.renderBackground()
+    playersStore.subscribe(players => {
+      this.render(players)
+    })
   }
 
   renderBackground() {
@@ -33,6 +33,14 @@ class PlayersHud extends Container {
     gfx.x = 0
     gfx.y = 0
     this.bg.addChild(gfx)
+  }
+
+  render(players) {
+    this.renderBackground()
+
+    // loop the players and render them
+
+
   }
 }
 

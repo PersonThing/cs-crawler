@@ -40,8 +40,7 @@ class Minimap extends Sprite {
     border.y = -MINIMAP_HEIGHT / 2
     this.addChild(border)
   }
-
-  // bug with zoom in / out breaking the map.. not sure why
+  
   zoomIn() {
     this.mapScale = Math.min(this.mapScale + 0.05, 2)
     this.createLevelSprite()

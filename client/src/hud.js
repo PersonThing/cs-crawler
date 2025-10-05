@@ -7,22 +7,22 @@ import HelpHud from './help-hud.js'
 import PlayersHud from './players-hud.js'
 
 class Hud extends Container {
-  constructor(app) {
+  constructor() {
     super()
 
-    this.inventory = new InventoryHud(app)
+    this.inventory = new InventoryHud()
     this.addChild(this.inventory)
     this.inventory.visible = DEBUG.get()
 
-    this.character = new CharacterHud(app)
+    this.character = new CharacterHud()
     this.addChild(this.character)
     this.character.visible = DEBUG.get()
 
-    this.help = new HelpHud(app)
+    this.help = new HelpHud()
     this.addChild(this.help)
     this.help.visible = false
 
-    this.players = new PlayersHud(app)
+    this.players = new PlayersHud()
     this.addChild(this.players)
     
     screenSizeStore.subscribe(({ width, height }) => {

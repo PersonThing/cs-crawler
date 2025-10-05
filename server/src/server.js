@@ -97,6 +97,7 @@ io.on('connection', socket => {
       return
     }
     worldItems.push(itemWrapper)
+    socket.broadcast.emit('worldItemPlaced', itemWrapper)
   })
 
   socket.on('requestCurrentWorldItems', () => {
