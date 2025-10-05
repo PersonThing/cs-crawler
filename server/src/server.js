@@ -33,6 +33,11 @@ io.on('connection', socket => {
 
   // broadcast new player to all other players
   socket.on('createPlayer', () => {
+    if (!level) {
+      socket.emit('requestLevel')
+      return
+    }
+
     player = players[playerId]
     if (player) {
       // Player reconnecting - update their socketId and mark as connected
