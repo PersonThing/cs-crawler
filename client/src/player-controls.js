@@ -6,15 +6,21 @@ import cursorPositionStore from './cursor-position-store.js'
 import ItemType from '../../shared/item-type.js'
 import playerItemTargetStore from './player-item-target-store.js'
 import { DEBUG } from '../../shared/constants.js'
+import playersStore from '../../shared/state/players.js'
+import localPlayerStore from '../../shared/state/local-player.js'
 
 class PlayerControls {
-  constructor(app, world, player, minimap, hud) {
+  constructor(app, world, minimap, hud) {
     this.app = app
     this.world = world
-    this.player = player
     this.minimap = minimap
     this.hud = hud
     this.startListening()
+
+    this.player = localPlayerStore.get()
+    localPlayerStore.subscribe(player => {
+      this.player = player
+    })
 
     // when player inventory changes, send to server
     const debouncedSetInventory = debounce(content => {
@@ -29,7 +35,7 @@ class PlayerControls {
 
     // when other player inventories change, update it
     socket.on('playerInventoryChanged', ({ playerId, content }) => {
-      const px = this.world.players.find(p => p.playerId == playerId)
+      const px = playersStore.get().find(p => p.playerId == playerId)
       if (px != null && px != this.player) {
         // hack to not update inv from server for local player since client is in charge of inv state for now
         px.inventory.deserialize(content)

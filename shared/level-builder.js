@@ -6,8 +6,8 @@ import Tile from './tile.js'
 
 const textureMap = {
   0: null,
-  1: Textures.tiles.rocks,
-  2: Textures.tiles.rocks,//Textures.tiles.stone,
+  1: Textures.tiles.stone,
+  2: Textures.tiles.rocks,
   3: Textures.tiles.gravel,
   4: Textures.object.mushroom,
   5: Textures.particle.fire1,
@@ -165,10 +165,22 @@ const generateSampleLevel = () => {
       [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
       [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
       [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [2, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      [2, 3, 3, 3, [3, 4], [3, 4], 3, 3, 3, 3],
+      [2, 3, 3, 3, [3, 4], [3, 4], 3, 3, 3, 3],
+      [2, 3, 3, 3, 3, 3, 3, 3, 3, 3],
       [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
-      [2, 3, 3, 3, [3, 4], [3, 4], 3, 3, 3, 2],
-      [2, 3, 3, 3, [3, 4], [3, 4], 3, 3, 3, 2],
       [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [2, 2, 2, 3, 3, 3, 3, 2, 2, 2],
+    ],
+    TestRoom: [
+      [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [3, 3, 3, 3, 3, 3, 3, 3, 3, 2],
+      [3, 3, 3, 3, [3, 5], [3, 6], 3, 3, 3, 2],
+      [3, 3, 3, 3, [3, 6], [3, 5], 3, 3, 3, 2],
+      [3, 3, 3, 3, 3, 3, 3, 3, 3, 2],
       [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
       [2, 3, 3, 3, 3, 3, 3, 3, 3, 2],
       [2, 2, 2, 3, 3, 3, 3, 2, 2, 2],
@@ -204,10 +216,13 @@ const generateSampleLevel = () => {
   }
 
   level.tileGrid = [
-    [t(Tiles.MushRoom)],
+    [
+      t(Tiles.MushRoom),
+      t(Tiles.TestRoom),
+    ],
     [
       t(Tiles.DoorRightTopBottom),
-      t(Tiles.HallwayHorizontal),
+      t(Tiles.DoorLeftRightTop),
       t(Tiles.DoorLeftRightBottom),
       t(Tiles.HallwayHorizontal),
       t(Tiles.HallwayHorizontal),

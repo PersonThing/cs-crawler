@@ -1,7 +1,8 @@
-import { MINIMAP_SCALE, MINIMAP_WIDTH, MINIMAP_HEIGHT } from '../../shared/constants.js'
+import { MINIMAP_SCALE, MINIMAP_WIDTH, MINIMAP_HEIGHT, HUD_BORDER_COLOR, HUD_FILL_COLOR } from '../../shared/constants.js'
 import { Sprite, Container, Graphics, Text } from 'pixi.js'
 import LevelSprite from './level-sprite'
 import screenSizeStore from './screen-size-store.js'
+import localPlayerStore from '../../shared/state/local-player.js'
 
 class Minimap extends Sprite {
   constructor(level, centered) {
@@ -21,10 +22,23 @@ class Minimap extends Sprite {
     this.mapMask = new Graphics().rect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT).fill(0xff0000)
     this.mapMask.x = -MINIMAP_WIDTH / 2
     this.mapMask.y = -MINIMAP_HEIGHT / 2
-    // this.mapMask.visible = false
+    this.mapMask.visible = false
     this.addChild(this.mapMask)
     this.map.mask = this.mapMask
     this.setCentered(centered)
+
+    // draw a border around minimap
+    const border = new Graphics()
+      .roundRect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT, 6)
+      .fill(HUD_FILL_COLOR)
+      .stroke({
+        color: HUD_BORDER_COLOR,
+        width: 4,
+      })
+    border.alpha = 0.5
+    border.x = -MINIMAP_WIDTH / 2
+    border.y = -MINIMAP_HEIGHT / 2
+    this.addChild(border)
   }
 
   // bug with zoom in / out breaking the map.. not sure why
@@ -47,8 +61,8 @@ class Minimap extends Sprite {
     }
     this.map = new LevelSprite(this.level, this.mapScale, true)
     this.map.sortableChildren = true
-    this.map.mask = this.mapMask
     this.addChild(this.map)
+    this.setCentered(this.centered) // re-apply centered state to set mask and alpha
   }
 
   toggleCentered() {
@@ -58,11 +72,13 @@ class Minimap extends Sprite {
   setCentered(isCentered) {
     this.centered = isCentered
     this.map.mask = this.centered ? null : this.mapMask
-    this.mapMask.visible = !this.centered
+    if (this.mapMask) this.mapMask.visible = !this.centered
     this.map.tileContainer.alpha = this.centered ? 0.25 : 0.5
   }
 
-  onTick(localPlayer, remotePlayers) {
+  onTick(remotePlayers) {
+    const localPlayer = localPlayerStore.get()
+
     if (localPlayer != null) {
       // update map
       const { width, height } = screenSizeStore.get()
@@ -71,15 +87,15 @@ class Minimap extends Sprite {
         this.y = height / 2
       } else {
         this.x = width - MINIMAP_WIDTH / 2
-        this.y = 100
+        this.y = MINIMAP_HEIGHT / 2
       }
       const maxMapWidth = this.centered ? width : MINIMAP_WIDTH
       const maxMapHeight = this.centered ? height : MINIMAP_HEIGHT
-      this.map.onTick(localPlayer, maxMapWidth, maxMapHeight)
+      this.map.onTick(maxMapWidth, maxMapHeight)
 
       // update local player dot
       if (!this.localPlayerMarker) {
-        this.localPlayerMarker = this.makePlayerMarker('You', 0xffffff)
+        this.localPlayerMarker = this.makePlayerMarker('You', 0x00aaff)
       }
       this.localPlayerMarker.x = localPlayer.x * this.mapScale
       this.localPlayerMarker.y = localPlayer.y * this.mapScale

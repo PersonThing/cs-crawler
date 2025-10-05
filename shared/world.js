@@ -3,6 +3,9 @@ import LevelSprite from '../client/src/level-sprite.js'
 import GroundItem from '../client/src/ground-item.js'
 import playerItemTargetStore from '../client/src/player-item-target-store.js'
 import socket from '../client/src/socket.js'
+import playersStore from '../shared/state/players.js'
+import enemiesStore from '../shared/state/enemies.js'
+import localPlayersStore from '../shared/state/local-player.js'
 
 const PARALLAX_SCALE = 1.1
 
@@ -12,8 +15,8 @@ class World extends Container {
 
     this.app = app
 
-    this.players = []
-    this.enemies = []
+    this.players = playersStore
+    this.enemies = enemiesStore
     this.items = [] // items on the ground
 
     this.levelConfig = levelConfig
@@ -35,7 +38,7 @@ class World extends Container {
     this.addChild(this.levelSpriteParallax)
 
     this.mask = this.createLightRadiusMask()
-    
+
     // listen to item changes from server
     socket.on('worldItemPlaced', itemWrapper => {
       console.log('world item placed from server', itemWrapper.item?.id)
@@ -51,6 +54,17 @@ class World extends Container {
         this.removeItem(itemWrapper.item, false)
       }
     })
+
+    socket.on('currentWorldItems', worldItems => {
+      console.log('current world items from server', worldItems)
+      worldItems.forEach(itemWrapper => {
+        if (!this.items.find(i => i.item.id === itemWrapper.item.id)) {
+          this.placeItem(itemWrapper.item, itemWrapper.position, false)
+        }
+      })
+    })
+
+    socket.emit('requestCurrentWorldItems')
   }
 
   createLightRadiusMask() {
@@ -76,7 +90,8 @@ class World extends Container {
     return focus
   }
 
-  onTick(time, localPlayer, screenWidth, screenHeight) {
+  onTick(time, screenWidth, screenHeight) {
+    const localPlayer = localPlayersStore.get()
     // center view on local player
     if (localPlayer) {
       // move map around the player centered in the middle of the screen
@@ -86,21 +101,21 @@ class World extends Container {
       this.mask.y = localPlayer.y
 
       // update the parallax level - it needs to offset by the difference in level size and parallax size
-      this.levelSpriteParallax.onTick(localPlayer, screenWidth, screenHeight)
+      this.levelSpriteParallax.onTick(screenWidth, screenHeight)
       this.levelSpriteParallax.x = -localPlayer.x * (PARALLAX_SCALE - 1)
       this.levelSpriteParallax.y = -localPlayer.y * (PARALLAX_SCALE - 1)
     }
 
     // update the rendered level
-    this.levelSprite.onTick(localPlayer, screenWidth, screenHeight)
+    this.levelSprite.onTick(screenWidth, screenHeight)
 
     // update players
-    this.players.forEach(player => {
+    this.players.get().forEach(player => {
       player.onTick(time.deltaMS)
     })
 
     // update enemies
-    this.enemies.forEach(enemy => {
+    this.enemies.get().forEach(enemy => {
       enemy.onTick(time.deltaMS)
     })
 
@@ -121,12 +136,15 @@ class World extends Container {
   }
 
   addPlayer(player) {
-    this.players.push(player)
+    this.players.update(ps => {
+      ps.push(player)
+      return ps
+    })
     this.addChild(player)
   }
 
   removePlayer(player) {
-    this.players = this.players.filter(p => p !== player)
+    this.players.update(ps => ps.filter(p => p !== player))
     this.removeChild(player)
   }
 

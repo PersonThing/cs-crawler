@@ -1,12 +1,15 @@
 import { Graphics, Container, Text } from 'pixi.js'
+import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '../../shared/constants.js'
+
+import localPlayerStore from '../../shared/state/local-player.js'
 
 const STAT_SIZE = 18
 const STAT_MARGIN = 8
 const WIDTH = 200
 const HEIGHT = 300
 
-class InventoryHud extends Container {
-  constructor(app, player) {
+class CharacterHud extends Container {
+  constructor(app) {
     super()
 
     this.app = app
@@ -16,11 +19,11 @@ class InventoryHud extends Container {
 
     this.stats = {}
 
-    this.playerStats = player.stats
-    this.playerStats.store.subscribe(stats => {
-      this.stats = stats
-      this.renderStats()
-    })
+    const player = localPlayerStore.get()
+    this.subscribeToPlayerStats(player.stats)
+    localPlayerStore.subscribe(player => {
+      this.subscribeToPlayerStats(player.stats)
+    });
 
     // kill any click events that bubble through
     this.eventMode = 'static'
@@ -28,6 +31,18 @@ class InventoryHud extends Container {
       event.stopPropagation()
       event.preventDefault()
       return false
+    })
+  }
+
+  subscribeToPlayerStats(playerStats) {
+    if (this.unsubscribePlayerStats) {
+      this.unsubscribePlayerStats()
+    }
+
+    this.playerStats = playerStats
+    this.unsubscribePlayerStats = this.playerStats.store.subscribe(stats => {
+      this.stats = stats
+      this.renderStats()
     })
   }
 
@@ -41,9 +56,9 @@ class InventoryHud extends Container {
 
     const gfx = new Graphics()
       .roundRect(0, 0, WIDTH, HEIGHT, 6)
-      .fill(0x333333)
+      .fill(HUD_FILL_COLOR)
       .stroke({
-        color: 0x555555,
+        color: HUD_BORDER_COLOR,
         width: 4,
       })
     gfx.alpha = 0.5
@@ -93,4 +108,4 @@ class InventoryHud extends Container {
   }
 }
 
-export default InventoryHud
+export default CharacterHud

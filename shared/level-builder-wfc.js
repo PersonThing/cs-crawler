@@ -1,7 +1,4 @@
-// start tile
-// end tile
-// generate a path of x steps between them
-// then take random n number of open connections and generate side paths of y steps
+// using wave function collapse method to generate level
 
 import { ART_SCALE } from './constants.js';
 import { Textures } from '../client/src/textures.js'

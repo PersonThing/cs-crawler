@@ -1,4 +1,5 @@
 import { Graphics, Container, Text } from 'pixi.js'
+import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '../../shared/constants.js'
 
 const keyBindings = [
   { key: 'I or B', action: 'Toggle inventory' },
@@ -6,7 +7,9 @@ const keyBindings = [
   { key: 'F1', action: 'Toggle help' },
   { key: 'F2', action: 'Toggle debug mode' },
   { key: 'Left click', action: 'Move' },
-  { key: 'Tab', action: 'Toggle minimap' },
+  { key: 'Right click', action: 'Attack' },
+  { key: 'Tab', action: 'Toggle fullscreen minimap' },
+  { key: 'Scroll wheel', action: 'Zoom minimap' },
 
   // temp keys
   { key: 'G', action: 'Generate items on ground' },
@@ -47,8 +50,8 @@ class HelpHud extends Container {
     this.bg = new Container()
     this.addChild(this.bg)
 
-    const gfx = new Graphics().roundRect(0, 0, WIDTH, HEIGHT, 6).fill(0x333333).stroke({
-      color: 0x555555,
+    const gfx = new Graphics().roundRect(0, 0, WIDTH, HEIGHT, 6).fill(HUD_FILL_COLOR).stroke({
+      color: HUD_BORDER_COLOR,
       width: 4,
     })
     gfx.alpha = 0.5

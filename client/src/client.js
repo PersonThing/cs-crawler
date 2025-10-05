@@ -11,8 +11,11 @@ import socket from './socket.js'
 import generateLevel from '../../shared/level-builder-wfc.js'
 import generateSampleLevel from '../../shared/level-builder.js'
 
+import localPlayerStore from '../../shared/state/local-player.js'
+import playersStore from '../../shared/state/players.js'
+
 const init = async levelConfig => {
-  const createPlayer = (socketId, label, playerData, color = 0xffffff) => {
+  const createPlayer = (socketId, label, playerData, color) => {
     const player = new Player(
       socketId,
       label,
@@ -40,21 +43,22 @@ const init = async levelConfig => {
   }
 
   const createLocalPlayer = playerData => {
+    let localPlayer = localPlayerStore.get()
     if (localPlayer != null) {
       localPlayer.onDestroy()
       world.removePlayer(localPlayer)
     }
 
-    localPlayer = createPlayer(socket.id, 'You', playerData, 0xffffff)
+    localPlayer = createPlayer(socket.id, 'You', playerData, 0x00aaff)
+    localPlayerStore.set(localPlayer)
 
-    hud = new Hud(app, localPlayer, app.screen.width, app.screen.height)
+    hud = new Hud(app, app.screen.width, app.screen.height)
     app.stage.addChild(hud)
 
-    playerControls = new PlayerControls(app, world, localPlayer, minimap, hud)
+    playerControls = new PlayerControls(app, world, minimap, hud)
   }
 
   const remotePlayers = {}
-  let localPlayer = null
   let playerControls = null
 
   // Create pixi.js app
@@ -74,14 +78,15 @@ const init = async levelConfig => {
   // Client-side game loop - server has authority, but client predicts and corrects
   // app.ticker.maxFPS = 120
   app.ticker.add(time => {
-    world.onTick(time, localPlayer, app.screen.width, app.screen.height)
-    minimap.onTick(localPlayer, remotePlayers, app.screen.width, app.screen.height)
+    world.onTick(time, app.screen.width, app.screen.height)
+    minimap.onTick(remotePlayers, app.screen.width, app.screen.height)
   })
 
   socket.on('updateState', state => {
+    const localPlayer = localPlayerStore.get()
     Object.keys(remotePlayers).forEach(playerId => {
       if (!state.players[playerId]) {
-        // remote players that has disconnected
+        // remote player that has disconnected
         removeRemotePlayer(playerId)
       }
     })

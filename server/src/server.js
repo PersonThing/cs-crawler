@@ -53,6 +53,9 @@ io.on('connection', socket => {
       players[playerId] = player
     }
     socket.broadcast.emit('playerJoined', player.serialize())
+
+    // send current world items to new player
+    socket.emit('currentWorldItems', worldItems)
   })
 
   // create a level, or ask the client to create it
@@ -94,7 +97,10 @@ io.on('connection', socket => {
       return
     }
     worldItems.push(itemWrapper)
-    socket.broadcast.emit('worldItemPlaced', itemWrapper)
+  })
+
+  socket.on('requestCurrentWorldItems', () => {
+    socket.emit('currentWorldItems', worldItems)
   })
 
   socket.on('worldItemRemoved', itemId => {

@@ -1,9 +1,12 @@
-import { BAG_SLOTS } from '../../shared/constants.js'
+import { BAG_SLOTS, HUD_BORDER_COLOR, HUD_FILL_COLOR } from '../../shared/constants.js'
 import { Graphics, Container, Sprite, Text } from 'pixi.js'
 import { ItemQualityColors } from '../../shared/item-quality.js'
 import { Textures } from './textures.js'
 import InventorySlot from '../../shared/inventory-slot.js'
 import InventoryItem from './inventory-item.js'
+
+import localPlayerStore from '../../shared/state/local-player.js'
+
 
 const ITEM_SIZE = 32
 const PADDING = 1
@@ -11,7 +14,7 @@ const MARGIN = 5
 const BAG_COLS = 10
 const INVENTORY_HEIGHT = (ITEM_SIZE + PADDING * 2 + MARGIN) * 11 + MARGIN
 const INVENTORY_WIDTH = (ITEM_SIZE + PADDING * 2 + MARGIN) * BAG_COLS + MARGIN
-const DEFAULT_SLOT_COLOR = 0x777777
+const DEFAULT_SLOT_COLOR = 0x444444
 
 const getItemSlotCoordinates = (x, y) => {
   return {
@@ -33,18 +36,21 @@ const EquippedSlotCoordinates = {
 }
 
 class InventoryHud extends Container {
-  constructor(app, player) {
+  constructor(app) {
     super()
+
 
     this.app = app
 
     this.content = null
     this.renderBackground()
 
-    this.playerInventory = player.inventory
-    this.playerInventory.store.subscribe(content => {
-      this.setContent(content)
-    })
+    const player = localPlayerStore.get()
+    this.subscribeToInventory(player.inventory)
+    localPlayerStore.subscribe(player => {
+      this.subscribeToInventory(player.inventory)
+    });
+
 
     // track cursor position and move cursor item with mouse
     this.cursorPosition = { x: 0, y: 0 }
@@ -65,6 +71,16 @@ class InventoryHud extends Container {
       event.stopPropagation()
       event.preventDefault()
       return false
+    })
+  }
+
+  subscribeToInventory(playerInventory) {
+    if (this.unsubscribeInventory) {
+      this.unsubscribeInventory()
+    }
+    this.playerInventory = playerInventory
+    this.unsubscribeInventory = playerInventory.store.subscribe(content => {
+      this.setContent(content)
     })
   }
 
@@ -115,9 +131,9 @@ class InventoryHud extends Container {
 
     const gfx = new Graphics()
       .roundRect(0, 0, INVENTORY_WIDTH, INVENTORY_HEIGHT, 6)
-      .fill(0x333333)
+      .fill(HUD_FILL_COLOR)
       .stroke({
-        color: 0x555555,
+        color: HUD_BORDER_COLOR,
         width: 4,
       })
     gfx.alpha = 0.5

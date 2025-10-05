@@ -1,6 +1,7 @@
 import { Container, Sprite, Graphics, Text } from 'pixi.js'
 import { ART_SCALE, BLOCK_SIZE, DEBUG } from '../../shared/constants.js'
 import { Textures } from './textures.js'
+import localPlayerStore from '../../shared/state/local-player.js'
 
 const partialRevealDistance = 400
 const fullRevealDistance = 200
@@ -21,7 +22,9 @@ class LevelSprite extends Container {
     DEBUG.subscribe(() => this.unrenderLevel())
   }
 
-  onTick(localPlayer, maxWidth, maxHeight) {
+  onTick(maxWidth, maxHeight) {
+    const localPlayer = localPlayerStore.get()
+    
     if (localPlayer == null) return
 
     // only render the tiles around the local player
@@ -171,6 +174,10 @@ class LevelSprite extends Container {
         .forEach(block => {
           const dx = tile.container.x + block.sprite.x - localPlayer.x * this.mapScale
           const dy = tile.container.y + block.sprite.y - localPlayer.y * this.mapScale
+
+          // block.alpha = 1
+          // block.sprite.alpha = 1
+          // return
 
           // if block.sprite is within 200px of the player, set it to discovered
           const distance = Math.sqrt(dx * dx + dy * dy)

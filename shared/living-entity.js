@@ -66,28 +66,28 @@ class LivingEntity extends Container {
     this.addChild(this.spriteLabel)
 
     // add a particle effect to trail behind
-    this.particleContainer = new ParticleContainer({
-      dynamicProperties: {
-        position: true, // Allow dynamic position changes (default)
-        scale: true, // Static scale for extra performance
-        rotation: true, // Static rotation
-        color: false, // Static color
-        boundsArea: new Rectangle(0, 0, 500, 500),
-      },
-    })
-    this.addChildAt(this.particleContainer, 0)
+    // this.particleContainer = new ParticleContainer({
+    //   dynamicProperties: {
+    //     position: true, // Allow dynamic position changes (default)
+    //     scale: true, // Static scale for extra performance
+    //     rotation: true, // Static rotation
+    //     color: false, // Static color
+    //     boundsArea: new Rectangle(0, 0, 500, 500),
+    //   },
+    // })
+    // this.addChildAt(this.particleContainer, 0)
 
-    // draw a few particles to start
-    const texture = Texture.from(Textures.particle.blaze)
-    for (let i = 0; i < 3; i++) {
-      let particle = new Particle({
-        texture,
-        x: Math.random() * 10 * i,
-        y: Math.random() * 10 * i,
-        alpha: 0.2,
-      })
-      this.particleContainer.addParticle(particle)
-    }
+    // // draw a few particles to start
+    // const texture = Texture.from(Textures.particle.blaze)
+    // for (let i = 0; i < 3; i++) {
+    //   let particle = new Particle({
+    //     texture,
+    //     x: Math.random() * 10 * i,
+    //     y: Math.random() * 10 * i,
+    //     alpha: 0.2,
+    //   })
+    //   this.particleContainer.addParticle(particle)
+    // }
 
     // add a shadow below
     this.shadowSprite = Sprite.from(this.entityTexture)
@@ -322,11 +322,11 @@ class LivingEntity extends Container {
         .lineTo(p.x, p.y)
         .stroke({
           width: 3,
-          color: 0xffffff,
+          color: this.color,
           alpha: i == 0 ? 0.5 : 0.3,
         })
         .circle(p.x, p.y, 5)
-        .fill(0xffffff)
+        .fill(this.color)
       lastPoint = p
     })
   }
