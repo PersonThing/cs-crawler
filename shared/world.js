@@ -90,8 +90,8 @@ class World extends Container {
 
     // update the parallax level + center it on player
     this.levelSpriteParallax.onTick(localPlayer, screenWidth, screenHeight)
-    this.levelSpriteParallax.x = this.x * (PARALLAX_SCALE - 1) - 75
-    this.levelSpriteParallax.y = this.y * (PARALLAX_SCALE - 1) - 65
+    this.levelSpriteParallax.x = -localPlayer.x * (PARALLAX_SCALE - 1)
+    this.levelSpriteParallax.y = -localPlayer.y * (PARALLAX_SCALE - 1)
 
     // update players
     this.players.forEach(player => {
