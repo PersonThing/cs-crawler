@@ -1,4 +1,4 @@
-import createStore from '../../shared/create-store.js'
+import createStore from '../../../shared/create-store.js'
 
 const { subscribe, set, get } = createStore(false)
 

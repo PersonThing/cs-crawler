@@ -1,6 +1,6 @@
 import { ItemQualityColors } from '../../shared/item-quality.js'
 import { Container, Graphics, Text, Sprite } from 'pixi.js'
-import altKeyStore from './alt-key-store.js'
+import altKeyStore from './state/alt-key-store.js'
 
 const PADDING = 5
 

@@ -1,4 +1,4 @@
-import createStore from "../../shared/create-store"
+import createStore from "../../../shared/create-store"
 
 const { get, subscribe, set } = createStore({ width: window.innerWidth, height: window.innerHeight })
 

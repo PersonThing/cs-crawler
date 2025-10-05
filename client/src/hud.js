@@ -1,7 +1,7 @@
 import { Container } from 'pixi.js'
 import { DEBUG, MINIMAP_HEIGHT } from '../../shared/constants.js'
 import InventoryHud from './inventory-hud.js'
-import screenSizeStore from './screen-size-store.js'
+import screenSizeStore from './state/screen-size-store.js'
 import CharacterHud from './character-hud.js'
 import HelpHud from './help-hud.js'
 import PlayersHud from './players-hud.js'

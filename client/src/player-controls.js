@@ -2,12 +2,12 @@ import { generateRandomItem, generateRandomItemOfType } from '../../shared/items
 import throttle from '../../shared/throttle.js'
 import debounce from '../../shared/debounce.js'
 import socket from './socket.js'
-import cursorPositionStore from './cursor-position-store.js'
+import cursorPositionStore from './state/cursor-position-store.js'
 import ItemType from '../../shared/item-type.js'
-import playerItemTargetStore from './player-item-target-store.js'
+import playerItemTargetStore from './state/player-item-target-store.js'
 import { DEBUG } from '../../shared/constants.js'
-import playersStore from '../../shared/state/players.js'
-import localPlayerStore from '../../shared/state/local-player.js'
+import playersStore from '../../shared/state/players-store.js'
+import localPlayerStore from '../../shared/state/local-player-store.js'
 
 class PlayerControls {
   constructor(app, world, minimap, hud) {

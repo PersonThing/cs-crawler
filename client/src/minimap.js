@@ -1,8 +1,8 @@
 import { MINIMAP_SCALE, MINIMAP_WIDTH, MINIMAP_HEIGHT, HUD_BORDER_COLOR, HUD_FILL_COLOR } from '../../shared/constants.js'
 import { Sprite, Container, Graphics, Text } from 'pixi.js'
 import LevelSprite from './level-sprite'
-import screenSizeStore from './screen-size-store.js'
-import localPlayerStore from '../../shared/state/local-player.js'
+import screenSizeStore from './state/screen-size-store.js'
+import localPlayerStore from '../../shared/state/local-player-store.js'
 
 class Minimap extends Sprite {
   constructor(level, centered) {

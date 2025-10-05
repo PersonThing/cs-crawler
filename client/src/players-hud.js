@@ -1,8 +1,8 @@
 import { Graphics, Container, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR, LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '../../shared/constants.js'
 
-import playersStore from '../../shared/state/players.js'
-import localPlayerStore from '../../shared/state/local-player.js'
+import playersStore from '../../shared/state/players-store.js'
+import localPlayerStore from '../../shared/state/local-player-store.js'
 
 const WIDTH = 200
 const HEIGHT = 300

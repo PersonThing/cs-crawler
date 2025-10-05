@@ -1,7 +1,7 @@
 import { Container, Sprite, Graphics, Text } from 'pixi.js'
 import { ART_SCALE, BLOCK_SIZE, DEBUG } from '../../shared/constants.js'
 import { Textures } from './textures.js'
-import localPlayerStore from '../../shared/state/local-player.js'
+import localPlayerStore from '../../shared/state/local-player-store.js'
 
 const partialRevealDistance = 400
 const fullRevealDistance = 200

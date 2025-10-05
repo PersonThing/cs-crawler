@@ -11,9 +11,9 @@ import socket from './socket.js'
 import generateLevel from '../../shared/level-builder-wfc.js'
 import generateSampleLevel from '../../shared/level-builder.js'
 
-import localPlayerStore from '../../shared/state/local-player.js'
-import playersStore from '../../shared/state/players.js'
-import appStore from './app-store.js'
+import localPlayerStore from '../../shared/state/local-player-store.js'
+import playersStore from '../../shared/state/players-store.js'
+import appStore from './state/app-store.js'
 import { LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '../../shared/constants.js'
 
 const init = async levelConfig => {

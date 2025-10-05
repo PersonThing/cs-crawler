@@ -5,9 +5,9 @@ import { Textures } from './textures.js'
 import InventorySlot from '../../shared/inventory-slot.js'
 import InventoryItem from './inventory-item.js'
 
-import localPlayerStore from '../../shared/state/local-player.js'
+import localPlayerStore from '../../shared/state/local-player-store.js'
 
-import appStore from './app-store.js'
+import appStore from './state/app-store.js'
 
 const ITEM_SIZE = 32
 const PADDING = 1

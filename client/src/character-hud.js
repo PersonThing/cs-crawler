@@ -1,7 +1,7 @@
 import { Graphics, Container, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '../../shared/constants.js'
 
-import localPlayerStore from '../../shared/state/local-player.js'
+import localPlayerStore from '../../shared/state/local-player-store.js'
 
 const STAT_SIZE = 18
 const STAT_MARGIN = 8

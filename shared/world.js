@@ -1,11 +1,11 @@
 import { Container, BlurFilter, Rectangle, Graphics, Sprite, Text } from 'pixi.js'
 import LevelSprite from '../client/src/level-sprite.js'
 import GroundItem from '../client/src/ground-item.js'
-import playerItemTargetStore from '../client/src/player-item-target-store.js'
+import playerItemTargetStore from '../client/src/state/player-item-target-store.js'
 import socket from '../client/src/socket.js'
-import playersStore from '../shared/state/players.js'
-import enemiesStore from '../shared/state/enemies.js'
-import localPlayersStore from '../shared/state/local-player.js'
+import playersStore from '../shared/state/players-store.js'
+import enemiesStore from '../shared/state/enemies-store.js'
+import localPlayersStore from '../shared/state/local-player-store.js'
 
 const PARALLAX_SCALE = 1.1
 
