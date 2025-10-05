@@ -11,11 +11,11 @@ class Hud extends Container {
 
     this.inventory = new InventoryHud(app, player)
     this.addChild(this.inventory)
-    this.inventory.visible = DEBUG
+    this.inventory.visible = DEBUG.get()
 
     this.character = new CharacterHud(app, player)
     this.addChild(this.character)
-    this.character.visible = DEBUG
+    this.character.visible = DEBUG.get()
 
     this.help = new HelpHud(app)
     this.addChild(this.help)

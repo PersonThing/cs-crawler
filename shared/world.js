@@ -79,19 +79,20 @@ class World extends Container {
   onTick(time, localPlayer, screenWidth, screenHeight) {
     // center view on local player
     if (localPlayer) {
+      // move map around the player centered in the middle of the screen
       this.x = -localPlayer.x + screenWidth / 2
       this.y = -localPlayer.y + screenHeight / 2
       this.mask.x = localPlayer.x
       this.mask.y = localPlayer.y
+
+      // update the parallax level - it needs to offset by the difference in level size and parallax size
+      this.levelSpriteParallax.onTick(localPlayer, screenWidth, screenHeight)
+      this.levelSpriteParallax.x = -localPlayer.x * (PARALLAX_SCALE - 1)
+      this.levelSpriteParallax.y = -localPlayer.y * (PARALLAX_SCALE - 1)
     }
 
     // update the rendered level
     this.levelSprite.onTick(localPlayer, screenWidth, screenHeight)
-
-    // update the parallax level + center it on player
-    this.levelSpriteParallax.onTick(localPlayer, screenWidth, screenHeight)
-    this.levelSpriteParallax.x = -localPlayer.x * (PARALLAX_SCALE - 1)
-    this.levelSpriteParallax.y = -localPlayer.y * (PARALLAX_SCALE - 1)
 
     // update players
     this.players.forEach(player => {

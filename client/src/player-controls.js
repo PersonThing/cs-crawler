@@ -5,6 +5,7 @@ import socket from './socket.js'
 import cursorPositionStore from './cursor-position-store.js'
 import ItemType from '../../shared/item-type.js'
 import playerItemTargetStore from './player-item-target-store.js'
+import { DEBUG } from '../../shared/constants.js'
 
 class PlayerControls {
   constructor(app, world, player, minimap, hud) {
@@ -119,6 +120,9 @@ class PlayerControls {
     window.addEventListener('keydown', event => {
       const key = event.key.toLowerCase()
       switch (key) {
+        case 'f2':
+          DEBUG.set(!DEBUG.get())
+          break
         case 'tab':
           this.minimap.toggleCentered()
           event.preventDefault()

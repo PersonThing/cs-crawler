@@ -16,6 +16,9 @@ class LevelSprite extends Container {
     this.isParallax = isParallax
     this.tileContainer = new Container()
     this.addChild(this.tileContainer)
+
+    // if debug mode changes, re-render all tiles
+    DEBUG.subscribe(() => this.unrenderLevel())
   }
 
   onTick(localPlayer, maxWidth, maxHeight) {
@@ -105,7 +108,7 @@ class LevelSprite extends Container {
                 })
             })
 
-            if (DEBUG && !this.isMinimap) {
+            if (DEBUG.get() && !this.isMinimap) {
               // draw coords and blue box around tile if debug mode on
               const graphic = new Graphics()
               graphic.rect(0, 0, this.tileSize, this.tileSize)
@@ -139,6 +142,15 @@ class LevelSprite extends Container {
             this.updateBlockVisibility(localPlayer, tile)
           }
         }
+      })
+    })
+  }
+
+  unrenderLevel() {
+    this.level.tileGrid.forEach(tileRow => {
+      tileRow.forEach(tile => {
+        if (!tile) return
+        this.unrenderTile(tile)
       })
     })
   }

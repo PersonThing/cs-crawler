@@ -1,4 +1,13 @@
-import { Sprite, Container, Graphics, Text } from 'pixi.js'
+import {
+  Sprite,
+  Container,
+  Graphics,
+  Text,
+  ParticleContainer,
+  Particle,
+  Texture,
+  Rectangle,
+} from 'pixi.js'
 import { ART_SCALE, DEBUG } from './constants.js'
 import { Textures } from '../client/src/textures.js'
 import InventorySlot from './inventory-slot.js'
@@ -24,6 +33,8 @@ class LivingEntity extends Container {
 
     this.pather = pather
     this.showPaths = true
+
+    this.equipped = {}
 
     // if we're on client, we have a stage and texture to render ourself
     if (this.world && this.entityTexture) {
@@ -54,17 +65,38 @@ class LivingEntity extends Container {
     this.spriteLabel.anchor.set(0.5, 2.5)
     this.addChild(this.spriteLabel)
 
-    // add a shadow sprite below player
+    // add a particle effect to trail behind
+    this.particleContainer = new ParticleContainer({
+      dynamicProperties: {
+        position: true, // Allow dynamic position changes (default)
+        scale: true, // Static scale for extra performance
+        rotation: true, // Static rotation
+        color: false, // Static color
+        boundsArea: new Rectangle(0, 0, 500, 500),
+      },
+    })
+    this.addChildAt(this.particleContainer, 0)
+
+    // draw a few particles to start
+    const texture = Texture.from(Textures.particle.blaze)
+    for (let i = 0; i < 3; i++) {
+      let particle = new Particle({
+        texture,
+        x: Math.random() * 10 * i,
+        y: Math.random() * 10 * i,
+        alpha: 0.2,
+      })
+      this.particleContainer.addParticle(particle)
+    }
+
+    // add a shadow below
     this.shadowSprite = Sprite.from(this.entityTexture)
     this.shadowSprite.anchor.set(0.5, 0.4)
     this.shadowSprite.alpha = 0.25
-    // blur the shadow
     this.shadowSprite.scale.x = ART_SCALE * 1.5
     this.shadowSprite.scale.y = ART_SCALE * 1.5
     this.shadowSprite.tint = 0x000000
     this.addChildAt(this.shadowSprite, 0)
-
-    this.equipped = {}
   }
 
   // when state changes on the server, this is what the server will send
@@ -146,8 +178,12 @@ class LivingEntity extends Container {
       this.targetNextPathPoint()
     }
 
-    if (this.world && DEBUG) {
-      this.drawPathLine()
+    if (this.world) {
+      if (DEBUG.get()) {
+        this.drawPathLine()
+      } else {
+        this.clearPathLine()
+      }
     }
 
     if (this.tempTarget == null) {
@@ -232,7 +268,7 @@ class LivingEntity extends Container {
 
     if (this.spriteLabel) {
       this.spriteLabel.text = this.label
-      if (DEBUG) {
+      if (DEBUG.get()) {
         this.spriteLabel.text += ` (${Math.round(this.x)}, ${Math.round(this.y)})`
       }
     }
@@ -273,7 +309,7 @@ class LivingEntity extends Container {
       this.pathLine.zIndex = 1
       this.world.addChild(this.pathLine)
     } else {
-      this.pathLine.clear()
+      this.clearPathLine()
     }
 
     if (this.tempTarget == null) return
@@ -293,6 +329,12 @@ class LivingEntity extends Container {
         .fill(0xffffff)
       lastPoint = p
     })
+  }
+
+  clearPathLine() {
+    if (this.pathLine != null) {
+      this.pathLine.clear()
+    }
   }
 
   setEquipped(equipped) {
