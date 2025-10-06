@@ -4,19 +4,19 @@ import { ART_SCALE } from '#shared/config/constants.js'
 class LivingEntitySprite extends Container {
   constructor(state, texture, world, pather, color) {
     super()
-    
+
     this.state = state
     this.entityTexture = texture
     this.world = world
     this.pather = pather
     this.color = color || 0xffffff
-    
+
     this.sprite = null
     this.healthBar = null
     this.labelText = null
     this.attachedItems = {}
     this.pathLine = null
-    
+
     this.initSprite()
     this.updateFromState()
   }
@@ -45,7 +45,7 @@ class LivingEntitySprite extends Container {
     })
     this.labelSprite.anchor.set(0.5, 2.5)
     this.addChild(this.labelSprite)
-    
+
     // add a shadow below
     this.shadowSprite = Sprite.from(this.entityTexture)
     this.shadowSprite.anchor.set(0.5, 0.4)
@@ -67,23 +67,13 @@ class LivingEntitySprite extends Container {
     // Update position
     this.x = this.state.x
     this.y = this.state.y
-
-    // Update target
     this.target = this.state.target
     this.tempTarget = this.state.tempTarget
-
-    // Update label
+    this.sprite.rotation = this.state.rotation
     this.labelSprite.text = this.state.label
 
     // Update equipped items
     this.updateEquippedItems()
-
-    // Update attack animation
-    if (this.state.isAttacking && this.state.attackTarget) {
-      this.rotateToward(this.state.attackTarget)
-    } else if (this.state.tempTarget) {
-      this.rotateToward(this.state.tempTarget)
-    }
   }
 
   updateEquippedItems() {
@@ -105,37 +95,21 @@ class LivingEntitySprite extends Container {
   attachItemSprite(texture, slotName) {
     const sprite = Sprite.from(texture)
     sprite.anchor.set(0.5)
-    
+
     // flip the sprite if offhand
     if (slotName === InventorySlot.OffHand.name) {
       sprite.scale.x = -1
     }
-    
+
     this.attachedItems[slotName] = sprite
     this.addChild(sprite)
-  }
-
-  rotateToward(target) {
-    // if target is exactly the same as current position, do nothing
-    if (target.x === this.state.x && target.y === this.state.y) return
-
-    // calculate angle to target
-    const dx = target.x - this.state.x
-    const dy = target.y - this.state.y
-    const angle = Math.atan2(dy, dx) + (90 * Math.PI) / 180
-    this.sprite.rotation = angle
-    
-    // if (this.world != null && x != null && y != null) {
-    //   const angle = Math.atan2(y - this.y, x - this.x) + (90 * Math.PI) / 180
-    //   this.entitySprite.rotation = angle
-    // }
   }
 
   animateAttack() {
     // Simple attack animation for testing
     const originalScale = this.sprite.scale.x
     this.sprite.scale.set(originalScale * 1.2)
-    
+
     setTimeout(() => {
       this.sprite.scale.set(originalScale)
     }, 100)
@@ -146,13 +120,13 @@ class LivingEntitySprite extends Container {
 
     this.clearPathLine()
     this.pathLine = new Graphics()
-    
+
     this.pathLine.moveTo(this.state.x, this.state.y)
     this.state.path.forEach(point => {
       this.pathLine.lineTo(point.x, point.y)
     })
     this.pathLine.stroke({ color: this.color, width: 2, alpha: 0.5 })
-    
+
     this.world.addChild(this.pathLine)
   }
 

@@ -86,35 +86,35 @@ socket.on('init', async ({ level, player }) => {
   init(level, player)
 })
 
-// socket.on('updateState', state => {
-//   if (!initialized) {
-//     return
-//   }
+socket.on('updateState', state => {
+  if (!initialized) {
+    return
+  }
 
-//   const players = playerSpriteStore.get()
+  const players = playerSpriteStore.get()
 
-//   // update local players
-//   players.forEach(p => {
-//     const updatedState = state.players[p.state.playerId]
-//     if (updatedState == null) {
-//       // player no longer connected to server, remove
-//       playerSpriteStore.remove(p.state.playerId)
-//     } else {
-//       // update existing players if found
-//       p.state.deserialize(updatedState)
-//       p.updateFromState()
-//     }
-//   })
+  // add any new players that weren't in store
+  Object.entries(state.players).forEach(([playerId, playerState]) => {
+    if (!players.find(p => p.state.playerId === playerId)) {
+      // new player
+      console.log('creating new player from server', players.length, playerState)
+      createPlayer(playerState, OTHER_PLAYER_COLOR, false)
+    }
+  })
 
-//   // add any new players that weren't in store
-//   Object.entries(state.players).forEach(([playerId, playerState]) => {
-//     if (!players.find(p => p.state.playerId === playerId)) {
-//       // new player
-//       console.log('creating new player from server', players.length, playerState)
-//       createPlayer(playerState, OTHER_PLAYER_COLOR, false)
-//     }
-//   })
-// })
+  // remove disconnected players, update still connected players
+  players.forEach(p => {
+    const updatedState = state.players[p.state.playerId]
+    if (updatedState == null) {
+      // player no longer connected to server, remove
+      playerSpriteStore.remove(p.state.playerId)
+    } else {
+      // update existing players if found
+      p.state.deserialize(updatedState)
+      p.updateFromState()
+    }
+  })
+})
 
 // listen to item changes from server
 socket.on('worldItemPlaced', itemWrapper => groundItemsStore.add(itemWrapper))

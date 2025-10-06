@@ -5,7 +5,7 @@ const DEBUG = createStore(true)
 const ART_SCALE = 1.5
 const BAG_SLOTS = 60
 const BLOCK_SIZE = 32
-const MINIMAP_HEIGHT = 300
+const MINIMAP_HEIGHT = 200
 const MINIMAP_SCALE = 0.15
 const MINIMAP_WIDTH = 300
 

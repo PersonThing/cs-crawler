@@ -41,9 +41,8 @@ class PlayersHud extends Container {
     let y = 10
     for (const playerId in players) {
       const player = players[playerId]
-      const username = player.username
       const text = new Text({
-        text: username,
+        text: player.state.username,
         style: {
           fontSize: 16,
           fontWeight: 'bold',

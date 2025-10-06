@@ -38,6 +38,7 @@ class PlayerControls {
     
     this.keyHandlers = {
       f2: event => {
+        console.log('toggling debug mode', !DEBUG.get())
         DEBUG.set(!DEBUG.get())
       },
       tab: event => {

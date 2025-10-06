@@ -32,19 +32,6 @@ class Minimap extends Sprite {
     this.addChild(this.mapMask)
     this.map.mask = this.mapMask
     this.setCentered(centered)
-
-    // draw a border around minimap
-    // const border = new Graphics()
-    //   .roundRect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT, 6)
-    //   .fill(HUD_FILL_COLOR)
-    //   .stroke({
-    //     color: HUD_BORDER_COLOR,
-    //     width: 4,
-    //   })
-    // border.alpha = 0.5
-    // border.x = -MINIMAP_WIDTH / 2
-    // border.y = -MINIMAP_HEIGHT / 2
-    // this.addChild(border)
   }
 
   zoomIn() {
@@ -79,12 +66,39 @@ class Minimap extends Sprite {
     this.map.mask = this.centered ? null : this.mapMask
     if (this.mapMask) this.mapMask.visible = !this.centered
     this.map.tileContainer.alpha = this.centered ? 0.25 : 0.5
+
+    this.removeBorder()
+    if (!this.centered) {
+      this.drawBorder()
+    }
+  }
+
+  drawBorder() {
+    this.border = new Graphics()
+      .rect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT)
+      .fill(HUD_FILL_COLOR)
+      .stroke({
+        color: HUD_BORDER_COLOR,
+        width: 4,
+      })
+    this.border.alpha = 0.5
+    this.border.x = -MINIMAP_WIDTH / 2
+    this.border.y = -MINIMAP_HEIGHT / 2
+    this.addChild(this.border)
+  }
+
+  removeBorder() {
+    if (this.border) {
+      this.removeChild(this.border)
+      this.border.destroy()
+      this.border = null
+    }
   }
 
   onTick() {
     const localPlayer = playerSpriteStore.getLocalPlayer()
-    if (localPlayer == null) return;
-    
+    if (localPlayer == null) return
+
     // update map
     const { width, height } = screenSizeStore.get()
     if (this.centered) {
@@ -97,7 +111,7 @@ class Minimap extends Sprite {
     const maxMapWidth = this.centered ? width : MINIMAP_WIDTH
     const maxMapHeight = this.centered ? height : MINIMAP_HEIGHT
     this.map.onTick(maxMapWidth, maxMapHeight)
-    
+
     // update local player dot
     if (!this.localPlayerMarker) {
       this.localPlayerMarker = this.makePlayerMarker('You', 0x00aaff)
@@ -105,18 +119,18 @@ class Minimap extends Sprite {
     this.localPlayerMarker.x = localPlayer.x * this.mapScale
     this.localPlayerMarker.y = localPlayer.y * this.mapScale
     this.localPlayerMarker.visible = !this.centered
-    
+
     // center map on player
     this.map.x = -this.localPlayerMarker.x + this.width / 2
     this.map.y = -this.localPlayerMarker.y + this.height / 2
-    
+
     // update other player dots
     const players = playerSpriteStore.get()
     if (players.length) {
       players
         .filter(p => p.playerId !== localPlayer.playerId)
         .forEach(player => {
-          const id = player.playerId;
+          const id = player.playerId
           if (!this.remotePlayerMarkers[id]) {
             this.remotePlayerMarkers[id] = this.makePlayerMarker(player.username, 0x00ff00)
           }

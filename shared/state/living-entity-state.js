@@ -6,11 +6,12 @@ class LivingEntityState {
     this.label = label
     this.x = x
     this.y = y
+    this.rotation = 0
     this.maxSpeed = 500
     this.target = null
     this.isAttacking = false
     this.attackTarget = null
-    
+
     this.equipped = {}
     this.stats = {}
     this.path = []
@@ -25,7 +26,8 @@ class LivingEntityState {
       isAttacking: this.isAttacking,
       attackTarget: this.attackTarget,
       equipped: this.equipped,
-      target: this.target
+      target: this.target,
+      rotation: this.rotation,
     }
   }
 
@@ -73,6 +75,8 @@ class LivingEntityState {
     if (this.tempTarget == null) {
       return
     }
+    
+    this.rotateToward(this.tempTarget)
 
     // Update position based on target
     const dx = this.tempTarget.x - this.x
@@ -93,6 +97,18 @@ class LivingEntityState {
     }
   }
 
+  rotateToward(target) {
+    // if target is null or exactly the same as current position, do nothing
+    if (target == null || (target.x === this.x && target.y === this.y)) {
+      return
+    }
+
+    // calculate angle to target
+    const dx = target.x - this.x
+    const dy = target.y - this.y
+    this.rotation = Math.atan2(dy, dx) + (90 * Math.PI) / 180 // add 90 degrees to account for sprite facing up by default
+  }
+
   setPosition(x, y) {
     if (isNaN(x) || isNaN(y) || typeof x !== 'number' || typeof y !== 'number') {
       console.error('Invalid position values set:', { x, y })
@@ -111,12 +127,12 @@ class LivingEntityState {
     ) {
       return
     }
-    
+
     // target is the same as current position
     if (target.x == this.x && target.y == this.y) {
       return
     }
-    
+
     console.log('setting new target', target)
     this.target = target
     this.path = this.pather.findPath({ x: this.x, y: this.y }, target)
