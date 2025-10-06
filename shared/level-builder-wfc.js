@@ -1,7 +1,7 @@
 // using wave function collapse method to generate level
 
-import { ART_SCALE } from './constants.js';
-import { Textures } from '../client/src/textures.js'
+import { ART_SCALE } from './config/constants.js';
+import { Textures } from '#shared/config/textures.js'
 import Block from './block.js';
 import Level from './level.js';
 import Tile from './tile.js'

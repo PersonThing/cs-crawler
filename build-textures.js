@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const texturesDir = path.join(__dirname, 'client/assets/textures')
-const outputFilePath = path.join(__dirname, 'client/src/textures.js')
+const outputFilePath = path.join(__dirname, 'shared/config/textures.js')
 
 const generateTextureTree = (dir, basePath) => {
   const result = {}

@@ -1,8 +1,8 @@
-import { Textures } from '../client/src/textures.js'
-import Block from './block.js'
-import { ART_SCALE } from './constants.js'
-import Level from './level.js'
-import Tile from './tile.js'
+import { Textures } from '#shared/config/textures.js'
+import Block from './config/block.js'
+import { ART_SCALE } from './config/constants.js'
+import Level from './config/level.js'
+import Tile from './config/tile.js'
 
 const textureMap = {
   0: null,
@@ -14,7 +14,7 @@ const textureMap = {
   6: Textures.particle.fire2,
 }
 
-const generateSampleLevel = () => {
+const generateLevel = () => {
   const level = new Level()
   const Tiles = {
     DoorRightTop: [
@@ -263,4 +263,4 @@ const generateSampleLevel = () => {
   return level
 }
 
-export default generateSampleLevel
+export default generateLevel

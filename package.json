@@ -4,15 +4,18 @@
   "description": "simple js game",
   "main": "server.js",
   "type": "module",
+  "imports": {
+    "#shared/*": "./shared/*"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev:client": "vite --config ./client/vite.config.js",
-    "dev:server": "nodemon ./server/src/server.js",
+    "dev:server": "nodemon ./server/server.js",
     "dev:textures": "node build-textures.js --watch",
     "textures": "node build-textures.js",
     "dev": "concurrently \"npm run dev:textures\" \"npm run dev:client\" \"npm run dev:server\"",
     "build": "vite build --config ./client/vite.config.js",
-    "start": "node ./server/src/server.js"
+    "start": "node ./server/server.js"
   },
   "author": "",
   "license": "ISC",

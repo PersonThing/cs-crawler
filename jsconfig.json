@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "#shared/*": ["./shared/*"]
+    },
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Node"
+  },
+  "include": ["shared/**/*", "client/**/*", "server/**/*"]
+}

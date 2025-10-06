@@ -1,5 +1,5 @@
 import { Assets } from 'pixi.js'
-import { Textures } from './textures.js'
+import { Textures } from '#shared/config/textures.js'
 
 const preloadTextures = (textures) => {
   if (textures == null) {

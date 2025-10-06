@@ -1,7 +1,7 @@
 import Grid from './path-finding/Grid.js'
 import Util from './path-finding/Util.js'
 import AStarFinder from './path-finding/AStarFinder.js'
-import { ART_SCALE, BLOCK_SIZE } from './constants.js'
+import { ART_SCALE, BLOCK_SIZE } from './config/constants.js'
 // Most of this code is from the cs-builder project, and may need revision
 
 class Pather {
@@ -74,7 +74,11 @@ class Pather {
     // remove the first point if it's the same as start
     if (path.length && path[0][0] == fromX && path[0][1] == fromY) path.shift()
 
-    return path.map(([x, y]) => this.toGameCoordinates(x, y))
+    return path.map(([x, y], i) => {
+      return i === path.length - 1
+        ? to // if its the last point, return the exact target, not the block center
+        : this.toGameCoordinates(x, y)
+    })
   }
 
   canSee(from, to) {
