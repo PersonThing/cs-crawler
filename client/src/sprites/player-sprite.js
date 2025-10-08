@@ -5,6 +5,15 @@ class PlayerSprite extends LivingEntitySprite {
     super(playerState, texture, world, pather, color)
     this.state.label = playerState.username
   }
+
+  updateFromState() {
+    this.state.label = this.state.username
+    super.updateFromState()
+  }
+
+  setTargetItem(itemWrapper) {
+    this.state.targetItem = itemWrapper
+  }
 }
 
 export default PlayerSprite

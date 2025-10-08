@@ -28,6 +28,7 @@ class LivingEntityState {
       equipped: this.equipped,
       target: this.target,
       rotation: this.rotation,
+      targetItem: this.targetItem,
     }
   }
 
@@ -133,7 +134,6 @@ class LivingEntityState {
       return
     }
 
-    console.log('setting new target', target)
     this.target = target
     this.path = this.pather.findPath({ x: this.x, y: this.y }, target)
     this.tempTarget = this.path.shift()

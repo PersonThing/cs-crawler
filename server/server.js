@@ -4,7 +4,7 @@ import http from 'http'
 import Pather from '#shared/pather.js'
 import PlayerState from '#shared/state/player-state.js'
 
-const FPS = 10
+const FPS = 20
 const SERVER_TICK_RATE = 1000 / FPS
 const PORT = process.env.PORT || 3000
 
@@ -59,7 +59,7 @@ io.on('connection', socket => {
   const playerId = socket.handshake.query.playerId
   let player = players[playerId]
 
-  console.log('Player connected: ' + playerId, socket.id)
+  console.log('Player connected: ' + username, playerId, Object.keys(players))
 
   const initThisPlayer = () => {
     console.log('Initializing player ' + username)
@@ -78,6 +78,7 @@ io.on('connection', socket => {
 
   if (player) {
     // Player reconnecting
+    console.log('player reconnecting', username)
     player.isConnected = true
     initThisPlayer()
   } else {

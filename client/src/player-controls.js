@@ -35,7 +35,7 @@ class PlayerControls {
     this.app.canvas.addEventListener('contextmenu', this.onContextMenu.bind(this))
     this.app.canvas.addEventListener('wheel', this.onMouseWheel.bind(this))
     this.app.ticker.add(this.onTick.bind(this))
-    
+
     this.keyHandlers = {
       f2: event => {
         console.log('toggling debug mode', !DEBUG.get())
@@ -68,9 +68,12 @@ class PlayerControls {
       },
       g: event => {
         // temp: generate a bunch of items on the ground around the player
-        groundItemsStore.placeLocally({
+        groundItemsStore.add({
           item: generateRandomItem(),
-          position: this.playerState.position,
+          position: {
+            x: this.playerState.x,
+            y: this.playerState.y,
+          },
         })
       },
       v: event => {
@@ -80,7 +83,9 @@ class PlayerControls {
         // prompt the user for a new username
         const newUsername = prompt('Enter new username:', usernameStore.get() || '')
         if (newUsername != null && newUsername.trim().length > 0) {
-          usernameStore.set(newUsername.trim())
+          if (!usernameStore.set(newUsername.trim())) {
+            alert('Invalid username, must be 1-20 characters long.')
+          }
         }
       },
     }
@@ -98,7 +103,7 @@ class PlayerControls {
     }
     this.unsubscribeFromplayerSpriteStore()
   }
-  
+
   onMouseWheel(event) {
     if (event.deltaY < 0) {
       this.minimap.zoomIn()
@@ -147,13 +152,12 @@ class PlayerControls {
     if (this.playerState.inventory.cursor != null) {
       // stage is shifted to center the player
       // so we need to account for that offset
-      const target = {
-        x: this.playerState.x,
-        y: this.playerState.y,
-      }
       groundItemsStore.placeLocally({
         item: this.playerState.inventory.cursor,
-        position: target
+        position: {
+          x: this.playerState.x,
+          y: this.playerState.y,
+        },
       })
       this.playerState.inventory.setCursor(null)
       return

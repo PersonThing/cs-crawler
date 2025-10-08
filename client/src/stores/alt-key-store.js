@@ -1,6 +1,6 @@
 import createStore from '#shared/stores/create-store.js'
 
-const { subscribe, set, get } = createStore(false)
+const { subscribe, set, get } = createStore(false, value => typeof value === 'boolean')
 
 window.addEventListener('keydown', event => {
   if (event.key === 'Alt') {

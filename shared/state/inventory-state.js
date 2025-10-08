@@ -7,7 +7,15 @@ class PlayerInventory {
     if (content == null) content = {}
 
     // could use player's id for key if we want to support multiple players on same client
-    this.store = createPersistedStore(`inventory_${playerId}`, content)
+    this.store = createPersistedStore(
+      `inventory_${playerId}`,
+      content,
+      value =>
+        value &&
+        typeof value.equipped === 'object' &&
+        Array.isArray(value.bags) &&
+        value.bags.length <= BAG_SLOTS
+    )
 
     // load from store initially
     const { equipped, bags, cursor } = this.store.get()

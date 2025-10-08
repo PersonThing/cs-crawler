@@ -23,7 +23,9 @@ class Pather {
     // loop tiles and set walkable blocks
     this.level.tileGrid.forEach((tileRow, tileY) => {
       tileRow.forEach((tile, tileX) => {
-        if (!tile) return
+        if (!tile) {
+          return
+        }
         tile.blockGrid.forEach((blockRow, blockY) => {
           blockRow.forEach((block, blockX) => {
             this.grid.setWalkableAt(
@@ -65,20 +67,20 @@ class Pather {
       path = this.finder.findPath(fromX, fromY, x, y, this.grid.clone())
       if (path.length > 0) break
     }
-    if (path == null || path.length == 0) return []
+    if (path == null || path.length == 0) {
+      return []
+    }
 
     path = this.smoothPathing
       ? Util.smoothenPath(this.grid, path)
       : Util.compressPath(path)
 
     // remove the first point if it's the same as start
-    if (path.length && path[0][0] == fromX && path[0][1] == fromY) path.shift()
+    if (path.length && path[0][0] == fromX && path[0][1] == fromY) {
+      path.shift()
+    }
 
-    return path.map(([x, y], i) => {
-      return i === path.length - 1
-        ? to // if its the last point, return the exact target, not the block center
-        : this.toGameCoordinates(x, y)
-    })
+    return path.map(([x, y]) => this.toGameCoordinates(x, y))
   }
 
   canSee(from, to) {

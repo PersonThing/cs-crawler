@@ -1,4 +1,4 @@
-const createStore = initialValue => {
+const createStore = (initialValue, validator) => {
   let value = initialValue
   const subscribers = []
 
@@ -14,8 +14,13 @@ const createStore = initialValue => {
     }
   }
   const set = newValue => {
+    if (validator && !validator(newValue)) {
+      console.error('Invalid value for store', value, newValue)
+      return false
+    }
     value = newValue
     subscribers.forEach(callback => callback(value))
+    return true
   }
   const update = fn => set(fn(value))
   const get = () => value

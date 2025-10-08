@@ -20,18 +20,6 @@ class PlayersHud extends Container {
     }
     this.bg = new Container()
     this.addChild(this.bg)
-
-    // const gfx = new Graphics()
-    //   .roundRect(0, 0, WIDTH, HEIGHT, 6)
-    //   .fill(HUD_FILL_COLOR)
-    //   .stroke({
-    //     color: HUD_BORDER_COLOR,
-    //     width: 4,
-    //   })
-    // gfx.alpha = 0.5
-    // gfx.x = 0
-    // gfx.y = 0
-    // this.bg.addChild(gfx)
   }
 
   render(players) {
@@ -42,9 +30,9 @@ class PlayersHud extends Container {
     for (const playerId in players) {
       const player = players[playerId]
       const text = new Text({
-        text: player.state.username,
+        text: `${player.state.username} | ${player.state.playerId.replace('player-', '')}`,
         style: {
-          fontSize: 16,
+          fontSize: 14,
           fontWeight: 'bold',
           fill: player.isLocalPlayer ? LOCAL_PLAYER_COLOR : OTHER_PLAYER_COLOR,
         },

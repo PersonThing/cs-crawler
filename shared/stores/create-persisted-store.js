@@ -2,8 +2,8 @@ import createStore from './create-store.js'
 
 // create a store that persists itself to local storage
 
-export default function createPersistedStore(key, initialValue) {
-  const store = createStore(initialValue)
+export default function createPersistedStore(key, initialValue, validator) {
+  const store = createStore(initialValue, validator)
 
   // on server, just use plain store, local storage not necessary
   // we could consider persisting to db or json file here instead

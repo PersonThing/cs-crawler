@@ -51,7 +51,7 @@ const init = async (levelConfig, localPlayerState) => {
   appStore.set(app)
   await app.init({ background: 0x000000, resizeTo: window })
   document.body.appendChild(app.canvas)
-  
+
   initDevtools({ app })
 
   // create world
@@ -94,35 +94,45 @@ socket.on('serverState', state => {
     return
   }
 
-  const players = playerSpriteStore.get()
+  playerSpriteStore.update(players => {
+    // add any new players that weren't in store
+    Object.entries(state.players).forEach(([playerId, playerState]) => {
+      if (!players.find(p => p.state.playerId === playerId)) {
+        // new player
+        console.log('creating new player from server', players.length, playerState)
+        createPlayer(playerState, OTHER_PLAYER_COLOR, false)
+      }
+    })
 
-  // add any new players that weren't in store
-  Object.entries(state.players).forEach(([playerId, playerState]) => {
-    if (!players.find(p => p.state.playerId === playerId)) {
-      // new player
-      console.log('creating new player from server', players.length, playerState)
-      createPlayer(playerState, OTHER_PLAYER_COLOR, false)
-    }
-  })
-
-  // remove disconnected players, update still connected players
-  players.forEach(p => {
-    const updatedState = state.players[p.state.playerId]
-    if (updatedState == null) {
-      // player no longer connected to server, remove
-      playerSpriteStore.remove(p.state.playerId)
-    } else {
-      // update existing players if found
-      p.state.deserialize(updatedState)
-      p.updateFromState()
-    }
+    // remove disconnected players, update still connected players
+    players.forEach(p => {
+      const updatedState = state.players[p.state.playerId]
+      if (updatedState == null) {
+        // player no longer connected to server, remove
+        playerSpriteStore.remove(p.state.playerId)
+      } else {
+        // update existing players if found
+        p.state.deserialize(updatedState)
+        p.updateFromState()
+      }
+    })
+    return players
   })
 })
 
-// listen to item changes from server
-socket.on('worldItemPlaced', itemWrapper => groundItemsStore.add(itemWrapper))
-socket.on('worldItemRemoved', itemId => groundItemsStore.remove(itemId))
+// listen to ground item changes from server
+socket.on('worldItemPlaced', itemWrapper => groundItemsStore.add(itemWrapper, false))
+socket.on('worldItemRemoved', itemId => groundItemsStore.remove(itemId, false))
 socket.on('currentWorldItems', worldItems => groundItemsStore.set(worldItems))
+
+// send ground item changes to server
+groundItemsStore.onSuccessfulAdd = itemWrapper => {
+  socket.emit('worldItemPlaced', {
+    item: itemWrapper.item,
+    position: itemWrapper.position,
+  })
+}
+groundItemsStore.onSuccessfulRemove = itemId => socket.emit('worldItemRemoved', itemId)
 
 // when other player inventories change, update it
 // TODO: this should come from player state instead, and shouldn't be the entire inv, only equipped items

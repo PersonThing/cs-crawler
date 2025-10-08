@@ -1,6 +1,6 @@
 import createStore from '#shared/stores/create-store.js'
 
-const { subscribe, set, get, update } = createStore([])
+const { subscribe, set, get, update } = createStore([], value => Array.isArray(value))
 
 const getBestAvailableItemPosition = position => {
   // given a position {x, y}, return the best available position to place an item
@@ -10,6 +10,7 @@ const getBestAvailableItemPosition = position => {
   if (position == null || position.x == null || position.y == null) {
     return null
   }
+  const items = get()
   const radius = 30
   const step = 4
   const maxRadius = 200
@@ -26,7 +27,7 @@ const getBestAvailableItemPosition = position => {
         continue
       }
       if (
-        this.items.some(item => {
+        items.some(item => {
           const dx = item.position.x - x
           const dy = item.position.y - y
           return Math.sqrt(dx ** 2 + dy ** 2) < radius
@@ -45,32 +46,40 @@ const getBestAvailableItemPosition = position => {
   return bestPosition
 }
 
-
 const add = itemWrapper => {
-  update(items => {
-      if (!items.find(i => i.item.id === itemWrapper.item.id)) {
-        items.push(itemWrapper)
-      }
-    })
+  return update(items => {
+    if (!items.find(i => i.item.id === itemWrapper.item.id)) {
+      items.push(itemWrapper)
+    }
+    return items
+  })
 }
 
-export default {
+const store = {
   subscribe,
   set,
   get,
   update,
-  
-  add,
-  remove: itemId => update(items => items.filter(i => i.item.id !== itemId)),
 
-  placeLocally: itemWrapper => {
-    itemWrapper.position = getBestAvailableItemPosition(itemWrapper.position, get())
-    add(itemWrapper)
-    socket.emit('worldItemPlaced', itemWrapper)
+  // placeholders - client defines these to notify server of changes
+  onSuccessfulAdd: () => {},
+  onSuccessfulRemove: () => {},
+
+  add: (itemWrapper, notifyServer = true) => {
+    itemWrapper.position = getBestAvailableItemPosition(itemWrapper.position)
+    const result = add(itemWrapper)
+    if (result && notifyServer) {
+      store.onSuccessfulAdd(itemWrapper)
+    }
+    return result
   },
-
-  removeLocally: itemId => {
-    remove(itemId)
-    socket.emit('worldItemRemoved', itemId)
+  remove: (itemId, notifyServer = true) => {
+    const result = update(items => items.filter(i => i.item.id !== itemId))
+    if (result && notifyServer) {
+      store.onSuccessfulRemove(itemId)
+    }
+    return result
   },
 }
+
+export default store

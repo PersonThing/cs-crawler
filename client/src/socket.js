@@ -2,7 +2,9 @@ import { io } from 'socket.io-client'
 
 import usernameStore from './stores/username-store.js'
 
-const playerId = 'player-' + Math.random().toString(36).substring(2, 9)
+const playerId = localStorage.getItem('playerId') || 'player-' + Math.random().toString(36).substring(2, 9)
+localStorage.setItem('playerId', playerId)
+
 const username = usernameStore.get()
 
 const socket = io(`http://${window.location.hostname}:3000`, {

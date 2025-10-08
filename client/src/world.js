@@ -54,18 +54,20 @@ class World extends Container {
       })
     })
 
-    groundItemsStore.subscribe(items => {
+    groundItemsStore.subscribe(storeItems => {
       // remove any items that are no longer in the store
-      this.itemsContainer.children.forEach(child => {
-        const itemWrapper = items.find(i => i.id === child.id)
+      this.itemsContainer.children.forEach(sprite => {
+        const itemWrapper = storeItems.find(itemWrapper => itemWrapper.item.id === sprite.id)
         if (!itemWrapper) {
-          this.unrenderItem(child.item.id)
+          console.log('removing ground-item', sprite.id)
+          this.unrenderItem(sprite.id)
         }
       })
 
       // add any items that are in the store but not yet rendered
-      items.forEach(itemWrapper => {
-        if (!this.itemsContainer.children.find(i => i.id === itemWrapper.id)) {
+      storeItems.forEach(itemWrapper => {
+        if (!this.itemsContainer.children.find(sprite => sprite.id === itemWrapper.item.id)) {
+          console.log('adding ground-item', itemWrapper.item.id)
           this.renderItem(itemWrapper)
         }
       })
@@ -130,10 +132,25 @@ class World extends Container {
   }
 
   renderItem(itemWrapper) {
+    if (itemWrapper.item == null) {
+      console.error('Cannot render item with no item data', itemWrapper)
+      return
+    }
+
+    if (itemWrapper.position == null) {
+      console.error('Cannot render item with no position', itemWrapper)
+      return
+    }
+
     const groundItem = new GroundItem(itemWrapper)
     this.itemsContainer.addChild(groundItem)
     groundItem.on('pointerdown', () => {
-      playerSpriteStore.getLocalPlayer()?.state?.setTargetItem(itemWrapper)
+      const localPlayer = playerSpriteStore.getLocalPlayer()
+      if (localPlayer == null) {
+        console.error('No local player to pick up item')
+      }
+
+      localPlayer.setTargetItem(itemWrapper)
     })
   }
 
