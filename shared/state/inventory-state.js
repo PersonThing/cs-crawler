@@ -1,6 +1,33 @@
+import ItemType from '#shared/config/item-type.js'
 import { BAG_SLOTS } from '../config/constants.js'
 import InventorySlot from '../config/inventory-slot.js'
 import createPersistedStore from '../stores/create-persisted-store.js'
+
+const LogAndThrow = (message, ...args) => {
+  console.error(message, ...args)
+  throw new Error(message)
+}
+
+const AssertValidItem = item => {
+  if (typeof item !== 'object' || item == null) {
+    LogAndThrow('invalid item, must be an object', item)
+  }
+  if (typeof item.itemType !== 'object' || item.itemType == null || !Object.values(ItemType).includes(item.itemType)) {
+    LogAndThrow('invalid item, must have a valid itemType', item)
+  }
+}
+
+const AssertValidSlotIndex = index => {
+  if (index < 0 || index > BAG_SLOTS) {
+    throw new Error('invalid bag slot index, must be between 0 and ' + BAG_SLOTS, index)
+  }
+}
+
+const AssertValidSlotName = slotName => {
+  if (InventorySlot[slotName] == null) {
+    throw new Error('invalid InventorySlot', slotName, 'must be one of: ' + Object.keys(InventorySlot).join(', '))
+  }
+}
 
 class PlayerInventory {
   constructor(playerId, content) {
@@ -55,17 +82,14 @@ class PlayerInventory {
   }
 
   setBagSlot(index, item) {
-    if (index < 0 || index > BAG_SLOTS) {
-      throw new Error('invalid bag slot index, must be between 0 and ' + BAG_SLOTS, index)
-    }
+    AssertValidSlotIndex(index)
     this.bags[index] = item
     this.updateStore()
   }
 
   setEquippedSlot(slotName, item) {
-    if (InventorySlot[slotName] == null) {
-      throw new Error('equip failed, invalid InventorySlot', slotName)
-    }
+    AssertValidSlotName(slotName)
+    AssertValidItem(item)
     this.equipped[slotName] = item
     this.updateStore()
   }
@@ -79,13 +103,8 @@ class PlayerInventory {
   }
 
   canEquip(slotName, item) {
-    if (InventorySlot[slotName] == null) {
-      throw new Error('equip failed, invalid InventorySlot', slotName)
-    }
-
-    if (item == null) {
-      throw new Error('equip failed, invalid item', item)
-    }
+    AssertValidSlotName(slotName)
+    AssertValidItem(item)
 
     if (!this.getValidSlotNamesForItem(item).includes(slotName)) {
       return false
@@ -105,15 +124,15 @@ class PlayerInventory {
   }
 
   setCursor(item) {
+    AssertValidItem(item)
     this.cursor = item
     this.updateStore()
   }
 
   // returns whether the item was successfully picked up or not
   pickup(item) {
-    if (item == null || item.itemType == null) {
-      throw new Error('invalid item, cant pick up', item)
-    }
+    console.log('picking up item', item)
+    AssertValidItem(item)
 
     // if a slot this item fits in is empty, equip it
     const possibleSlots = this.getValidSlotNamesForItem(item)
@@ -133,6 +152,7 @@ class PlayerInventory {
 
   // returns whether the item was successfully put in bags or not
   putInBags(item) {
+    AssertValidItem(item)
     for (let i = 0; i < BAG_SLOTS; i++) {
       if (this.bags[i] == null) {
         this.setBagSlot(i, item)
@@ -154,6 +174,7 @@ class PlayerInventory {
 
   // returns whether the item was successfully equipped or not
   equip(item, slotName) {
+    AssertValidItem(item)
     if (!this.canEquip(slotName, item)) {
       return false
     }
@@ -199,9 +220,7 @@ class PlayerInventory {
   }
 
   clickBagSlot(index) {
-    if (index < 0 || index > BAG_SLOTS) {
-      throw new Error(`invalid bag slot index ${index}, must be between 0 and ${BAG_SLOTS}`)
-    }
+    AssertValidSlotIndex(index)
 
     const bagItem = this.bags[index]
     const cursorItem = this.cursor
@@ -215,9 +234,8 @@ class PlayerInventory {
   }
 
   clickEquippedSlot(slotName) {
-    if (InventorySlot[slotName] == null) {
-      throw new Error('invalid InventorySlot', slotName)
-    }
+    AssertValidSlotName(slotName)
+
     const previouslyEquippedItem = this.equipped[slotName]
     if (previouslyEquippedItem == null && this.cursor == null) {
       return null
