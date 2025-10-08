@@ -55,7 +55,9 @@ const init = async (levelConfig, localPlayerState) => {
   initDevtools({ app })
 
   // create world
-  world = new World(app, levelConfig)
+  world = new World(app, levelConfig, groundItem => {
+    socket.emit('setTargetItem', groundItem)
+  })
   app.stage.addChild(world)
 
   // create local player
@@ -71,9 +73,6 @@ const init = async (levelConfig, localPlayerState) => {
     world.onTick(time)
     hud.onTick(time)
   })
-
-  // request current world items from server
-  socket.emit('requestCurrentWorldItems')
 
   initialized = true
 }
@@ -118,48 +117,6 @@ socket.on('serverState', state => {
     })
     return players
   })
-})
 
-// listen to ground item changes from server
-socket.on('worldItemPlaced', itemWrapper => groundItemsStore.add(itemWrapper, false))
-socket.on('worldItemRemoved', itemId => groundItemsStore.remove(itemId, false))
-socket.on('currentWorldItems', worldItems => groundItemsStore.set(worldItems))
-
-// send ground item changes to server
-groundItemsStore.onSuccessfulAdd = itemWrapper => {
-  socket.emit('worldItemPlaced', {
-    item: itemWrapper.item,
-    position: itemWrapper.position,
-  })
-}
-groundItemsStore.onSuccessfulRemove = itemId => socket.emit('worldItemRemoved', itemId)
-
-// when other player inventories change, update it
-// TODO: this should come from player state instead, and shouldn't be the entire inv, only equipped items
-socket.on('playerInventoryChanged', ({ playerId, content }) => {
-  const px = playerSpriteStore.get().find(p => p.playerId == playerId)
-  if (px != null && px.playerId != localPlayer.playerId) {
-    // hack to not update inv from server for local player since client is in charge of inv state for now
-    px.inventory.deserialize(content)
-  }
-})
-
-// when local player inventory changes, send to server
-const debouncedSetInventory = debounce(content => {
-  socket.emit('inventoryChanged', content)
-}, 100)
-let inventoryStore = null
-let unsubscribeInventoryStore = null
-playerSpriteStore.subscribe(player => {
-  if (!player.isLocalPlayer) return
-
-  // subscribe to new inv store if there is one
-  if (player != null && player.inventory?.store != null) {
-    // if already subscribed to a diff inv store, unsub from it first
-    if (unsubscribeInventoryStore != null) {
-      unsubscribeInventoryStore()
-    }
-    inventoryStore = player.inventory.store
-    unsubscribeInventoryStore = inventoryStore.subscribe(debouncedSetInventory)
-  }
+  groundItemsStore.set(state.groundItems)
 })

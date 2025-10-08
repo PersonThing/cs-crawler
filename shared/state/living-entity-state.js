@@ -1,4 +1,4 @@
-class LivingEntityState {
+export default class LivingEntityState {
   constructor({ id, label, pather, x = 0, y = 0 }) {
     this.pather = pather
 
@@ -33,12 +33,7 @@ class LivingEntityState {
   }
 
   deserialize(data) {
-    // assign all keys except inventory
-    Object.keys(data).forEach(key => {
-      if (key !== 'inventory' && data[key] !== undefined) {
-        this[key] = data[key]
-      }
-    })
+    Object.assign(this, data)
   }
 
   onTick(time) {
@@ -179,4 +174,3 @@ class LivingEntityState {
   }
 }
 
-export default LivingEntityState

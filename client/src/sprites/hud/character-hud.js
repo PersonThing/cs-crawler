@@ -65,7 +65,7 @@ class CharacterHud extends Container {
     this.addChild(this.bg)
 
     const gfx = new Graphics()
-      .roundRect(0, 0, WIDTH, HEIGHT, 6)
+      .rect(0, 0, WIDTH, HEIGHT)
       .fill(HUD_FILL_COLOR)
       .stroke({
         color: HUD_BORDER_COLOR,
@@ -78,7 +78,7 @@ class CharacterHud extends Container {
 
     // stats text
     const title = new Text({
-      text: 'Character stats',
+      text: 'Stats',
       style: {
         fontSize: 20,
         fill: 0xffffff,

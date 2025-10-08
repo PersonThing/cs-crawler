@@ -1,4 +1,4 @@
-class Level {
+export default class Level {
   constructor() {
     this.tileGrid = []
   }
@@ -16,5 +16,3 @@ class Level {
     this.tileGrid[y][x] = tile
   }
 }
-
-export default Level

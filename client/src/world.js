@@ -1,16 +1,16 @@
 import { Container, BlurFilter, Rectangle, Graphics, Sprite, Text } from 'pixi.js'
 import LevelSprite from './sprites/level-sprite.js'
-import GroundItem from './sprites/ground-item-sprite.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
 import groundItemsStore from '../../shared/stores/ground-items-store.js'
 import screenSizeStore from './stores/screen-size-store.js'
 import PlayerSprite from './sprites/player-sprite.js'
 import Pather from '#shared/pather.js'
+import GroundItemSprite from './sprites/ground-item-sprite.js'
 
 const PARALLAX_SCALE = 1.1
 
 class World extends Container {
-  constructor(app, levelConfig) {
+  constructor(app, levelConfig, onItemClick) {
     super()
 
     this.app = app
@@ -19,8 +19,8 @@ class World extends Container {
     this.levelSprite = new LevelSprite(levelConfig, 1, false)
     this.addChild(this.levelSprite)
 
-    this.itemsContainer = new Container()
-    this.addChild(this.itemsContainer)
+    this.groundItems = new Container()
+    this.addChild(this.groundItems)
 
     this.pather = new Pather(levelConfig)
 
@@ -35,6 +35,8 @@ class World extends Container {
     this.addChild(this.levelSpriteParallax)
 
     this.mask = this.createLightRadiusMask()
+
+    this.onItemClick = onItemClick
 
     playerSpriteStore.subscribe(players => {
       // remove any players that are no longer in the store
@@ -54,21 +56,23 @@ class World extends Container {
       })
     })
 
-    groundItemsStore.subscribe(storeItems => {
+    groundItemsStore.subscribe(groundItems => {
       // remove any items that are no longer in the store
-      this.itemsContainer.children.forEach(sprite => {
-        const itemWrapper = storeItems.find(itemWrapper => itemWrapper.item.id === sprite.id)
-        if (!itemWrapper) {
-          console.log('removing ground-item', sprite.id)
-          this.unrenderItem(sprite.id)
+      this.groundItems.children.forEach(groundItemSprite => {
+        const groundItem = groundItems.find(
+          groundItem => groundItem.item.id === groundItemSprite.id
+        )
+        if (!groundItem) {
+          console.log('removing ground-item', groundItemSprite.id)
+          this.unrenderItem(groundItemSprite.id)
         }
       })
 
       // add any items that are in the store but not yet rendered
-      storeItems.forEach(itemWrapper => {
-        if (!this.itemsContainer.children.find(sprite => sprite.id === itemWrapper.item.id)) {
-          console.log('adding ground-item', itemWrapper.item.id)
-          this.renderItem(itemWrapper)
+      groundItems.forEach(groundItem => {
+        if (!this.groundItems.children.find(sprite => sprite.id === groundItem.item.id)) {
+          console.log('adding ground-item', groundItem.item.id)
+          this.renderItem(groundItem)
         }
       })
     })
@@ -100,7 +104,7 @@ class World extends Container {
   onTick(time) {
     const { width: screenWidth, height: screenHeight } = screenSizeStore.get()
     const localPlayer = playerSpriteStore.getLocalPlayer()
-    if (localPlayer == null) return;
+    if (localPlayer == null) return
 
     // center view on local player
     // move map around the player centered in the middle of the screen
@@ -131,34 +135,37 @@ class World extends Container {
     this.removeChild(player)
   }
 
-  renderItem(itemWrapper) {
-    if (itemWrapper.item == null) {
-      console.error('Cannot render item with no item data', itemWrapper)
+  renderItem(groundItem) {
+    if (groundItem.item == null) {
+      console.error('Cannot render item with no item data', groundItem)
       return
     }
 
-    if (itemWrapper.position == null) {
-      console.error('Cannot render item with no position', itemWrapper)
+    if (groundItem.position == null) {
+      console.error('Cannot render item with no position', groundItem)
       return
     }
 
-    const groundItem = new GroundItem(itemWrapper)
-    this.itemsContainer.addChild(groundItem)
-    groundItem.on('pointerdown', () => {
+    const groundItemSprite = new GroundItemSprite(groundItem)
+    this.groundItems.addChild(groundItemSprite)
+    groundItemSprite.on('pointerdown', () => {
       const localPlayer = playerSpriteStore.getLocalPlayer()
       if (localPlayer == null) {
         console.error('No local player to pick up item')
       }
 
-      localPlayer.setTargetItem(itemWrapper)
+      this.onItemClick({
+        item: groundItem.item,
+        position: groundItem.position,
+      })
     })
   }
 
   unrenderItem(id) {
-    this.itemsContainer.children.forEach(child => {
-      if (child.id === id) {
-        child.destroy()
-        this.itemsContainer.removeChild(child)
+    this.groundItems.children.forEach(groundItemSprite => {
+      if (groundItemSprite.id === id) {
+        groundItemSprite.destroy()
+        this.groundItems.removeChild(groundItemSprite)
       }
     })
   }

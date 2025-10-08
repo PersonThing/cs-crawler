@@ -1,4 +1,4 @@
-class Tile {
+export default class Tile {
   constructor(label) {
     this.label = label
     this.blockGrid = []
@@ -23,5 +23,3 @@ class Tile {
     this.blockGrid[block.y][block.x] = block
   }
 }
-
-export default Tile

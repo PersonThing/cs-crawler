@@ -1,10 +1,19 @@
 import LivingEntityState from './living-entity-state.js'
-import Inventory from './inventory-state.js'
+import PlayerInventory from './player-inventory.js'
 import { BLOCK_SIZE } from '../config/constants.js'
-import groundItemsStore from '../stores/ground-items-store.js'
 
-class PlayerState extends LivingEntityState {
-  constructor({ playerId, socketId, username, color, inventory, pather, x = 0, y = 0 }) {
+export default class PlayerState extends LivingEntityState {
+  constructor({
+    playerId,
+    socketId,
+    username,
+    color,
+    targetItem,
+    inventory,
+    pather,
+    x = 0,
+    y = 0,
+  }) {
     super({
       id: playerId,
       label: username,
@@ -18,27 +27,39 @@ class PlayerState extends LivingEntityState {
     this.username = username
     this.color = color
     this.isLocalPlayer = false
-    this.targetItem = null
+    this.targetItem = targetItem
 
-    this.inventory = new Inventory(playerId, inventory)
+    this.inventory = new PlayerInventory(playerId, inventory)
   }
 
-  onTick(deltaMs) {
+  onTick(deltaMs, groundItems) {
     super.onTick(deltaMs)
 
-    if (this.targetItem == null) {
-      return
-    }
-
-    // if we're within 1 block, pick it up
-    const distance = Math.hypot(
-      this.targetItem.position.x - this.x,
-      this.targetItem.position.y - this.y
-    )
-    if (distance < BLOCK_SIZE * 2) {
-      if (this.inventory.pickup(this.targetItem.item)) {
-        groundItemsStore.remove(this.targetItem.item.id)
+    // is player attempting to pick up item?
+    if (this.targetItem != null) {
+      // is item still on the ground?
+      const groundItemIndex = groundItems.findIndex(gi => gi.item.id === this.targetItem.item.id)
+      if (groundItemIndex === -1) {
+        console.log('target item no longer exists on ground, clearing targetItem')
         this.targetItem = null
+      } else {
+        const groundItem = groundItems[groundItemIndex]
+        if (groundItem == null) {
+          console.log('target item no longer exists on ground, clearing targetItem')
+          this.targetItem = null
+        } else {
+          // is it close enough to pick up yet?
+          const distance = Math.hypot(
+            this.targetItem.position.x - this.x,
+            this.targetItem.position.y - this.y
+          )
+          if (distance <= BLOCK_SIZE * 2 && this.inventory.pickup(groundItem.item)) {
+            // successfully picked up
+            groundItems.splice(groundItemIndex, 1)
+            this.targetItem = null
+            console.log('picked up item', groundItem.item.name)
+          }
+        }
       }
     }
   }
@@ -57,11 +78,33 @@ class PlayerState extends LivingEntityState {
   }
 
   deserialize(data) {
-    super.deserialize(data)
     if (data.inventory) {
       this.inventory.deserialize(data.inventory)
     }
+    // remove inventory key from data or it'll overwrite this.inventory
+    delete data.inventory
+    super.deserialize(data)
+  }
+
+  setTargetItem(groundItem) {
+    this.targetItem = groundItem
+  }
+
+  setTarget(target) {
+    // set target
+    super.setTarget(target)
+
+    // if new target is too far from player.targetItem, clear targetItem
+    // TODO: play with this.. might need tuning
+    // if (this.targetItem != null) {
+    //   const distance = Math.hypot(
+    //     this.targetItem.position.x - this.x,
+    //     this.targetItem.position.y - this.y
+    //   )
+    //   if (distance > BLOCK_SIZE * 2) {
+    //     console.log('target set too far from targetItem, clearing targetItem')
+    //     this.targetItem = null
+    //   }
+    // }
   }
 }
-
-export default PlayerState

@@ -83,9 +83,11 @@ export default class InventoryItem extends Container {
       itemSprite.eventMode = 'static'
       itemSprite.addChild(itemDescription)
       itemSprite.on('pointerover', () => {
+        this.zIndex = 10 // bring above any other items
         itemDescription.visible = true
       })
       itemSprite.on('pointerout', () => {
+        this.zIndex = 1 // put back to normal
         itemDescription.visible = false
       })
 

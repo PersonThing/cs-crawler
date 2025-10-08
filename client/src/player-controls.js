@@ -1,4 +1,3 @@
-import { generateRandomItem, generateRandomItemOfType } from '#shared/config/items.js'
 import throttle from '#shared/utils/throttle.js'
 import socket from './socket.js'
 import cursorPositionStore from './stores/cursor-position-store.js'
@@ -16,11 +15,11 @@ class PlayerControls {
     this.isMouseDown = false
     this.isRightMouseDown = false
 
-    this.playerState = playerSpriteStore.getLocalPlayer().state
-    this.unsubscribeFromplayerSpriteStore = playerSpriteStore.subscribe(player => {
-      if (player.isLocalPlayer) {
-        console.log('playercontrols player set', player)
-        this.playerState = player.state
+    this.player = playerSpriteStore.getLocalPlayer().state
+    this.unsubscribeFromplayerSpriteStore = playerSpriteStore.subscribe(sprite => {
+      if (sprite.isLocalPlayer) {
+        console.log('playercontrols player set', sprite.state)
+        this.player = sprite.state
       }
     })
 
@@ -54,33 +53,26 @@ class PlayerControls {
       f1: event => {
         this.hud.toggleHelp()
       },
+
+      // temp debug methods for items
       n: event => {
-        // temp: generate and pick up a random sample item
-        this.playerState.inventory.pickup(generateRandomItem())
+        socket.emit('pickupRandomItem')
       },
       m: event => {
-        // temp: fill inventory with random items
-        while (this.playerState.inventory.pickup(generateRandomItem())) {}
+        socket.emit('fillInventoryWithRandomItems')
       },
       ',': event => {
-        // temp: reset inventory
-        this.playerState.inventory.reset()
+        socket.emit('resetInventory')
       },
       g: event => {
-        // temp: generate a bunch of items on the ground around the player
-        groundItemsStore.add({
-          item: generateRandomItem(),
-          position: {
-            x: this.playerState.x,
-            y: this.playerState.y,
-          },
-        })
+        socket.emit('generateGroundItemsAtPlayer')
       },
       v: event => {
-        groundItemsStore.get().forEach(i => groundItemsStore.remove(i.item.id))
+        socket.emit('clearGroundItems')
       },
+
+      // temp method for setting username
       f3: event => {
-        // prompt the user for a new username
         const newUsername = prompt('Enter new username:', usernameStore.get() || '')
         if (newUsername != null && newUsername.trim().length > 0) {
           if (!usernameStore.set(newUsername.trim())) {
@@ -122,7 +114,7 @@ class PlayerControls {
   updateTargetPosition() {
     const target = cursorPositionStore.get()
     if (this.isMouseDown) {
-      this.playerState.setTarget(target)
+      this.player.setTarget(target)
       this.throttledSetTargetOnServer(target)
     }
   }
@@ -139,27 +131,21 @@ class PlayerControls {
   }
 
   onMouseDown(event) {
-    if (!this.playerState) return
+    if (!this.player) return
 
     // handle right-click for attacking
     if (event.button === 2) {
-      this.playerState.startAttacking(cursorPositionStore.get())
+      this.player.startAttacking(cursorPositionStore.get())
       this.isRightMouseDown = true
       return
     }
 
     // if item on cursor, drop it
-    if (this.playerState.inventory.cursor != null) {
-      // stage is shifted to center the player
-      // so we need to account for that offset
-      groundItemsStore.placeLocally({
-        item: this.playerState.inventory.cursor,
-        position: {
-          x: this.playerState.x,
-          y: this.playerState.y,
-        },
-      })
-      this.playerState.inventory.setCursor(null)
+    if (this.player.inventory.cursor != null) {
+      console.log('dropping cursor item', this.player.inventory.cursor)
+      socket.emit('dropCursorItem', this.player.inventory.cursor)
+      // let server state update handle clearing cursor, in case of failure
+      // this.player.inventory.setCursor(null) 
       return
     }
 
@@ -176,14 +162,14 @@ class PlayerControls {
       y: Math.round(event.clientY - rect.top - this.world.y),
     })
 
-    if (!this.playerState || !this.isMouseDown) return
+    if (!this.player || !this.isMouseDown) return
 
     this.updateTargetPosition()
   }
 
   onMouseUp(event) {
     if (event.button === 2) {
-      this.playerState.stopAttacking()
+      this.player.stopAttacking()
       this.isRightMouseDown = false
       return
     }
@@ -192,7 +178,7 @@ class PlayerControls {
 
   onTick(time) {
     if (this.isRightMouseDown) {
-      this.playerState.attackTarget = cursorPositionStore.get()
+      this.player.attackTarget = cursorPositionStore.get()
     } else if (this.isMouseDown) {
       this.updateTargetPosition()
     }

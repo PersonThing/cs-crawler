@@ -8,12 +8,14 @@ const LogAndThrow = (message, ...args) => {
   throw new Error(message)
 }
 
+const validItemTypeNames = Object.values(ItemType).map(i => i.name)
+
 const AssertValidItem = item => {
   if (typeof item !== 'object' || item == null) {
-    LogAndThrow('invalid item, must be an object', item)
+    LogAndThrow('invalid item, must be an object, received: ', item)
   }
-  if (typeof item.itemType !== 'object' || item.itemType == null || !Object.values(ItemType).includes(item.itemType)) {
-    LogAndThrow('invalid item, must have a valid itemType', item)
+  if (typeof item.itemType !== 'object' || item.itemType == null || !validItemTypeNames.includes(item.itemType.name)) {
+    LogAndThrow(`invalid item, itemType ${item?.itemType?.name} must be one of: ${validItemTypeNames.join(', ')}`)
   }
 }
 
@@ -29,7 +31,7 @@ const AssertValidSlotName = slotName => {
   }
 }
 
-class PlayerInventory {
+export default class PlayerInventory {
   constructor(playerId, content) {
     if (content == null) content = {}
 
@@ -68,11 +70,12 @@ class PlayerInventory {
   }
 
   updateStore() {
-    this.store.set({
+    const content = {
       bags: this.bags,
       equipped: this.equipped,
       cursor: this.cursor,
-    })
+    }
+    this.store.set(content)
   }
 
   reset() {
@@ -91,6 +94,12 @@ class PlayerInventory {
     AssertValidSlotName(slotName)
     AssertValidItem(item)
     this.equipped[slotName] = item
+    this.updateStore()
+  }
+  
+  clearEquippedSlot(slotName) {
+    AssertValidSlotName(slotName)
+    this.equipped[slotName] = null
     this.updateStore()
   }
 
@@ -131,7 +140,6 @@ class PlayerInventory {
 
   // returns whether the item was successfully picked up or not
   pickup(item) {
-    console.log('picking up item', item)
     AssertValidItem(item)
 
     // if a slot this item fits in is empty, equip it
@@ -258,9 +266,8 @@ class PlayerInventory {
     } else if (previouslyEquippedItem) {
       // picking up from slot to cursor
       this.setCursor(previouslyEquippedItem)
-      this.setEquippedSlot(slotName, null)
+      this.clearEquippedSlot(slotName)
     }
   }
 }
 
-export default PlayerInventory

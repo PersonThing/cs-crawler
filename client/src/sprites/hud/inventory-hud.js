@@ -45,19 +45,20 @@ class InventoryHud extends Container {
     // track cursor position and move cursor item with mouse
     this.cursorPosition = { x: 0, y: 0 }
 
-    appStore?.get().canvas.addEventListener('mousemove', event => {
+    // kill any click events that bubble through
+    this.eventMode = 'static'
+    this.on('pointermove', event => {
       this.cursorPosition = {
-        x: event.clientX - this.x - ITEM_SIZE / 2,
-        y: event.clientY - this.y - ITEM_SIZE / 2,
+        x: event.clientX,// - this.x - ITEM_SIZE / 2,
+        y: event.clientY// - this.y - ITEM_SIZE / 2,
       }
+      // console.log('pointermove', this.cursorPosition, this.toGlobal(this.cursorPosition))
       if (this.cursorItem != null) {
         this.setCursorItemPosition()
       }
     })
-
-    // kill any click events that bubble through
-    this.eventMode = 'static'
     this.on('mousedown', event => {
+      console.log('inventory hud mousedown - stopping propagation')
       event.stopPropagation()
       event.preventDefault()
       return false
@@ -67,13 +68,21 @@ class InventoryHud extends Container {
   onTick() {
     // update content from localPlayer inventory
     const localPlayer = playerSpriteStore.getLocalPlayer()
-    if (localPlayer == null || localPlayer.inventory == null) {
+    if (localPlayer == null || localPlayer.state.inventory == null) {
       return
     }
+    this.inventory = localPlayer.state.inventory
 
-    // TODO: if content hasn't changed, don't re-render - how ?
-
-    this.setContent(localPlayer.inventory.serialize())
+    // if content hasn't changed, don't re-render - how ?
+    // TODO: optimize this with a version number or something
+    if (this.content != null) {
+      const oldContent = JSON.stringify(this.content)
+      const newContent = JSON.stringify(this.inventory.serialize())
+      if (oldContent === newContent) {
+        return
+      }
+    }
+    this.setContent(this.inventory.serialize())
   }
 
   setCursorItemPosition() {
@@ -159,7 +168,7 @@ class InventoryHud extends Container {
       bgSprite.alpha = 0.25
       bgSprite.eventMode = 'static'
       bgSprite.on('mousedown', () => {
-        this.playerInventory.clickEquippedSlot(inventorySlot.name)
+        this.inventory.clickEquippedSlot(inventorySlot.name)
       })
       this.bg.addChild(bgSprite)
     }
@@ -170,7 +179,7 @@ class InventoryHud extends Container {
       const slotBg = this.drawItemBg(color, this.getBagSlotCoordinates(index))
       slotBg.eventMode = 'static'
       slotBg.on('mousedown', () => {
-        this.playerInventory.clickBagSlot(index)
+        this.inventory.clickBagSlot(index)
       })
     }
 
@@ -215,7 +224,7 @@ class InventoryHud extends Container {
         const coords = this.getBagSlotCoordinates(index)
         const itemSprite = this.drawItem(item, coords)
         itemSprite.on('mousedown', () => {
-          this.playerInventory.clickBagSlot(index)
+          this.inventory.clickBagSlot(index)
         })
       }
     }
@@ -230,7 +239,7 @@ class InventoryHud extends Container {
       const coords = EquippedSlotCoordinates[slotName]
       const itemSprite = this.drawItem(item, coords)
       itemSprite.on('mousedown', () => {
-        this.playerInventory.clickEquippedSlot(slotName)
+        this.inventory.clickEquippedSlot(slotName)
       })
 
       // if 2h weapon, render a greyed out version of sprite
@@ -239,7 +248,7 @@ class InventoryHud extends Container {
         this.drawItem(item, coords, true)
         // itemSprite.on('mousedown', (e) => {
         //   console.log('filled 2h slot offhand click', slotName)
-        //   this.playerInventory.clickEquippedSlot(slotName)
+        //   this.inventory.clickEquippedSlot(slotName)
         // })
       }
     })
@@ -252,7 +261,6 @@ class InventoryHud extends Container {
       this.cursorItem = this.drawItem(content.cursor, { x: 0, y: 0 })
       this.cursorItem.eventMode = 'none'
       this.setCursorItemPosition()
-      // TODO move these with mouse
     }
   }
 

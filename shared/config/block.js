@@ -1,4 +1,4 @@
-class Block {
+export default class Block {
   constructor(props) {
     this.x = props.x
     this.y = props.y
@@ -30,5 +30,3 @@ class Block {
     // placeholder
   }
 }
-
-export default Block

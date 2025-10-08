@@ -4,22 +4,22 @@ import altKeyStore from '../stores/alt-key-store.js'
 
 const PADDING = 5
 
-class GroundItem extends Container {
-  constructor(itemWrapper) {
+export default class GroundItemSprite extends Container {
+  constructor(groundItem) {
     super()
 
-    this.id = itemWrapper.item.id
+    this.id = groundItem.item.id
 
-    this.x = itemWrapper.position.x
-    this.y = itemWrapper.position.y
+    this.x = groundItem.position.x
+    this.y = groundItem.position.y
 
-    const color = ItemQualityColors[itemWrapper.item.itemQuality]
+    const color = ItemQualityColors[groundItem.item.itemQuality]
 
     // circle drawn should be a bit darker
     const circleColor =
-      (((ItemQualityColors[itemWrapper.item.itemQuality] & 0xff0000) >> 1) & 0xff0000) |
-      (((ItemQualityColors[itemWrapper.item.itemQuality] & 0x00ff00) >> 1) & 0x00ff00) |
-      (((ItemQualityColors[itemWrapper.item.itemQuality] & 0x0000ff) >> 1) & 0x0000ff)
+      (((ItemQualityColors[groundItem.item.itemQuality] & 0xff0000) >> 1) & 0xff0000) |
+      (((ItemQualityColors[groundItem.item.itemQuality] & 0x00ff00) >> 1) & 0x00ff00) |
+      (((ItemQualityColors[groundItem.item.itemQuality] & 0x0000ff) >> 1) & 0x0000ff)
 
     // draw a background behind the item colored by item quality
     const spriteBg = new Graphics().circle(0, 0, 15).fill(circleColor)
@@ -30,19 +30,19 @@ class GroundItem extends Container {
     this.addChild(spriteBg)
 
     // texture sprite
-    const sprite = Sprite.from(itemWrapper.item.inventoryTexture)
+    const sprite = Sprite.from(groundItem.item.inventoryTexture)
     sprite.anchor.set(0.5)
     sprite.x = 0
     sprite.y = 0
     sprite.rotation = Math.random() * Math.PI * 2 // rotate item to a random angle in radians
-    itemWrapper.sprite = sprite
+    groundItem.sprite = sprite
     this.addChild(sprite)
 
     // text label
     const textBg = new Graphics()
     this.addChild(textBg)
     const text = new Text({
-      text: `  ${itemWrapper.item.name}  `,
+      text: `  ${groundItem.item.name}  `,
       style: {
         fill: color,
         fontSize: 14,
@@ -93,5 +93,3 @@ class GroundItem extends Container {
     }
   }
 }
-
-export default GroundItem
