@@ -143,9 +143,7 @@ class PlayerControls {
     // if item on cursor, drop it
     if (this.player.inventory.cursor != null) {
       console.log('dropping cursor item', this.player.inventory.cursor)
-      socket.emit('dropCursorItem', this.player.inventory.cursor)
-      // let server state update handle clearing cursor, in case of failure
-      // this.player.inventory.setCursor(null) 
+      socket.emit('dropCursorItem')
       return
     }
 

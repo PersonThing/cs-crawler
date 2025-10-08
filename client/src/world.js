@@ -120,9 +120,6 @@ class World extends Container {
 
     // update the rendered level
     this.levelSprite.onTick(screenWidth, screenHeight)
-
-    // update players from store - players are set into store by socket listeners
-    playerSpriteStore.get().forEach(player => player.onTick(time))
   }
 
   addPlayer(player) {

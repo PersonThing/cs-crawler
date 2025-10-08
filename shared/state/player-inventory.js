@@ -14,8 +14,14 @@ const AssertValidItem = item => {
   if (typeof item !== 'object' || item == null) {
     LogAndThrow('invalid item, must be an object, received: ', item)
   }
-  if (typeof item.itemType !== 'object' || item.itemType == null || !validItemTypeNames.includes(item.itemType.name)) {
-    LogAndThrow(`invalid item, itemType ${item?.itemType?.name} must be one of: ${validItemTypeNames.join(', ')}`)
+  if (
+    typeof item.itemType !== 'object' ||
+    item.itemType == null ||
+    !validItemTypeNames.includes(item.itemType.name)
+  ) {
+    LogAndThrow(
+      `invalid item, itemType ${item?.itemType?.name} must be one of: ${validItemTypeNames.join(', ')}`
+    )
   }
 }
 
@@ -27,7 +33,11 @@ const AssertValidSlotIndex = index => {
 
 const AssertValidSlotName = slotName => {
   if (InventorySlot[slotName] == null) {
-    throw new Error('invalid InventorySlot', slotName, 'must be one of: ' + Object.keys(InventorySlot).join(', '))
+    throw new Error(
+      'invalid InventorySlot',
+      slotName,
+      'must be one of: ' + Object.keys(InventorySlot).join(', ')
+    )
   }
 }
 
@@ -86,7 +96,13 @@ export default class PlayerInventory {
 
   setBagSlot(index, item) {
     AssertValidSlotIndex(index)
+    AssertValidItem(item)
     this.bags[index] = item
+    this.updateStore()
+  }
+
+  clearBagSlot(index) {
+    this.bags[index] = null
     this.updateStore()
   }
 
@@ -96,7 +112,7 @@ export default class PlayerInventory {
     this.equipped[slotName] = item
     this.updateStore()
   }
-  
+
   clearEquippedSlot(slotName) {
     AssertValidSlotName(slotName)
     this.equipped[slotName] = null
@@ -135,6 +151,11 @@ export default class PlayerInventory {
   setCursor(item) {
     AssertValidItem(item)
     this.cursor = item
+    this.updateStore()
+  }
+
+  clearCursor() {
+    this.cursor = null
     this.updateStore()
   }
 
@@ -219,7 +240,7 @@ export default class PlayerInventory {
     // TODO: we should have already removed it from bags and placed it on cursor
     const ix = this.bags.findIndex(i => item === i)
     if (ix > 0) {
-      this.setBagSlot(ix, null)
+      this.clearBagSlot(ix)
     }
 
     // set in equipped
@@ -237,8 +258,17 @@ export default class PlayerInventory {
       return null
     }
 
-    this.setBagSlot(index, cursorItem)
-    this.setCursor(bagItem)
+    if (cursorItem != null) {
+      this.setBagSlot(index, cursorItem)
+    } else {
+      this.clearBagSlot(index)
+    }
+
+    if (bagItem != null) {
+      this.setCursor(bagItem)
+    } else {
+      this.clearCursor()
+    }
   }
 
   clickEquippedSlot(slotName) {
@@ -254,13 +284,15 @@ export default class PlayerInventory {
       // placing from cursor
       if (this.canEquip(slotName, cursorItem)) {
         this.setEquippedSlot(slotName, cursorItem)
-        this.setCursor(previouslyEquippedItem)
+        if (previouslyEquippedItem == null) {
+          this.clearCursor()
+        } else {
+          this.setCursor(previouslyEquippedItem)
+        }
         // if we equipped a 2h weapon and there's something in offhand, put it in bags
-        if (slotName === InventorySlot.MainHand.name && cursorItem.itemType.bothHands) {
-          if (this.isSlotFilled(InventorySlot.OffHand.name)) {
-            this.putInBags(this.equipped[InventorySlot.OffHand.name])
-            this.setEquippedSlot(InventorySlot.OffHand.name, null)
-          }
+        if (slotName === InventorySlot.MainHand.name && cursorItem.itemType.bothHands && this.equipped[InventorySlot.OffHand.name] != null) {
+          this.putInBags(this.equipped[InventorySlot.OffHand.name])
+          this.clearEquippedSlot(InventorySlot.OffHand.name)
         }
       }
     } else if (previouslyEquippedItem) {
@@ -270,4 +302,3 @@ export default class PlayerInventory {
     }
   }
 }
-

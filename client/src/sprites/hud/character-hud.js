@@ -25,7 +25,7 @@ class CharacterHud extends Container {
 
     // kill any click events that bubble through
     this.eventMode = 'static'
-    this.on('mousedown', event => {
+    this.on('pointerdown', event => {
       event.stopPropagation()
       event.preventDefault()
       return false

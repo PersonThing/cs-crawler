@@ -63,6 +63,7 @@ class LivingEntitySprite extends Container {
 
   updateFromState() {
     if (this.state == null) return
+    if (this == null) return
 
     // Update position
     this.x = this.state.x
@@ -77,6 +78,8 @@ class LivingEntitySprite extends Container {
   }
 
   updateEquippedItems() {
+    // TODO: don't update if nothing changed
+
     // Remove old attached items
     Object.values(this.attachedItems).forEach(item => {
       this.removeChild(item)
@@ -85,7 +88,7 @@ class LivingEntitySprite extends Container {
     this.attachedItems = {}
 
     // Add new equipped items
-    Object.entries(this.state.equipped).forEach(([slot, item]) => {
+    Object.entries(this.state.inventory.equipped).forEach(([slot, item]) => {
       if (item && item.texture) {
         this.attachItemSprite(item.texture, slot)
       }

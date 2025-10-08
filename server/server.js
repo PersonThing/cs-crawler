@@ -128,8 +128,12 @@ io.on('connection', socket => {
     player.setTargetItem(groundItem)
   })
 
-  socket.on('dropCursorItem', item => {
+  socket.on('dropCursorItem', () => {
     if (!player?.isConnected) {
+      return
+    }
+    const item = player.inventory.cursor
+    if (item == null) {
       return
     }
     groundItems.push(
@@ -144,7 +148,21 @@ io.on('connection', socket => {
         )
       )
     )
-    player.inventory.setCursor(null)
+    player.inventory.clearCursor()
+  })
+
+  socket.on('inventoryBagSlotClick', index => {
+    if (!player?.isConnected) {
+      return
+    }
+    player.inventory.clickBagSlot(index)
+  })
+
+  socket.on('inventoryEquippedSlotClick', slotName => {
+    if (!player?.isConnected) {
+      return
+    }
+    player.inventory.clickEquippedSlot(slotName)
   })
 
   // temp: below are temporary item methods for testing item system

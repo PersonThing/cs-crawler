@@ -11,6 +11,8 @@ import PlayerControls from '../../player-controls.js'
 class Hud extends Container {
   constructor(app, world, levelConfig) {
     super()
+
+    this.eventMode = 'static'
     
     this.minimap = new Minimap(levelConfig, false)
     this.addChild(this.minimap)
@@ -26,7 +28,7 @@ class Hud extends Container {
     this.players = new PlayersHud()
     this.addChild(this.players)
 
-    this.inventory = new InventoryHud()
+    this.inventory = new InventoryHud(app)
     this.addChild(this.inventory)
     this.inventory.visible = DEBUG.get()
     

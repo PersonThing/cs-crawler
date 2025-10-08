@@ -2,7 +2,6 @@ import { initDevtools } from '@pixi/devtools'
 import { Application } from 'pixi.js'
 import { LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '#shared/config/constants.js'
 import { Textures } from '#shared/config/textures.js'
-import appStore from './stores/app-store.js'
 import generateLevel from '#shared/level-builder.js'
 // import generateLevel from '#shared/level-builder-wfc.js'
 import Hud from './sprites/hud/hud.js'
@@ -21,6 +20,7 @@ let app = null
 let pather = null
 let hud = null
 let initialized = false
+let lastServerState = null
 
 // listen for player add/remove/updates
 const createPlayer = (serializedPlayerState, color, isLocalPlayer) => {
@@ -48,7 +48,6 @@ const init = async (levelConfig, localPlayerState) => {
 
   // create pixi.js app
   app = new Application()
-  appStore.set(app)
   await app.init({ background: 0x000000, resizeTo: window })
   document.body.appendChild(app.canvas)
 
@@ -70,8 +69,16 @@ const init = async (levelConfig, localPlayerState) => {
   // Client-side game loop - server has authority, but client predicts and corrects
   // app.ticker.maxFPS = 120
   app.ticker.add(time => {
+    // apply last server state
+    if (lastServerState != null) {
+      applyServerState(lastServerState)
+    }
+    
     world.onTick(time)
     hud.onTick(time)
+
+    // client tick for player sprites from store
+    playerSpriteStore.get().forEach(player => player.onTick(time))
   })
 
   initialized = true
@@ -92,31 +99,33 @@ socket.on('serverState', state => {
   if (!initialized) {
     return
   }
+  lastServerState = state
+})
 
-  playerSpriteStore.update(players => {
-    // add any new players that weren't in store
-    Object.entries(state.players).forEach(([playerId, playerState]) => {
-      if (!players.find(p => p.state.playerId === playerId)) {
-        // new player
-        console.log('creating new player from server', players.length, playerState)
-        createPlayer(playerState, OTHER_PLAYER_COLOR, false)
-      }
-    })
-
-    // remove disconnected players, update still connected players
-    players.forEach(p => {
-      const updatedState = state.players[p.state.playerId]
-      if (updatedState == null) {
-        // player no longer connected to server, remove
-        playerSpriteStore.remove(p.state.playerId)
-      } else {
-        // update existing players if found
-        p.state.deserialize(updatedState)
-        p.updateFromState()
-      }
-    })
-    return players
+function applyServerState(state) {
+  const players = playerSpriteStore.get()
+  // add any new players that weren't in store
+  Object.entries(state.players).forEach(([playerId, playerState]) => {
+    if (!players.find(p => p.state.playerId === playerId)) {
+      // new player
+      console.log('creating new player from server', players.length, playerState)
+      createPlayer(playerState, OTHER_PLAYER_COLOR, false)
+    }
   })
 
+  players.forEach(p => {
+    const updatedState = state.players[p.state.playerId]
+    if (updatedState == null) {
+      // remove disconnected player
+      console.log('removing disconnected player', p.state.playerId, p.state.username)
+      playerSpriteStore.remove(p.state.playerId)
+    } else {
+      // update existing players if found
+      p.state.deserialize(updatedState)
+      p.updateFromState()
+    }
+  })
+
+  playerSpriteStore.set(players)
   groundItemsStore.set(state.groundItems)
-})
+}

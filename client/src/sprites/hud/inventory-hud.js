@@ -6,7 +6,8 @@ import InventorySlot from '#shared/config/inventory-slot.js'
 import InventoryItem from '../inventory-item-sprite.js'
 
 import playerSpriteStore from '../../stores/player-sprite-store.js'
-import appStore from '../../stores/app-store.js'
+import socket from '../../socket.js'
+import cursorPositionStore from '../../stores/cursor-position-store.js'
 
 const ITEM_SIZE = 32
 const PADDING = 1
@@ -36,7 +37,7 @@ const EquippedSlotCoordinates = {
 }
 
 class InventoryHud extends Container {
-  constructor() {
+  constructor(app) {
     super()
 
     this.content = null
@@ -46,16 +47,21 @@ class InventoryHud extends Container {
     this.cursorPosition = { x: 0, y: 0 }
 
     // kill any click events that bubble through
-    this.eventMode = 'static'
-    this.on('pointermove', event => {
+    app.canvas.addEventListener('mousemove', event => {
       this.cursorPosition = {
-        x: event.clientX,// - this.x - ITEM_SIZE / 2,
-        y: event.clientY// - this.y - ITEM_SIZE / 2,
+        x: event.clientX - this.x - ITEM_SIZE / 2,
+        y: event.clientY - this.y - ITEM_SIZE / 2,
       }
-      // console.log('pointermove', this.cursorPosition, this.toGlobal(this.cursorPosition))
       if (this.cursorItem != null) {
-        this.setCursorItemPosition()
+        this.updateCursorItemPosition()
       }
+    })
+
+    this.on('pointerdown', event => {
+      console.log('inventory hud pointerdown - stopping propagation')
+      event.stopPropagation()
+      event.preventDefault()
+      return false
     })
     this.on('mousedown', event => {
       console.log('inventory hud mousedown - stopping propagation')
@@ -85,12 +91,11 @@ class InventoryHud extends Container {
     this.setContent(this.inventory.serialize())
   }
 
-  setCursorItemPosition() {
-    if (this.cursorPosition == null) {
-      return
-    }
+  updateCursorItemPosition() {
+    if (this.cursorItem == null) return
     this.cursorItem.x = this.cursorBg.x = this.cursorPosition.x
     this.cursorItem.y = this.cursorBg.y = this.cursorPosition.y
+    console.log('cursor item moved', this.cursorItem.x, this.cursorItem.y)
   }
 
   getBagSlotCoordinates(index) {
@@ -167,8 +172,13 @@ class InventoryHud extends Container {
       bgSprite.y = coords.y + PADDING
       bgSprite.alpha = 0.25
       bgSprite.eventMode = 'static'
-      bgSprite.on('mousedown', () => {
-        this.inventory.clickEquippedSlot(inventorySlot.name)
+      bgSprite.on('pointerdown', event => {
+        // this.inventory.clickEquippedSlot(inventorySlot.name)
+        socket.emit('inventoryEquippedSlotClick', inventorySlot.name)
+        console.log('clicked equipped slot', inventorySlot.name, 'empty')
+        event.stopPropagation()
+        event.preventDefault()
+        return false
       })
       this.bg.addChild(bgSprite)
     }
@@ -178,8 +188,13 @@ class InventoryHud extends Container {
       const color = item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
       const slotBg = this.drawItemBg(color, this.getBagSlotCoordinates(index))
       slotBg.eventMode = 'static'
-      slotBg.on('mousedown', () => {
-        this.inventory.clickBagSlot(index)
+      slotBg.on('pointerdown', event => {
+        // this.inventory.clickBagSlot(index)
+        socket.emit('inventoryBagSlotClick', index)
+        console.log('clicked bag slot', index, 'empty')
+        event.stopPropagation()
+        event.preventDefault()
+        return false
       })
     }
 
@@ -223,8 +238,13 @@ class InventoryHud extends Container {
       if (item != null) {
         const coords = this.getBagSlotCoordinates(index)
         const itemSprite = this.drawItem(item, coords)
-        itemSprite.on('mousedown', () => {
-          this.inventory.clickBagSlot(index)
+        itemSprite.on('pointerdown', event => {
+          // this.inventory.clickBagSlot(index)
+          socket.emit('inventoryBagSlotClick', index, item)
+          console.log('clicked bag slot', index, item)
+          event.stopPropagation()
+          event.preventDefault()
+          return false
         })
       }
     }
@@ -238,17 +258,23 @@ class InventoryHud extends Container {
 
       const coords = EquippedSlotCoordinates[slotName]
       const itemSprite = this.drawItem(item, coords)
-      itemSprite.on('mousedown', () => {
-        this.inventory.clickEquippedSlot(slotName)
+      itemSprite.on('pointerdown', event => {
+        // this.inventory.clickEquippedSlot(slotName)
+        socket.emit('inventoryEquippedSlotClick', slotName, item)
+        console.log('clicked equipped slot', slotName, item)
+        event.stopPropagation()
+        event.preventDefault()
+        return false
       })
 
-      // if 2h weapon, render a greyed out version of sprite
+      // if 2h weapon, render a greyed out version of sprite in offhand slot
       if (slotName === InventorySlot.MainHand.name && item.itemType.bothHands) {
         const coords = EquippedSlotCoordinates[InventorySlot.OffHand.name]
         this.drawItem(item, coords, true)
-        // itemSprite.on('mousedown', (e) => {
-        //   console.log('filled 2h slot offhand click', slotName)
-        //   this.inventory.clickEquippedSlot(slotName)
+        // should clicking offhand slot count as a mainhand click?
+        // itemSprite.on('pointerdown', (e) => {
+        //   console.log('filled 2h slot offhand click', InventorySlot.MainHand.name)
+        //   this.inventory.clickEquippedSlot(InventorySlot.MainHand.name)
         // })
       }
     })
@@ -260,7 +286,7 @@ class InventoryHud extends Container {
       this.cursorBg.eventMode = 'none'
       this.cursorItem = this.drawItem(content.cursor, { x: 0, y: 0 })
       this.cursorItem.eventMode = 'none'
-      this.setCursorItemPosition()
+      this.updateCursorItemPosition()
     }
   }
 
