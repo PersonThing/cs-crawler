@@ -14,11 +14,7 @@ class World extends Container {
     super()
 
     this.app = app
-
     this.levelConfig = levelConfig
-
-    this.levelContainer = new Container()
-    this.addChild(this.levelContainer)
 
     this.levelSprite = new LevelSprite(levelConfig, 1, false)
     this.addChild(this.levelSprite)
@@ -32,6 +28,9 @@ class World extends Container {
     this.levelSpriteParallax = new LevelSprite(levelConfig, PARALLAX_SCALE, false, true)
     // this.levelSpriteParallax.tileContainer.alpha = 0.25
     this.levelSpriteParallax.mask = null
+    this.levelSpriteParallax.zIndex = 4 // players are at 3, so parallax seems to be above them
+    // TODO: render player labels separate from the player sprites
+    // so we see them above the parallax (and anything else)
 
     this.addChild(this.levelSpriteParallax)
 
@@ -121,6 +120,7 @@ class World extends Container {
   }
 
   addPlayer(player) {
+    player.zIndex = 3
     this.addChild(player)
   }
 

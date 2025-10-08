@@ -1,3 +1,4 @@
+import { initDevtools } from '@pixi/devtools'
 import { Application } from 'pixi.js'
 import { LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '#shared/config/constants.js'
 import { Textures } from '#shared/config/textures.js'
@@ -50,6 +51,8 @@ const init = async (levelConfig, localPlayerState) => {
   appStore.set(app)
   await app.init({ background: 0x000000, resizeTo: window })
   document.body.appendChild(app.canvas)
+  
+  initDevtools({ app })
 
   // create world
   world = new World(app, levelConfig)
@@ -86,7 +89,7 @@ socket.on('init', async ({ level, player }) => {
   init(level, player)
 })
 
-socket.on('updateState', state => {
+socket.on('serverState', state => {
   if (!initialized) {
     return
   }

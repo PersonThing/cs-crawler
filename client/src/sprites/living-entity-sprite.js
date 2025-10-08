@@ -57,7 +57,7 @@ class LivingEntitySprite extends Container {
   }
 
   onTick(time) {
-    this.state.onTick(time)
+    // this.state.onTick(time)
     this.updateFromState()
   }
 

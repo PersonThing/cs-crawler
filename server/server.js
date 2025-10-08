@@ -4,7 +4,9 @@ import http from 'http'
 import Pather from '#shared/pather.js'
 import PlayerState from '#shared/state/player-state.js'
 
-// import { players, groundItems } from '#shared/game-state.js'
+const FPS = 10
+const SERVER_TICK_RATE = 1000 / FPS
+const PORT = process.env.PORT || 3000
 
 const app = express()
 const server = http.createServer(app)
@@ -27,6 +29,31 @@ let worldItems = [] // Array to store items on the ground
 let level = null
 let pather = null
 
+let lastUpdate = Date.now();
+function tick() {
+  const now = Date.now();
+  const deltaMS = now - lastUpdate; // Time elapsed since last tick
+  lastUpdate = now;
+
+  // Only update connected players
+  const connectedPlayersData = {}
+
+  for (const playerId in players) {
+    const player = players[playerId]
+    if (player.isConnected) {
+      player.onTick({ deltaMS })
+      connectedPlayersData[playerId] = player.serialize()
+    }
+  }
+
+  io.emit('serverState', {
+    players: connectedPlayersData,
+    worldItems: worldItems,
+  })
+}
+setInterval(tick, SERVER_TICK_RATE)
+
+// handle socket communication with players
 io.on('connection', socket => {
   let username = socket.handshake.query.username
   const playerId = socket.handshake.query.playerId
@@ -132,31 +159,8 @@ io.on('connection', socket => {
   })
 })
 
-// game loop
-// client has its own game loop
-// server is authoritative, sending state to overwrite client
-const fps = 30
-const deltaMS = 1000 / fps
-setInterval(() => {
-  // Only update connected players
-  const connectedPlayersData = {}
-
-  for (const playerId in players) {
-    const player = players[playerId]
-    if (player.isConnected) {
-      player.onTick({ deltaMS })
-      connectedPlayersData[playerId] = player.serialize()
-    }
-  }
-
-  io.emit('updateState', {
-    players: connectedPlayersData,
-    worldItems: worldItems,
-  })
-}, deltaMS)
 
 // Start the server
-const PORT = process.env.PORT || 3000
 // listen on PORT on any IP address
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`)
