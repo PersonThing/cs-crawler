@@ -1,5 +1,6 @@
 import { Container, Sprite, Graphics, Text } from 'pixi.js'
 import { ART_SCALE } from '#shared/config/constants.js'
+import InventorySlot from '#shared/config/inventory-slot'
 
 class LivingEntitySprite extends Container {
   constructor(state, texture, world, pather, color) {
@@ -82,17 +83,23 @@ class LivingEntitySprite extends Container {
 
     // Remove old attached items
     Object.values(this.attachedItems).forEach(item => {
-      this.removeChild(item)
+      this.sprite.removeChild(item)
       item.destroy()
     })
     this.attachedItems = {}
 
     // Add new equipped items
-    Object.entries(this.state.inventory.equipped).forEach(([slot, item]) => {
-      if (item && item.texture) {
-        this.attachItemSprite(item.texture, slot)
-      }
-    })
+    Object.entries(this.state.inventory.equipped)
+      .filter(
+        // only non-bonus slots with an item that has an equippedTexture
+        ([slot, item]) => item != null && item.equippedTexture != null && !slot?.startsWith('Bonus')
+      )
+      .forEach(([slot, item]) => {
+        console.log('attaching item to', slot)
+        if (item && item.equippedTexture) {
+          this.attachItemSprite(item.equippedTexture, slot)
+        }
+      })
   }
 
   attachItemSprite(texture, slotName) {
@@ -105,7 +112,7 @@ class LivingEntitySprite extends Container {
     }
 
     this.attachedItems[slotName] = sprite
-    this.addChild(sprite)
+    this.sprite.addChild(sprite)
   }
 
   animateAttack() {

@@ -41,7 +41,7 @@ const AssertValidSlotName = slotName => {
   }
 }
 
-export default class PlayerInventory {
+export default class ItemInventory {
   constructor(playerId, content) {
     if (content == null) content = {}
 

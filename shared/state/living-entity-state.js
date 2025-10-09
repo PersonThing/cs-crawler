@@ -1,5 +1,8 @@
+import ItemInventory from './item-inventory.js'
+import { BLOCK_SIZE } from '../config/constants.js'
+
 export default class LivingEntityState {
-  constructor({ id, label, pather, x = 0, y = 0 }) {
+  constructor({ id, label, pather, color, targetItem, inventory, x = 0, y = 0 }) {
     this.pather = pather
 
     this.id = id
@@ -15,6 +18,10 @@ export default class LivingEntityState {
     this.equipped = {}
     this.stats = {}
     this.path = []
+    
+    this.color = color
+    this.targetItem = targetItem
+    this.inventory = new ItemInventory(id, inventory)
   }
 
   serialize() {
@@ -28,16 +35,53 @@ export default class LivingEntityState {
       equipped: this.equipped,
       target: this.target,
       rotation: this.rotation,
+      color: this.color,
       targetItem: this.targetItem,
+      inventory: this.inventory.serialize(),
     }
   }
 
   deserialize(data) {
+    if (data.inventory) {
+      // remove inventory key from data or it'll overwrite this.inventory
+      // we just want to set inventory content rather than replace the whole object
+      this.inventory.deserialize(data.inventory)
+      delete data.inventory
+    }
     Object.assign(this, data)
   }
 
-  onTick(time) {
+  onTick(time, groundItems) {
     this.moveTowardTarget(time.deltaMS)
+
+    // is attempting to pick up item?
+    if (this.targetItem != null) {
+      // is item still on the ground?
+      const groundItemIndex = groundItems.findIndex(gi => gi.item.id === this.targetItem.item.id)
+      if (groundItemIndex === -1) {
+        console.log('target item no longer exists on ground, clearing targetItem')
+        this.targetItem = null
+      } else {
+        const groundItem = groundItems[groundItemIndex]
+        if (groundItem == null) {
+          console.log('target item no longer exists on ground, clearing targetItem')
+          this.targetItem = null
+        } else {
+          // is it close enough to pick up yet?
+          const distance = Math.hypot(
+            this.targetItem.position.x - this.x,
+            this.targetItem.position.y - this.y
+          )
+          if (distance <= BLOCK_SIZE * 2 && this.inventory.pickup(groundItem.item)) {
+            // successfully picked up
+            groundItems.splice(groundItemIndex, 1)
+            this.targetItem = null
+            console.log('picked up item', groundItem.item.name)
+          }
+        }
+      }
+    }
+
     // if (this.attacking) {
     //   // if enough time has passed, animate attack again
     //   if (this.lastAttackTime == null || deltaMs - this.lastAttackTime > 200) {
@@ -132,6 +176,10 @@ export default class LivingEntityState {
     this.target = target
     this.path = this.pather.findPath({ x: this.x, y: this.y }, target)
     this.tempTarget = this.path.shift()
+  }
+
+  setTargetItem(groundItem) {
+    this.targetItem = groundItem
   }
 
   stopMoving() {
