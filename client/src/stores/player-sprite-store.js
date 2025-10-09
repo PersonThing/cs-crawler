@@ -3,7 +3,7 @@ import createStore from '#shared/stores/create-store'
 const isValidPlayerSprite = item =>
   typeof item === 'object' && item != null && item.state != null && item.state.playerId != null
 
-const { subscribe, get, update, set } = createStore(
+const { subscribe, get, update, set, triggerSubscribers } = createStore(
   [],
   value => Array.isArray(value) && value.every(item => isValidPlayerSprite(item))
 )
@@ -13,6 +13,7 @@ export default {
   get,
   update,
   set,
+  triggerSubscribers,
   add: player => {
     update(players => {
       players.push(player)

@@ -40,17 +40,12 @@ const init = async (levelConfig, localPlayerState) => {
     playerSpriteStore.set([])
   }
 
-  console.log('initializing client')
-  console.log('level', levelConfig)
-  console.log('player', localPlayerState)
-
   pather = new Pather(levelConfig)
 
   // create pixi.js app
   app = new Application()
   await app.init({ background: 0x000000, resizeTo: window })
   document.body.appendChild(app.canvas)
-
   initDevtools({ app })
 
   // create world
@@ -73,7 +68,7 @@ const init = async (levelConfig, localPlayerState) => {
     if (lastServerState != null) {
       applyServerState(lastServerState)
     }
-    
+
     world.onTick(time)
     hud.onTick(time)
 
@@ -103,7 +98,8 @@ socket.on('serverState', state => {
 })
 
 function applyServerState(state) {
-  const players = playerSpriteStore.get()
+  let players = playerSpriteStore.get()
+
   // add any new players that weren't in store
   Object.entries(state.players).forEach(([playerId, playerState]) => {
     if (!players.find(p => p.state.playerId === playerId)) {
@@ -126,6 +122,10 @@ function applyServerState(state) {
     }
   })
 
-  playerSpriteStore.set(players)
+  // force trigger subscribers, since changes to object properties in array won't automatically do that
+  // TODO: how can we do that better?
+  playerSpriteStore.triggerSubscribers()
+
+  // update ground items store - we should track a hash and only do it if it changes
   groundItemsStore.set(state.groundItems)
 }

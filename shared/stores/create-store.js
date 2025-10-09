@@ -13,19 +13,24 @@ const createStore = (initialValue, validator) => {
       }
     }
   }
+
+  const triggerSubscribers = () => {
+    subscribers.forEach(callback => callback(value))
+  }
+
   const set = newValue => {
     if (validator && !validator(newValue)) {
       console.error('Invalid value for store', value, newValue)
       return false
     }
     value = newValue
-    subscribers.forEach(callback => callback(value))
+    triggerSubscribers()
     return true
   }
   const update = fn => set(fn(value))
   const get = () => value
 
-  return { subscribe, set, update, get }
+  return { subscribe, set, update, get, triggerSubscribers }
 }
 
 export default createStore
