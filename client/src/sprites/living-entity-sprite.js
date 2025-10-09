@@ -94,12 +94,7 @@ class LivingEntitySprite extends Container {
         // only non-bonus slots with an item that has an equippedTexture
         ([slot, item]) => item != null && item.equippedTexture != null && !slot?.startsWith('Bonus')
       )
-      .forEach(([slot, item]) => {
-        console.log('attaching item to', slot)
-        if (item && item.equippedTexture) {
-          this.attachItemSprite(item.equippedTexture, slot)
-        }
-      })
+      .forEach(([slot, item]) => this.attachItemSprite(item.equippedTexture, slot))
   }
 
   attachItemSprite(texture, slotName) {

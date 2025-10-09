@@ -55,6 +55,21 @@ function tick() {
 }
 setInterval(tick, SERVER_TICK_RATE)
 
+function dropToGround(player, item) {
+  groundItems.push(
+    new GroundItem(
+      item,
+      pather.getBestAvailableItemPosition(
+        {
+          x: player.x,
+          y: player.y,
+        },
+        groundItems
+      )
+    )
+  )
+}
+
 // handle socket communication with players
 io.on('connection', socket => {
   let username = socket.handshake.query.username
@@ -136,32 +151,51 @@ io.on('connection', socket => {
     if (item == null) {
       return
     }
-    groundItems.push(
-      new GroundItem(
-        item,
-        pather.getBestAvailableItemPosition(
-          {
-            x: player.x,
-            y: player.y,
-          },
-          groundItems
-        )
-      )
-    )
+    dropToGround(player, item)
     player.inventory.clearCursor()
   })
 
-  socket.on('inventoryBagSlotClick', index => {
+  socket.on('inventoryBagSlotClick', (index, { ctrlKey, shiftKey, altKey, rightClick } = {}) => {
     if (!player?.isConnected) {
       return
     }
+
+    // if right click and item exists in slot, try to equip it
+    if (rightClick && !ctrlKey) {
+      player.inventory.tryEquipFromBagSlot(index)
+      return
+    }
+
+    // if ctrl right click and item exists in slot, drop it to ground
+    if (rightClick && ctrlKey) {
+      const item = player.inventory.bags[index]
+      if (item != null) {
+        dropToGround(player, item)
+        player.inventory.clearBagSlot(index)
+        return
+      }
+    }
+
+    // handle normal click
     player.inventory.clickBagSlot(index)
   })
 
-  socket.on('inventoryEquippedSlotClick', slotName => {
+  socket.on('inventoryEquippedSlotClick', (slotName, { ctrlKey, shiftKey, altKey, rightClick } = {}) => {
     if (!player?.isConnected) {
       return
     }
+
+    // if ctrl right click and item exists in slot, drop it to ground
+    if (rightClick && ctrlKey) {
+      const item = player.inventory.equipped[slotName]
+      if (item != null) {
+        dropToGround(player, item)
+        player.inventory.clearEquippedSlot(slotName)
+        return
+      }
+    }
+
+    // handle normal click
     player.inventory.clickEquippedSlot(slotName)
   })
 

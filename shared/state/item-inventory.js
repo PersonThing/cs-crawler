@@ -168,7 +168,7 @@ export default class ItemInventory {
     for (let k = 0; k < possibleSlots.length; k++) {
       const possibleSlotName = possibleSlots[k]
       if (!this.isSlotFilled(possibleSlotName)) {
-        if (this.equip(item, possibleSlotName, false)) {
+        if (this.equip(item, possibleSlotName)) {
           return true
         }
       }
@@ -237,9 +237,9 @@ export default class ItemInventory {
 
     // we're good now, force it on
 
-    // TODO: we should have already removed it from bags and placed it on cursor
+    // if item came from bags, clear that slot
     const ix = this.bags.findIndex(i => item === i)
-    if (ix > 0) {
+    if (ix >= 0) {
       this.clearBagSlot(ix)
     }
 
@@ -290,7 +290,11 @@ export default class ItemInventory {
           this.setCursor(previouslyEquippedItem)
         }
         // if we equipped a 2h weapon and there's something in offhand, put it in bags
-        if (slotName === InventorySlot.MainHand.name && cursorItem.itemType.bothHands && this.equipped[InventorySlot.OffHand.name] != null) {
+        if (
+          slotName === InventorySlot.MainHand.name &&
+          cursorItem.itemType.bothHands &&
+          this.equipped[InventorySlot.OffHand.name] != null
+        ) {
           this.putInBags(this.equipped[InventorySlot.OffHand.name])
           this.clearEquippedSlot(InventorySlot.OffHand.name)
         }
@@ -300,5 +304,57 @@ export default class ItemInventory {
       this.setCursor(previouslyEquippedItem)
       this.clearEquippedSlot(slotName)
     }
+  }
+
+  // TODO: some bugs with this RE 1h & 2h weapons
+  tryEquipFromBagSlot(index) {
+    AssertValidSlotIndex(index)
+    const bagItem = this.bags[index]
+    if (bagItem == null) {
+      return false
+    }
+
+    const possibleSlots = this.getValidSlotNamesForItem(bagItem)
+    for (let k = 0; k < possibleSlots.length; k++) {
+      const possibleSlotName = possibleSlots[k]
+      const slotOccupiedWith = this.equipped[possibleSlotName]
+      if (slotOccupiedWith == null) {
+
+        // slot is open, equip it
+        this.setEquippedSlot(possibleSlotName, bagItem)
+        this.clearBagSlot(index)
+        return true
+
+      } else if (
+        // MainHand slot
+        possibleSlotName === InventorySlot.MainHand.name &&
+        // occupied with a 1h weapon
+        slotOccupiedWith != null &&
+        slotOccupiedWith.itemType.bothHands === false &&
+        // but offhand is open
+        !this.isSlotFilled(InventorySlot.OffHand.name) &&
+        // and this is a 1h weapon
+        !bagItem.itemType.bothHands
+      ) {
+
+        // equip to offhand
+        this.setEquippedSlot(InventorySlot.OffHand.name, bagItem)
+        this.clearBagSlot(index)
+        return true
+
+      } else {
+
+        // occupied and didn't fit the offhand special case, just swap it
+        // try to equip it, if it fails, continue to next possible slot
+        // (for example.. it can fail if trying to equip a 2h weapon but main and offhand are full, and no room to pull them both into bags)
+        if (this.equip(bagItem, possibleSlotName)) {
+          this.setBagSlot(index, slotOccupiedWith)
+          return true
+        }
+
+      }
+    }
+
+    return false
   }
 }

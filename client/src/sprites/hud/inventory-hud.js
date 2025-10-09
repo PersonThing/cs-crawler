@@ -57,6 +57,8 @@ class InventoryHud extends Container {
       }
     })
 
+    this.eventMode = 'static'
+
     this.on('pointerdown', event => {
       console.log('inventory hud pointerdown - stopping propagation')
       event.stopPropagation()
@@ -176,9 +178,6 @@ class InventoryHud extends Container {
         // this.inventory.clickEquippedSlot(inventorySlot.name)
         socket.emit('inventoryEquippedSlotClick', inventorySlot.name)
         console.log('clicked equipped slot', inventorySlot.name, 'empty')
-        event.stopPropagation()
-        event.preventDefault()
-        return false
       })
       this.bg.addChild(bgSprite)
     }
@@ -192,9 +191,6 @@ class InventoryHud extends Container {
         // this.inventory.clickBagSlot(index)
         socket.emit('inventoryBagSlotClick', index)
         console.log('clicked bag slot', index, 'empty')
-        event.stopPropagation()
-        event.preventDefault()
-        return false
       })
     }
 
@@ -239,11 +235,13 @@ class InventoryHud extends Container {
         const coords = this.getBagSlotCoordinates(index)
         const itemSprite = this.drawItem(item, coords)
         itemSprite.on('pointerdown', event => {
-          // this.inventory.clickBagSlot(index)
-          socket.emit('inventoryBagSlotClick', index, item)
+          socket.emit('inventoryBagSlotClick', index, {
+            rightClick: event.button === 2,
+            ctrlKey: event.ctrlKey,
+            shiftKey: event.shiftKey,
+            altKey: event.altKey,
+          })
           console.log('clicked bag slot', index, item)
-          event.stopPropagation()
-          event.preventDefault()
           return false
         })
       }
@@ -259,12 +257,13 @@ class InventoryHud extends Container {
       const coords = EquippedSlotCoordinates[slotName]
       const itemSprite = this.drawItem(item, coords)
       itemSprite.on('pointerdown', event => {
-        // this.inventory.clickEquippedSlot(slotName)
-        socket.emit('inventoryEquippedSlotClick', slotName, item)
+        socket.emit('inventoryEquippedSlotClick', slotName, {
+          rightClick: event.button === 2,
+          ctrlKey: event.ctrlKey,
+          shiftKey: event.shiftKey,
+          altKey: event.altKey,
+        })
         console.log('clicked equipped slot', slotName, item)
-        event.stopPropagation()
-        event.preventDefault()
-        return false
       })
 
       // if 2h weapon, render a greyed out version of sprite in offhand slot
