@@ -1,3 +1,4 @@
+import ItemSlotType from '#shared/config/item-slot-type.js'
 import ItemType from '#shared/config/item-type.js'
 import { BAG_SLOTS } from '../config/constants.js'
 import InventorySlot from '../config/inventory-slot.js'
@@ -110,11 +111,8 @@ export default class ItemInventory {
   }
 
   getValidSlotNamesForItem(item) {
-    return item.itemType.validSlotTypes.flatMap(slotType => {
-      return Object.values(InventorySlot)
-        .filter(slot => slot.slotType === slotType)
-        .map(slot => slot.name)
-    })
+    AssertValidItem(item)
+    return Object.values(InventorySlot).filter(slot => item.itemType.validSlotTypes.includes(slot.slotType)).map(slot => slot.name)
   }
 
   isItemValidForSlot(item, slotName) {
@@ -161,14 +159,25 @@ export default class ItemInventory {
     const possibleSlots = this.getValidSlotNamesForItem(item)
     for (let possibleSlotName of possibleSlots) {
       if (!this.isSlotFilled(possibleSlotName)) {
-        if (this.equip(item, possibleSlotName)) {
+        if (this.tryEquip(item, possibleSlotName)) {
           return true
         }
       }
     }
 
-    // otherwise try to put it in inventory
-    return this.tryPutInBags(item)
+    // try to put it in bags
+    if (this.tryPutInBags(item)) {
+      return true
+    }
+
+    // last resort, set to cursor
+    // TODO: this is an ok idea maybe, but cursor item currently only shows if inventory-hud is open.. think about it
+    // if (this.cursor == null) {
+    //   this.setCursor(item)
+    //   return true
+    // }
+
+    return false
   }
 
   // returns whether the item was successfully put in bags or not
@@ -184,7 +193,7 @@ export default class ItemInventory {
   }
 
   // returns whether the item was successfully equipped or not
-  equip(item, slotName) {
+  tryEquip(item, slotName) {
     AssertValidItem(item)
 
     if (!this.isItemValidForSlot(item, slotName)) {
@@ -197,7 +206,7 @@ export default class ItemInventory {
     if (previouslyEquippedItem === item) {
       return true
     }
-
+    
     // trying to equip 2h to mainhand
     if (slotName === InventorySlot.MainHand.name && item.itemType.bothHands) {
       const otherSlot = slotName === InventorySlot.MainHand.name ? InventorySlot.OffHand.name : InventorySlot.MainHand.name
@@ -205,17 +214,16 @@ export default class ItemInventory {
 
       // swapping for a 2h?
       if (previouslyEquippedItem?.itemType.bothHands || otherSlotItem?.itemType.bothHands) {
-        // do nothing special
-        // swap for whichever slot is equipped
-        // previouslyEquippedItem = previouslyEquippedItem || otherSlotItem
-        // this.clearEquippedSlot(otherSlot)
-        // this.clearEquippedSlot(slotName)
+        // do nothing special, just swap it out
       } else {
         // swapping for a 1h...
         // if both slots are filled...
         if (this.isSlotFilled(slotName) && this.isSlotFilled(otherSlot)) {
           // we need to be able to put otherSlot in bags first
+          // if the new item is coming from bags, put this item in that slot
           if (!this.tryPutInBags(this.equipped[otherSlot])) {
+            // couldn't put it in bags...
+            // did new item come from bags? if so, put it in cursor instead
             return false
           }
           // we were able to put otherSlot in bags, clear it from equipped
@@ -259,13 +267,13 @@ export default class ItemInventory {
 
     // did item come from bags?
     // if so, clear or swap previous item with same bag slot
-    const ix = this.bags.findIndex(i => item === i)
-    if (ix >= 0) {
+    const bagIndex = this.bags.findIndex(i => item === i)
+    if (bagIndex >= 0) {
       // item came from bags
       if (previouslyEquippedItem != null) {
-        this.setBagSlot(ix, previouslyEquippedItem)
+        this.setBagSlot(bagIndex, previouslyEquippedItem)
       } else {
-        this.clearBagSlot(ix)
+        this.clearBagSlot(bagIndex)
       }
       return true
     }
@@ -316,7 +324,7 @@ export default class ItemInventory {
 
     const cursorItem = this.cursor
     if (cursorItem != null) {
-      return this.equip(cursorItem, slotName)
+      return this.tryEquip(cursorItem, slotName)
     } else if (previouslyEquippedItem != null) {
       this.setCursor(previouslyEquippedItem)
       this.clearEquippedSlot(slotName)
@@ -325,18 +333,59 @@ export default class ItemInventory {
     return true
   }
 
-  equipFromBagSlot(index) {
+  tryEquipFromBagSlot(index, reverseOrder = false) {
     AssertValidSlotIndex(index)
     const bagItem = this.bags[index]
     if (bagItem == null) {
       return false
     }
 
-    // get all possible non-bonus slots
     const possibleSlots = this.getValidSlotNamesForItem(bagItem)
+    if (reverseOrder) {
+      // shift key reverses order.. try to put in last possible slot first
+      // this is useful for shift+right click to put onto offhand, for example
+      possibleSlots.reverse()
+    }
     for (let k = 0; k < possibleSlots.length; k++) {
       const possibleSlotName = possibleSlots[k]
-      if (this.equip(bagItem, possibleSlotName)) {
+
+      if (InventorySlot[possibleSlotName].slotType === ItemSlotType.Bonus) {
+        // skip bonus slots for non-bonus items
+        if (bagItem.itemType.name !== ItemType.Bonus.name) {
+          continue
+        }
+
+        // bonus item into bonus slot.. try to fill empty slots first
+        if (this.isSlotFilled(possibleSlotName)) {
+          if (k < possibleSlots.length - 1) {
+            console.log(possibleSlotName, 'filled, trying', possibleSlots[k + 1], bagItem.id)
+            continue
+          } else {
+            // all possible slots are filled, try to swap with first eligible slot
+            console.log('all slots filled, trying to put into', possibleSlots[0], bagItem.id)
+            return this.tryEquip(bagItem, possibleSlots[0])
+          }
+        }
+      }
+
+      // if mainhand is filled with a 1h, and we're trying to equip a 1h, try offhand first
+      if (possibleSlotName === InventorySlot.MainHand.name) {
+        if (
+          this.isSlotFilled(InventorySlot.MainHand.name) &&
+          !this.equipped[InventorySlot.MainHand.name]?.itemType.bothHands &&
+          !bagItem.itemType.bothHands
+        ) {
+          if (!this.isSlotFilled(InventorySlot.OffHand.name)) {
+            if (this.tryEquip(bagItem, InventorySlot.OffHand.name)) {
+              // we were able to put it into offhand, great
+              return true
+            }
+            // we were unable to put it into offhand, will get forced into mainhand below
+          }
+        }
+      }
+
+      if (this.tryEquip(bagItem, possibleSlotName)) {
         return true
       }
     }

@@ -14,6 +14,7 @@ const keyBindings = [
   // inventory
   { key: 'Left click', action: 'Inventory: Pick up item' },
   { key: 'Right click', action: 'Inventory: Equip item' },
+  { key: 'Shift + Right click', action: 'Inventory: Equip item (to offhand if possible)' },
   { key: 'Ctrl + Right click', action: 'Inventory: Drop item' },
 
   // temp keys

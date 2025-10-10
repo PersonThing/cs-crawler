@@ -162,7 +162,7 @@ io.on('connection', socket => {
 
     // if right click and item exists in slot, try to equip it
     if (rightClick && !ctrlKey) {
-      player.inventory.equipFromBagSlot(index)
+      player.inventory.tryEquipFromBagSlot(index, shiftKey) // shift key reverses order of trying slots, to try to put in offhand first, for example
       return
     }
 
@@ -223,7 +223,7 @@ io.on('connection', socket => {
       return
     }
 
-    player.inventory.reset()
+    player.inventory.bags = []
   })
 
   // temp: generate random item on ground at player position
