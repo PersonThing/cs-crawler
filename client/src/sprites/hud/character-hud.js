@@ -16,12 +16,11 @@ class CharacterHud extends Container {
     this.renderBackground()
 
     this.stats = {}
-
-    this.unsubscribeFromPlayer = playerSpriteStore.subscribe(player => {
-      if (player.isLocalPlayer) {
-        this.subscribeToPlayer(player)
-      }
-    });
+    this.unsubscribeFromPlayers = playerSpriteStore.subscribe(players => {
+      const player = players.find(p => p.isLocalPlayer)
+      this.stats = player?.state?.stats || {}
+      this.renderStats()
+    })
 
     // kill any click events that bubble through
     this.eventMode = 'static'
@@ -33,27 +32,9 @@ class CharacterHud extends Container {
   }
 
   destroy() {
-    if (this.unsubscribeFromPlayer) {
-      this.unsubscribeFromPlayer()
+    if (this.unsubscribeFromPlayers) {
+      this.unsubscribeFromPlayers()
     }
-  }
-
-  subscribeToPlayer(player) {
-    if (this.unsubscribeFromPlayer) {
-      this.unsubscribeFromPlayer()
-    }
-
-    if (player == null || player.stats == null) {
-      this.stats = {}
-      this.renderStats()
-      return
-    }
-
-    this.playerStats = player.stats
-    this.unsubscribeFromPlayer = this.playerStats.store.subscribe(stats => {
-      this.stats = stats
-      this.renderStats()
-    })
   }
 
   renderBackground() {
@@ -64,13 +45,10 @@ class CharacterHud extends Container {
     this.bg = new Container()
     this.addChild(this.bg)
 
-    const gfx = new Graphics()
-      .rect(0, 0, WIDTH, HEIGHT)
-      .fill(HUD_FILL_COLOR)
-      .stroke({
-        color: HUD_BORDER_COLOR,
-        width: 4,
-      })
+    const gfx = new Graphics().rect(0, 0, WIDTH, HEIGHT).fill(HUD_FILL_COLOR).stroke({
+      color: HUD_BORDER_COLOR,
+      width: 4,
+    })
     gfx.alpha = 0.5
     gfx.x = 0
     gfx.y = 0

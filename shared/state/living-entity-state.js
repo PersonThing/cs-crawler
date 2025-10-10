@@ -49,6 +49,7 @@ export default class LivingEntityState {
       delete data.inventory
     }
     Object.assign(this, data)
+    this.computeStats()
   }
 
   onTick(time, groundItems) {
@@ -198,17 +199,11 @@ export default class LivingEntityState {
     this.attackTarget = null
   }
 
-  setEquipped(equipped) {
-    this.equipped = equipped
-    this.computeStats()
-  }
-
   computeStats() {
     const stats = {}
     // apply attributes from items
-    Object.keys(equipped).forEach(itemKey => {
-      const item = equipped[itemKey]
-      if (item) {
+    Object.values(this.inventory.equipped).forEach(item => {
+      if (item != null) {
         Object.keys(item.attributes).forEach(stat => {
           if (stats[stat] == null) stats[stat] = 0
           stats[stat] += item.attributes[stat]
