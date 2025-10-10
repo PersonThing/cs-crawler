@@ -97,26 +97,24 @@ io.on('connection', async socket => {
   const initThisPlayerAsync = async () => {
     console.log('Initializing player ' + username)
     if (player == null) {
-      // check db for player first
-      const dbPlayer = await db.getPlayerAsync(playerId)
+      // get player from db
+      let dbPlayer = await db.getPlayerAsync(playerId)
       if (dbPlayer) {
-        console.log('Found existing player in DB, loading ' + playerId, username)
-        player = new PlayerState({ ...dbPlayer.data, pather })
-        // if player at (0, 0), set to level start instead
-        if (player.x === 0 && player.y === 0) {
-          player.setPosition(level.start.x, level.start.y)
-        }
-        player.playerId = playerId // ensure playerId is correct
-        player.isConnected = true
-        players[playerId] = player
+        console.log('Player found in db, loading ' + playerId, username)
       } else {
-        console.log('Player not found in db, creating new player for ' + playerId, username)
-        const dbPlayer = await db.createPlayerAsync(playerId, { username })
-        player = new PlayerState({ ...dbPlayer.data, pather })
-        player.setPosition(level.start.x, level.start.y)
-        player.isConnected = true
-        players[playerId] = player
+        // not found, create in db
+        await db.savePlayerAsync(playerId, { username })
+        console.log('Player not found in db, created new record ' + playerId, username)
+        dbPlayer = { playerId, data: { username } }
       }
+      
+      player = new PlayerState({ ...dbPlayer.data, playerId, pather })
+      if (player.x === 0 && player.y === 0) {
+        // player at (0, 0)... set to level start instead
+        player.setPosition(level.start.x, level.start.y)
+      }
+      player.isConnected = true
+      players[playerId] = player
     }
 
     socket.emit('init', {

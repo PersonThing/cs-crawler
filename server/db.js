@@ -22,14 +22,6 @@ const db = {
     return await Player.findOne({ where: { playerId } })
   },
 
-  async createPlayerAsync(playerId, playerState) {
-    return await Player.create({
-      playerId,
-      username: playerState.username,
-      data: playerState,
-    })
-  },
-
   async savePlayerAsync(playerId, playerState) {
     const [player, created] = await Player.findOrCreate({
       where: { playerId },
@@ -43,6 +35,7 @@ const db = {
       player.data = playerState
       await player.save()
     }
+    return player
   }
 }
 
