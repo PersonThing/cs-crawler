@@ -79,8 +79,11 @@ class LivingEntitySprite extends Container {
   }
 
   updateEquippedItems() {
-    // TODO: don't update if nothing changed
-
+    // don't update if nothing changed
+    if (this.renderedInventoryHash === this.state.inventory.hash) {
+      return
+    }
+    
     // Remove old attached items
     Object.values(this.attachedItems).forEach(item => {
       this.sprite.removeChild(item)
@@ -95,6 +98,9 @@ class LivingEntitySprite extends Container {
         ([slot, item]) => item != null && item.equippedTexture != null && !slot?.startsWith('Bonus')
       )
       .forEach(([slot, item]) => this.attachItemSprite(item.equippedTexture, slot))
+
+    // update rendered hash
+    this.renderedInventoryHash = this.state.inventory.hash
   }
 
   attachItemSprite(texture, slotName) {

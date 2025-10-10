@@ -5,6 +5,8 @@ export default class InventoryItem extends Container {
   constructor(item, { x, y }, isDisabledOffHand) {
     super()
 
+    this.item = item
+
     this.eventMode = 'static'
 
     const itemSprite = Sprite.from(item.inventoryTexture)

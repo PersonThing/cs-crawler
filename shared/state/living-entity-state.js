@@ -21,7 +21,7 @@ export default class LivingEntityState {
     
     this.color = color
     this.targetItem = targetItem
-    this.inventory = new ItemInventory(id, inventory)
+    this.inventory = new ItemInventory(inventory)
   }
 
   serialize() {

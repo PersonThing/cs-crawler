@@ -1,27 +1,31 @@
 import ItemType from '#shared/config/item-type.js'
 import { BAG_SLOTS } from '../config/constants.js'
 import InventorySlot from '../config/inventory-slot.js'
-import createPersistedStore from '../stores/create-persisted-store.js'
+
+const GenerateShortHash = string => {
+  let hash = 0
+  for (const char of string) {
+    hash = (hash << 5) - hash + char.charCodeAt(0)
+    hash |= 0 // Constrain to 32bit integer
+  }
+  return hash
+}
 
 const LogAndThrow = (message, ...args) => {
   console.error(message, ...args)
   throw new Error(message)
 }
 
-const validItemTypeNames = Object.values(ItemType).map(i => i.name)
+const ValidItemTypeNames = Object.values(ItemType).map(i => i.name)
+
+const IsValidItem = item => item != null && item.itemType != null && ValidItemTypeNames.includes(item.itemType.name)
 
 const AssertValidItem = item => {
   if (typeof item !== 'object' || item == null) {
     LogAndThrow('invalid item, must be an object, received: ', item)
   }
-  if (
-    typeof item.itemType !== 'object' ||
-    item.itemType == null ||
-    !validItemTypeNames.includes(item.itemType.name)
-  ) {
-    LogAndThrow(
-      `invalid item, itemType ${item?.itemType?.name} must be one of: ${validItemTypeNames.join(', ')}`
-    )
+  if (!IsValidItem(item)) {
+    LogAndThrow(`invalid item, itemType ${item?.itemType?.name} must be one of: ${ValidItemTypeNames.join(', ')}`)
   }
 }
 
@@ -33,42 +37,22 @@ const AssertValidSlotIndex = index => {
 
 const AssertValidSlotName = slotName => {
   if (InventorySlot[slotName] == null) {
-    throw new Error(
-      'invalid InventorySlot',
-      slotName,
-      'must be one of: ' + Object.keys(InventorySlot).join(', ')
-    )
+    throw new Error('invalid InventorySlot', slotName, 'must be one of: ' + Object.keys(InventorySlot).join(', '))
   }
 }
 
 export default class ItemInventory {
-  constructor(playerId, content) {
+  constructor(content) {
     if (content == null) content = {}
-
-    // could use player's id for key if we want to support multiple players on same client
-    this.store = createPersistedStore(
-      `inventory_${playerId}`,
-      content,
-      value =>
-        value &&
-        typeof value.equipped === 'object' &&
-        Array.isArray(value.bags) &&
-        value.bags.length <= BAG_SLOTS
-    )
-
-    // load from store initially
-    const { equipped, bags, cursor } = this.store.get()
-    this.equipped = equipped || {}
-    this.bags = bags || []
-    this.cursor = cursor || null
+    this.deserialize(content)
   }
 
   serialize() {
-    const values = this.store.get()
     return {
-      equipped: values.equipped,
-      bags: values.bags,
-      cursor: values.cursor,
+      equipped: this.equipped,
+      bags: this.bags,
+      cursor: this.cursor,
+      hash: this.hash,
     }
   }
 
@@ -76,47 +60,53 @@ export default class ItemInventory {
     this.equipped = content.equipped || {}
     this.bags = content.bags || []
     this.cursor = content.cursor || null
-    this.updateStore()
+    this.updateHash()
   }
 
-  updateStore() {
-    const content = {
-      bags: this.bags,
-      equipped: this.equipped,
-      cursor: this.cursor,
-    }
-    this.store.set(content)
+  updateHash() {
+    this.hash = GenerateShortHash(
+      JSON.stringify({
+        equipped: this.equipped,
+        bags: this.bags,
+        cursor: this.cursor,
+      })
+    )
   }
 
   reset() {
     this.equipped = {}
     this.bags = []
-    this.updateStore()
+    this.updateHash()
   }
 
   setBagSlot(index, item) {
     AssertValidSlotIndex(index)
     AssertValidItem(item)
     this.bags[index] = item
-    this.updateStore()
+    this.updateHash()
   }
 
   clearBagSlot(index) {
     this.bags[index] = null
-    this.updateStore()
+    this.updateHash()
   }
 
   setEquippedSlot(slotName, item) {
     AssertValidSlotName(slotName)
     AssertValidItem(item)
     this.equipped[slotName] = item
-    this.updateStore()
+    this.updateHash()
+  }
+
+  getEquippedSlot(slotName) {
+    AssertValidSlotName(slotName)
+    return this.equipped[slotName] || null
   }
 
   clearEquippedSlot(slotName) {
     AssertValidSlotName(slotName)
     this.equipped[slotName] = null
-    this.updateStore()
+    this.updateHash()
   }
 
   getValidSlotNamesForItem(item) {
@@ -127,64 +117,16 @@ export default class ItemInventory {
     })
   }
 
-  canEquip(slotName, item) {
+  isItemValidForSlot(item, slotName) {
     AssertValidSlotName(slotName)
     AssertValidItem(item)
-
-    if (!this.getValidSlotNamesForItem(item).includes(slotName)) {
-      return false
-    }
-
-    // if they're trying to equip a 2h weapon and both mainhand and offhand are currently full, they need at least 1 bag slot empty
-    if (item.itemType.bothHands) {
-      if (
-        this.isSlotFilled(InventorySlot.MainHand.name) &&
-        this.isSlotFilled(InventorySlot.OffHand.name)
-      ) {
-        return this.bags.some(i => i == null)
-      }
-    }
-
-    return true
+    return this.getValidSlotNamesForItem(item).includes(slotName)
   }
 
-  setCursor(item) {
-    AssertValidItem(item)
-    this.cursor = item
-    this.updateStore()
-  }
-
-  clearCursor() {
-    this.cursor = null
-    this.updateStore()
-  }
-
-  // returns whether the item was successfully picked up or not
-  pickup(item) {
-    AssertValidItem(item)
-
-    // if a slot this item fits in is empty, equip it
-    const possibleSlots = this.getValidSlotNamesForItem(item)
-    for (let k = 0; k < possibleSlots.length; k++) {
-      const possibleSlotName = possibleSlots[k]
-      if (!this.isSlotFilled(possibleSlotName)) {
-        if (this.equip(item, possibleSlotName)) {
-          return true
-        }
-      }
-    }
-
-    // otherwise put it in inventory
-    // find lowest empty bag slot
-    return this.putInBags(item)
-  }
-
-  // returns whether the item was successfully put in bags or not
-  putInBags(item) {
-    AssertValidItem(item)
+  hasBagSpaceAvailable() {
+    // we use a loop here because bags may not even have the right # of slots created yet
     for (let i = 0; i < BAG_SLOTS; i++) {
       if (this.bags[i] == null) {
-        this.setBagSlot(i, item)
         return true
       }
     }
@@ -196,55 +138,148 @@ export default class ItemInventory {
     return (
       this.equipped[slotName] != null ||
       // or its an offhand slot and a 2h weapon is equipped in mainhand slot
-      (slotName === InventorySlot.OffHand.name &&
-        this.equipped[InventorySlot.MainHand.name]?.itemType.bothHands)
+      (slotName === InventorySlot.OffHand.name && this.equipped[InventorySlot.MainHand.name]?.itemType.bothHands)
     )
+  }
+
+  setCursor(item) {
+    AssertValidItem(item)
+    this.cursor = item
+    this.updateHash()
+  }
+
+  clearCursor() {
+    this.cursor = null
+    this.updateHash()
+  }
+
+  // returns whether the item was successfully picked up or not
+  pickup(item) {
+    AssertValidItem(item)
+
+    // if a slot this item fits in is empty, equip it
+    const possibleSlots = this.getValidSlotNamesForItem(item)
+    for (let possibleSlotName of possibleSlots) {
+      if (!this.isSlotFilled(possibleSlotName)) {
+        if (this.equip(item, possibleSlotName)) {
+          return true
+        }
+      }
+    }
+
+    // otherwise try to put it in inventory
+    return this.tryPutInBags(item)
+  }
+
+  // returns whether the item was successfully put in bags or not
+  tryPutInBags(item) {
+    AssertValidItem(item)
+    for (let i = 0; i < BAG_SLOTS; i++) {
+      if (this.bags[i] == null) {
+        this.setBagSlot(i, item)
+        return true
+      }
+    }
+    return false
   }
 
   // returns whether the item was successfully equipped or not
   equip(item, slotName) {
     AssertValidItem(item)
-    if (!this.canEquip(slotName, item)) {
+
+    if (!this.isItemValidForSlot(item, slotName)) {
       return false
     }
 
-    // if trying to equip offhand, but a 2h is equipped, try to put the 2h in bags first
+    let previouslyEquippedItem = this.equipped[slotName]
+
+    // already equipped?
+    if (previouslyEquippedItem === item) {
+      return true
+    }
+
+    // trying to equip 2h to mainhand
+    if (slotName === InventorySlot.MainHand.name && item.itemType.bothHands) {
+      const otherSlot = slotName === InventorySlot.MainHand.name ? InventorySlot.OffHand.name : InventorySlot.MainHand.name
+      const otherSlotItem = this.equipped[otherSlot]
+
+      // swapping for a 2h?
+      if (previouslyEquippedItem?.itemType.bothHands || otherSlotItem?.itemType.bothHands) {
+        // do nothing special
+        // swap for whichever slot is equipped
+        // previouslyEquippedItem = previouslyEquippedItem || otherSlotItem
+        // this.clearEquippedSlot(otherSlot)
+        // this.clearEquippedSlot(slotName)
+      } else {
+        // swapping for a 1h...
+        // if both slots are filled...
+        if (this.isSlotFilled(slotName) && this.isSlotFilled(otherSlot)) {
+          // we need to be able to put otherSlot in bags first
+          if (!this.tryPutInBags(this.equipped[otherSlot])) {
+            return false
+          }
+          // we were able to put otherSlot in bags, clear it from equipped
+          this.clearEquippedSlot(otherSlot)
+        }
+
+        // if clicked slot was empty, but otherSlot was filled, previouslyEquippedItem should be otherSlot
+        if (previouslyEquippedItem == null && otherSlotItem != null) {
+          previouslyEquippedItem = otherSlotItem
+          this.clearEquippedSlot(otherSlot)
+        }
+      }
+    }
+
+    // trying to equip 1h in offhand, but a 2h is equipped
     if (
       slotName === InventorySlot.OffHand.name &&
+      item.itemType.bothHands === false &&
       this.equipped[InventorySlot.MainHand.name]?.itemType.bothHands
     ) {
-      if (!this.putInBags(this.equipped[InventorySlot.MainHand.name])) {
-        return false
+      // force the item into mainhand for simplicity
+      // alternatively, we could allow it to go into offhand, but move the mainhand out to cursor
+      slotName = InventorySlot.MainHand.name
+      previouslyEquippedItem = this.equipped[InventorySlot.MainHand.name]
+    }
+
+    // equip it
+    this.setEquippedSlot(slotName, item)
+
+    // did item come from cursor?
+    // if so, clear or swap previous item with cursor
+    if (this.cursor === item) {
+      // item came from cursor
+      if (previouslyEquippedItem != null) {
+        this.setCursor(previouslyEquippedItem)
+      } else {
+        this.clearCursor()
       }
+      return true
     }
 
-    // if trying to equip 2h, but an offhand is equipped, try to put the offhand in bags first
-    if (
-      slotName === InventorySlot.MainHand.name &&
-      item.itemType.bothHands &&
-      this.equipped[InventorySlot.OffHand.name] != null
-    ) {
-      if (!this.putInBags(this.equipped[InventorySlot.OffHand.name])) {
-        return false
-      }
-    }
-
-    // if there's something in the slot already, fail
-    // caller should put in bags or on cursor first
-    if (this.isSlotFilled(slotName)) {
-      return false
-    }
-
-    // we're good now, force it on
-
-    // if item came from bags, clear that slot
+    // did item come from bags?
+    // if so, clear or swap previous item with same bag slot
     const ix = this.bags.findIndex(i => item === i)
     if (ix >= 0) {
-      this.clearBagSlot(ix)
+      // item came from bags
+      if (previouslyEquippedItem != null) {
+        this.setBagSlot(ix, previouslyEquippedItem)
+      } else {
+        this.clearBagSlot(ix)
+      }
+      return true
     }
 
-    // set in equipped
-    this.setEquippedSlot(slotName, item)
+    // item must've come from ground...
+    // if we somehow have a previously equipped item, try to put it in bags
+    if (previouslyEquippedItem != null) {
+      if (!this.tryPutInBags(previouslyEquippedItem)) {
+        // couldn't put it in bags, revert equip
+        this.setEquippedSlot(slotName, previouslyEquippedItem)
+        return false
+      }
+    }
+
     return true
   }
 
@@ -276,82 +311,33 @@ export default class ItemInventory {
 
     const previouslyEquippedItem = this.equipped[slotName]
     if (previouslyEquippedItem == null && this.cursor == null) {
-      return null
+      return false
     }
 
     const cursorItem = this.cursor
     if (cursorItem != null) {
-      // placing from cursor
-      if (this.canEquip(slotName, cursorItem)) {
-        this.setEquippedSlot(slotName, cursorItem)
-        if (previouslyEquippedItem == null) {
-          this.clearCursor()
-        } else {
-          this.setCursor(previouslyEquippedItem)
-        }
-        // if we equipped a 2h weapon and there's something in offhand, put it in bags
-        if (
-          slotName === InventorySlot.MainHand.name &&
-          cursorItem.itemType.bothHands &&
-          this.equipped[InventorySlot.OffHand.name] != null
-        ) {
-          this.putInBags(this.equipped[InventorySlot.OffHand.name])
-          this.clearEquippedSlot(InventorySlot.OffHand.name)
-        }
-      }
-    } else if (previouslyEquippedItem) {
-      // picking up from slot to cursor
+      return this.equip(cursorItem, slotName)
+    } else if (previouslyEquippedItem != null) {
       this.setCursor(previouslyEquippedItem)
       this.clearEquippedSlot(slotName)
     }
+
+    return true
   }
 
-  // TODO: some bugs with this RE 1h & 2h weapons
-  tryEquipFromBagSlot(index) {
+  equipFromBagSlot(index) {
     AssertValidSlotIndex(index)
     const bagItem = this.bags[index]
     if (bagItem == null) {
       return false
     }
 
+    // get all possible non-bonus slots
     const possibleSlots = this.getValidSlotNamesForItem(bagItem)
     for (let k = 0; k < possibleSlots.length; k++) {
       const possibleSlotName = possibleSlots[k]
-      const slotOccupiedWith = this.equipped[possibleSlotName]
-      if (slotOccupiedWith == null) {
-
-        // slot is open, equip it
-        this.setEquippedSlot(possibleSlotName, bagItem)
-        this.clearBagSlot(index)
+      if (this.equip(bagItem, possibleSlotName)) {
         return true
-
-      } else if (
-        // MainHand slot
-        possibleSlotName === InventorySlot.MainHand.name &&
-        // occupied with a 1h weapon
-        slotOccupiedWith != null &&
-        slotOccupiedWith.itemType.bothHands === false &&
-        // but offhand is open
-        !this.isSlotFilled(InventorySlot.OffHand.name) &&
-        // and this is a 1h weapon
-        !bagItem.itemType.bothHands
-      ) {
-
-        // equip to offhand
-        this.setEquippedSlot(InventorySlot.OffHand.name, bagItem)
-        this.clearBagSlot(index)
-        return true
-
-      } else {
-
-        // occupied and didn't fit the offhand special case, just swap it
-        // try to equip it, if it fails, continue to next possible slot
-        // (for example.. it can fail if trying to equip a 2h weapon but main and offhand are full, and no room to pull them both into bags)
-        if (this.equip(bagItem, possibleSlotName)) {
-          this.setBagSlot(index, slotOccupiedWith)
-          return true
-        }
-
       }
     }
 

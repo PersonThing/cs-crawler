@@ -11,7 +11,6 @@ import groundItemsStore from '../../shared/stores/ground-items-store.js'
 import preloadTextures from './preload-textures.js'
 import socket from './socket.js'
 import World from './world.js'
-import debounce from '#shared/utils/debounce.js'
 import Pather from '#shared/pather.js'
 import PlayerState from '#shared/state/player-state.js'
 

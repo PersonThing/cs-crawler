@@ -1,10 +1,9 @@
-import throttle from '#shared/utils/throttle.js'
-import socket from './socket.js'
-import cursorPositionStore from './stores/cursor-position-store.js'
 import { DEBUG } from '#shared/config/constants.js'
+import cursorPositionStore from './stores/cursor-position-store.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
+import socket from './socket.js'
+import throttle from '#shared/utils/throttle.js'
 import usernameStore from './stores/username-store.js'
-import groundItemsStore from '../../shared/stores/ground-items-store.js'
 
 class PlayerControls {
   constructor(app, world, minimap, hud) {
@@ -84,6 +83,7 @@ class PlayerControls {
   }
 
   stopListening() {
+    console.log('playerControls.stopListening')
     window.removeEventListener('keydown', this.onKeyDown)
     this.app.canvas.removeEventListener('mousedown', this.onMouseDown)
     this.app.canvas.removeEventListener('mousemove', this.onMouseMove)
@@ -142,7 +142,6 @@ class PlayerControls {
 
     // if item on cursor, drop it
     if (this.player.inventory.cursor != null) {
-      console.log('dropping cursor item', this.player.inventory.cursor)
       socket.emit('dropCursorItem')
       return
     }

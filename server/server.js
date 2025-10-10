@@ -162,7 +162,7 @@ io.on('connection', socket => {
 
     // if right click and item exists in slot, try to equip it
     if (rightClick && !ctrlKey) {
-      player.inventory.tryEquipFromBagSlot(index)
+      player.inventory.equipFromBagSlot(index)
       return
     }
 
