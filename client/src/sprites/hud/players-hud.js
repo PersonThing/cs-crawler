@@ -41,7 +41,7 @@ class PlayersHud extends Container {
       text.y = y
       this.bg.addChild(text)
       const text2 = new Text({
-        text: `health + mana here`,
+        text: `health bar here`,
         style: {
           fontSize: 12,
           fill: 0x888888,

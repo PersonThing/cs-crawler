@@ -1,6 +1,6 @@
 import createPersistedStore from '../stores/create-persisted-store.js'
 
-const DEBUG = createPersistedStore('debug', false, value => typeof value === 'boolean')
+const DEBUG = createPersistedStore('debug', true, value => typeof value === 'boolean')
 
 const ART_SCALE = 1.5
 const BAG_SLOTS = 60

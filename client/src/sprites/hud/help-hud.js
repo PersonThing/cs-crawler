@@ -2,28 +2,28 @@ import { Graphics, Container, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
 
 const keyBindings = [
-  { key: 'I or B', action: 'Toggle inventory' },
-  { key: 'C', action: 'Toggle character sheet' },
   { key: 'F1', action: 'Toggle help' },
   { key: 'F2', action: 'Toggle debug mode' },
   { key: 'F3', action: 'Set username' },
+  { key: 'I or B', action: 'Toggle inventory' },
+  { key: 'C', action: 'Toggle character sheet' },
   { key: 'Left click', action: 'Move' },
   { key: 'Right click', action: 'Attack' },
   { key: 'Tab', action: 'Toggle fullscreen minimap' },
   { key: 'Scroll wheel', action: 'Zoom minimap' },
 
-  // inventory
-  { key: 'Left click', action: 'Inventory: Pick up item' },
-  { key: 'Right click', action: 'Inventory: Equip item' },
-  { key: 'Shift + Right click', action: 'Inventory: Equip item (to offhand if possible)' },
-  { key: 'Ctrl + Right click', action: 'Inventory: Drop item' },
+  // Inv
+  { key: 'Left click', action: 'Inv: Pick up item' },
+  { key: 'Right click', action: 'Inv: Equip item' },
+  { key: 'Shift + Right click', action: 'Inv: Equip item to offhand if possible' },
+  { key: 'Ctrl + Right click', action: 'Inv: Drop item' },
 
   // temp keys
-  { key: 'G', action: 'Generate items on ground' },
-  { key: 'V', action: 'Clear items on ground' },
-  { key: 'N', action: 'Pick up random item' },
-  { key: 'M', action: 'Fill inventory with random items' },
-  { key: ',', action: 'Clear inventory & equipped items' },
+  { key: 'G', action: 'Temp: Generate items on ground' },
+  { key: 'V', action: 'Temp: Clear items on ground' },
+  { key: 'N', action: 'Temp: Pick up random item' },
+  { key: 'M', action: 'Temp: Fill bags with random items' },
+  { key: ',', action: 'Temp: Delete everything in bags' },
 ]
 
 const STAT_SIZE = 18
