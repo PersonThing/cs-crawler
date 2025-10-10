@@ -11,6 +11,11 @@ const keyBindings = [
   { key: 'Tab', action: 'Toggle fullscreen minimap' },
   { key: 'Scroll wheel', action: 'Zoom minimap' },
 
+  // inventory
+  { key: 'Left click', action: 'Inventory: Pick up item' },
+  { key: 'Right click', action: 'Inventory: Equip item' },
+  { key: 'Ctrl + Right click', action: 'Inventory: Drop item' },
+
   // temp keys
   { key: 'G', action: 'Generate items on ground' },
   { key: 'V', action: 'Clear items on ground' },
@@ -77,7 +82,7 @@ class HelpHud extends Container {
       const actionText = new Text({
         text: binding.action,
         style: {
-          fontSize: 14,
+          fontSize: 12,
           fill: 0x666666,
         },
         x: 20,
@@ -88,11 +93,11 @@ class HelpHud extends Container {
       const keyText = new Text({
         text: binding.key,
         style: {
-          fontSize: 14,
+          fontSize: 12,
           fill: 0xffffff,
           fontWeight: 'bold',
         },
-        x: 250,
+        x: 220,
         y: 50 + index * (STAT_SIZE + STAT_MARGIN),
       })
       this.bg.addChild(keyText)
