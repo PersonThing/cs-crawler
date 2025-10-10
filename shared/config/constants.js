@@ -1,6 +1,6 @@
-import createStore from '../stores/create-store.js'
+import createPersistedStore from '../stores/create-persisted-store.js'
 
-const DEBUG = createStore(true, value => typeof value === 'boolean')
+const DEBUG = createPersistedStore('debug', false, value => typeof value === 'boolean')
 
 const ART_SCALE = 1.5
 const BAG_SLOTS = 60
@@ -10,7 +10,7 @@ const MINIMAP_SCALE = 0.15
 const MINIMAP_WIDTH = 300
 
 const HUD_BORDER_COLOR = 0x555555
-const HUD_FILL_COLOR = 0x333333
+const HUD_FILL_COLOR = 0x000000
 const HUD_PLAYERS_WIDTH = 200
 
 const LOCAL_PLAYER_COLOR = 0x00aaff

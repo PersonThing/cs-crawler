@@ -10,4 +10,4 @@
 - `npm run dev`
 - open [http://localhost:5200](http://localhost:5200)
 - (more browser tabs in incognito to simulate multiple players connecting)
-- `f1` to open help menu in-game
+- `f1` to open help menu in-game 

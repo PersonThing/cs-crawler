@@ -1,7 +1,6 @@
 import { Container, BlurFilter, Rectangle, Graphics, Sprite, Text } from 'pixi.js'
 import LevelSprite from './sprites/level-sprite.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
-import groundItemsStore from '../../shared/stores/ground-items-store.js'
 import screenSizeStore from './stores/screen-size-store.js'
 import PlayerSprite from './sprites/player-sprite.js'
 import Pather from '#shared/pather.js'
@@ -19,8 +18,8 @@ class World extends Container {
     this.levelSprite = new LevelSprite(levelConfig, 1, false)
     this.addChild(this.levelSprite)
 
-    this.groundItems = new Container()
-    this.addChild(this.groundItems)
+    this.groundItemsContainer = new Container()
+    this.addChild(this.groundItemsContainer)
 
     this.pather = new Pather(levelConfig)
 
@@ -55,26 +54,22 @@ class World extends Container {
         }
       })
     })
+  }
 
-    groundItemsStore.subscribe(groundItems => {
-      // remove any items that are no longer in the store
-      this.groundItems.children.forEach(groundItemSprite => {
-        const groundItem = groundItems.find(
-          groundItem => groundItem.item.id === groundItemSprite.id
-        )
-        if (!groundItem) {
-          console.log('removing ground-item', groundItemSprite.id)
-          this.unrenderItem(groundItemSprite.id)
-        }
-      })
+  setGroundItems(groundItems) {
+    // remove any items that are no longer there
+    this.groundItemsContainer.children.forEach(groundItemSprite => {
+      const groundItem = groundItems.find(groundItem => groundItem.item.id === groundItemSprite.id)
+      if (!groundItem) {
+        this.unrenderItem(groundItemSprite.id)
+      }
+    })
 
-      // add any items that are in the store but not yet rendered
-      groundItems.forEach(groundItem => {
-        if (!this.groundItems.children.find(sprite => sprite.id === groundItem.item.id)) {
-          console.log('adding ground-item', groundItem.item.id)
-          this.renderItem(groundItem)
-        }
-      })
+    // add any items that are not yet rendered
+    groundItems.forEach(groundItem => {
+      if (!this.groundItemsContainer.children.find(sprite => sprite.id === groundItem.item.id)) {
+        this.renderItem(groundItem)
+      }
     })
   }
 
@@ -144,7 +139,7 @@ class World extends Container {
     }
 
     const groundItemSprite = new GroundItemSprite(groundItem)
-    this.groundItems.addChild(groundItemSprite)
+    this.groundItemsContainer.addChild(groundItemSprite)
     groundItemSprite.on('pointerdown', () => {
       const localPlayer = playerSpriteStore.getLocalPlayer()
       if (localPlayer == null) {
@@ -159,10 +154,10 @@ class World extends Container {
   }
 
   unrenderItem(id) {
-    this.groundItems.children.forEach(groundItemSprite => {
+    this.groundItemsContainer.children.forEach(groundItemSprite => {
       if (groundItemSprite.id === id) {
         groundItemSprite.destroy()
-        this.groundItems.removeChild(groundItemSprite)
+        this.groundItemsContainer.removeChild(groundItemSprite)
       }
     })
   }

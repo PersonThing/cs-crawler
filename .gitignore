@@ -97,3 +97,4 @@ Thumbs.db
 
 # Local player state file
 player-states.json
+server/cs-crawler-db.sqlite

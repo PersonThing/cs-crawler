@@ -6,6 +6,7 @@ const keyBindings = [
   { key: 'C', action: 'Toggle character sheet' },
   { key: 'F1', action: 'Toggle help' },
   { key: 'F2', action: 'Toggle debug mode' },
+  { key: 'F3', action: 'Set username' },
   { key: 'Left click', action: 'Move' },
   { key: 'Right click', action: 'Attack' },
   { key: 'Tab', action: 'Toggle fullscreen minimap' },
@@ -60,7 +61,7 @@ class HelpHud extends Container {
       color: HUD_BORDER_COLOR,
       width: 4,
     })
-    gfx.alpha = 0.5
+    gfx.alpha = 0.8
     gfx.x = 0
     gfx.y = 0
     this.bg.addChild(gfx)

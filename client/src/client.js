@@ -7,7 +7,6 @@ import generateLevel from '#shared/level-builder.js'
 import Hud from './sprites/hud/hud.js'
 import PlayerSprite from './sprites/player-sprite.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
-import groundItemsStore from '../../shared/stores/ground-items-store.js'
 import preloadTextures from './preload-textures.js'
 import socket from './socket.js'
 import World from './world.js'
@@ -66,6 +65,7 @@ const init = async (levelConfig, localPlayerState) => {
     // apply last server state
     if (lastServerState != null) {
       applyServerState(lastServerState)
+      lastServerState = null
     }
 
     world.onTick(time)
@@ -126,5 +126,5 @@ function applyServerState(state) {
   playerSpriteStore.triggerSubscribers()
 
   // update ground items store - we should track a hash and only do it if it changes
-  groundItemsStore.set(state.groundItems)
+  world.setGroundItems(state.groundItems)
 }

@@ -35,8 +35,10 @@
     "express": "^4.21.0",
     "heap": "^0.2.7",
     "pixi.js": "^8.13.2",
+    "sequelize": "^6.37.7",
     "socket.io": "^4.8.0",
     "socket.io-client": "^4.8.0",
+    "sqlite3": "^5.1.7",
     "wavefunctioncollapse": "^2.1.0"
   }
 }

@@ -26,7 +26,6 @@ export default class PlayerState extends LivingEntityState {
     this.playerId = playerId
     this.socketId = socketId
     this.username = username
-    this.isLocalPlayer = false
   }
 
   serialize() {
@@ -35,7 +34,6 @@ export default class PlayerState extends LivingEntityState {
       playerId: this.playerId,
       socketId: this.socketId,
       username: this.username,
-      isLocalPlayer: this.isLocalPlayer,
     }
   }
 

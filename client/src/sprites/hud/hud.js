@@ -21,12 +21,16 @@ class Hud extends Container {
     this.addChild(this.character)
     this.character.visible = DEBUG.get()
 
+    this.players = new PlayersHud()
+    this.addChild(this.players)
+    this.players.x = 0
+    this.players.y = 0
+
     this.help = new HelpHud()
     this.addChild(this.help)
     this.help.visible = false
-
-    this.players = new PlayersHud()
-    this.addChild(this.players)
+    this.help.x = 0
+    this.help.y = 0
 
     this.inventory = new InventoryHud(app)
     this.addChild(this.inventory)
@@ -37,20 +41,12 @@ class Hud extends Container {
       this.minimap.x = width - this.minimap.width / 2 - 10
       this.minimap.y = 0
 
-      // players list aligned to top right of screen, under minimap
-      this.players.x = width - HUD_PLAYERS_WIDTH
-      this.players.y = MINIMAP_HEIGHT + 10
-
       // character sheet aligned to bottom left of screen
       this.character.y = height - this.character.height
 
       // inventory aligned to bottom right of screen
       this.inventory.x = width - this.inventory.width
       this.inventory.y = height - this.inventory.height
-
-      // help sheet aligned to top left of screen
-      this.help.x = 10
-      this.help.y = 10
     })
 
     this.playerControls = new PlayerControls(app, world, this.minimap, this)
@@ -66,6 +62,13 @@ class Hud extends Container {
 
   toggleHelp() {
     this.help.visible = !this.help.visible
+
+    // if help is visible, move players to the right of it
+    if (this.help.visible) {
+      this.players.x = this.help.width + 10
+    } else {
+      this.players.x = 0
+    }
   }
 
   onTick(time) {

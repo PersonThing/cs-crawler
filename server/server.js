@@ -5,8 +5,9 @@ import http from 'http'
 import Pather from '#shared/pather.js'
 import PlayerState from '#shared/state/player-state.js'
 import GroundItem from '#shared/config/ground-item.js'
+import db from './db.js'
 
-const FPS = 60
+const FPS = 30
 const SERVER_TICK_RATE = 1000 / FPS
 const PORT = process.env.PORT || 3000
 
@@ -32,6 +33,13 @@ let level = null
 let pather = null
 
 let lastUpdate = Date.now()
+async function savePlayerAsync(player, serializedPlayerData) {
+  await db.savePlayerAsync(player.playerId, serializedPlayerData)
+  player.lastSavedHash = serializedPlayerData.inventory.hash
+  player.lastSavedUsername = player.username
+  console.log('saved player', player.playerId)
+}
+
 function tick() {
   const now = Date.now()
   const deltaMS = now - lastUpdate // Time elapsed since last tick
@@ -44,12 +52,20 @@ function tick() {
     const player = players[playerId]
     if (player.isConnected) {
       player.onTick(time, groundItems)
-      connectedPlayers[playerId] = player.serialize()
+      const serializedPlayer = player.serialize()
+      connectedPlayers[playerId] = serializedPlayer
+
+      // if player inventory or username changed, save to db
+      if (player.lastSavedHash !== serializedPlayer.inventory.hash || player.username !== player.lastSavedUsername) {
+        // intentionally not awaiting, we don't care if it fails, it'll try again on next tick
+        savePlayerAsync(player, serializedPlayer)
+      }
     }
   }
 
   io.emit('serverState', {
     players: connectedPlayers,
+    // TODO: maybe send ground items only when they change?
     groundItems,
   })
 }
@@ -71,22 +87,38 @@ function dropToGround(player, item) {
 }
 
 // handle socket communication with players
-io.on('connection', socket => {
+io.on('connection', async socket => {
   let username = socket.handshake.query.username
-  const playerId = socket.handshake.query.playerId
+  let playerId = socket.handshake.query.playerId
   let player = players[playerId]
 
   console.log('Player connected: ' + username, playerId, Object.keys(players))
 
-  const initThisPlayer = () => {
+  const initThisPlayerAsync = async () => {
     console.log('Initializing player ' + username)
     if (player == null) {
-      console.log('Player does not exist, creating new player for ' + username)
-      player = new PlayerState({ username, playerId, pather })
-      player.setPosition(level.start.x, level.start.y)
-      player.isConnected = true
-      players[playerId] = player
+      // check db for player first
+      const dbPlayer = await db.getPlayerAsync(playerId)
+      if (dbPlayer) {
+        console.log('Found existing player in DB, loading ' + playerId, username)
+        player = new PlayerState({ ...dbPlayer.data, pather })
+        // if player at (0, 0), set to level start instead
+        if (player.x === 0 && player.y === 0) {
+          player.setPosition(level.start.x, level.start.y)
+        }
+        player.playerId = playerId // ensure playerId is correct
+        player.isConnected = true
+        players[playerId] = player
+      } else {
+        console.log('Player not found in db, creating new player for ' + playerId, username)
+        const dbPlayer = await db.createPlayerAsync(playerId, { username })
+        player = new PlayerState({ ...dbPlayer.data, pather })
+        player.setPosition(level.start.x, level.start.y)
+        player.isConnected = true
+        players[playerId] = player
+      }
     }
+
     socket.emit('init', {
       level,
       player: player.serialize(),
@@ -97,12 +129,12 @@ io.on('connection', socket => {
     // Player reconnecting
     console.log('player reconnecting', username)
     player.isConnected = true
-    initThisPlayer()
+    await initThisPlayerAsync()
   } else {
     // New player
     // if we have a level, we can init them right away
     if (level != null) {
-      initThisPlayer()
+      await initThisPlayerAsync()
     } else {
       // otherwise, we have to request a level from client
       // server.requestLevel -> client.generateLevel -> server.setLevel -> server.initThisPlayer
@@ -113,10 +145,10 @@ io.on('connection', socket => {
 
   // create a level, or ask the client to create it
   // ** uses client to do so since we need client-side canvas (for now)
-  socket.on('setLevel', levelConfig => {
+  socket.on('setLevel', async levelConfig => {
     level = levelConfig
     pather = new Pather(level)
-    initThisPlayer()
+    await initThisPlayerAsync()
   })
 
   socket.on('setUsername', username => {
@@ -262,6 +294,12 @@ io.on('connection', socket => {
       // Mark player as disconnected but keep their data
       player.isConnected = false
     }
+
+    // save player to db if not null
+    if (player != null) {
+      savePlayerAsync(player, player.serialize())
+    }
+
     // Notify others using the playerId for consistency
     socket.broadcast.emit('playerDisconnected', playerId)
   })
