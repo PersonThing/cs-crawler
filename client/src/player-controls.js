@@ -135,7 +135,8 @@ class PlayerControls {
 
     // handle right-click for attacking
     if (event.button === 2) {
-      this.player.startAttacking(cursorPositionStore.get())
+      // attacking isn't implemented yet
+      // this.player.startAttacking(cursorPositionStore.get())
       this.isRightMouseDown = true
       return
     }
