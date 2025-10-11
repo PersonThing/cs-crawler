@@ -25,28 +25,22 @@ const io = new Server(server, {
 // Serve static files from the client dist directory
 app.use(express.static('../client/dist'))
 
-const players = {} // Object to store player information
-let groundItems = [] // Array to store items on the ground
+const players = {} // player cache - also stored in db
+let groundItems = [] // ground item cache - not stored in db until picked up (game servers will be temporary state only)
 
-// Load the level and pather
+// level and pather set when first player connects and creates or loads a level
 let level = null
 let pather = null
 
+// Game loop
 let lastUpdate = Date.now()
-async function savePlayerAsync(player, serializedPlayerData) {
-  await db.savePlayerAsync(player.playerId, serializedPlayerData)
-  player.lastSavedHash = serializedPlayerData.inventory.hash
-  player.lastSavedUsername = player.username
-  console.log('saved player', player.playerId)
-}
-
 function tick() {
   const now = Date.now()
   const deltaMS = now - lastUpdate // Time elapsed since last tick
   lastUpdate = now
   const time = { deltaMS }
 
-  // Only send connected players
+  // Update and send state for all connected players
   const connectedPlayers = {}
   for (const playerId in players) {
     const player = players[playerId]
@@ -58,7 +52,7 @@ function tick() {
       // if player inventory or username changed, save to db
       if (player.lastSavedHash !== serializedPlayer.inventory.hash || player.username !== player.lastSavedUsername) {
         // intentionally not awaiting, we don't care if it fails, it'll try again on next tick
-        savePlayerAsync(player, serializedPlayer)
+        db.savePlayerAsync(player)
       }
     }
   }
@@ -71,14 +65,14 @@ function tick() {
 }
 setInterval(tick, SERVER_TICK_RATE)
 
-function dropToGround(player, item) {
+function dropToGround(position, item) {
   groundItems.push(
     new GroundItem(
       item,
       pather.getBestAvailableItemPosition(
         {
-          x: player.x,
-          y: player.y,
+          x: position.x,
+          y: position.y,
         },
         groundItems
       )
@@ -97,23 +91,28 @@ io.on('connection', async socket => {
   const initThisPlayerAsync = async () => {
     console.log('Initializing player ' + username)
     if (player == null) {
-      // get player from db
+      // not found in players cache, create a new player
+      player = new PlayerState({ playerId, pather, username })
+      player.isConnected = true
+
+      // exists in db?
       let dbPlayer = await db.getPlayerAsync(playerId)
       if (dbPlayer) {
+        // set state from db
+        player.deserialize(dbPlayer.data)
         console.log('Player found in db, loading ' + playerId, username)
       } else {
-        // not found, create in db
-        await db.savePlayerAsync(playerId, { username })
+        // save to db
+        await db.savePlayerAsync(player, player.serialize())
         console.log('Player not found in db, created new record ' + playerId, username)
-        dbPlayer = { playerId, data: { username } }
       }
-      
-      player = new PlayerState({ ...dbPlayer.data, playerId, pather })
+
+      // if player is at 0,0, reset to level start
       if (player.x === 0 && player.y === 0) {
-        // player at (0, 0)... set to level start instead
         player.setPosition(level.start.x, level.start.y)
       }
-      player.isConnected = true
+
+      // set to players cache
       players[playerId] = player
     }
 
@@ -261,18 +260,7 @@ io.on('connection', async socket => {
     if (!player?.isConnected) {
       return
     }
-    groundItems.push(
-      new GroundItem(
-        generateRandomItem(),
-        pather.getBestAvailableItemPosition(
-          {
-            x: player.x,
-            y: player.y,
-          },
-          groundItems
-        )
-      )
-    )
+    dropToGround({ x: player.x, y: player.y }, generateRandomItem())
     console.log('generated ground item, # items:', groundItems.length)
   })
 
@@ -295,7 +283,7 @@ io.on('connection', async socket => {
 
     // save player to db if not null
     if (player != null) {
-      savePlayerAsync(player, player.serialize())
+      db.savePlayerAsync(player)
     }
 
     // Notify others using the playerId for consistency

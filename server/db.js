@@ -7,37 +7,41 @@ const sequelize = new Sequelize({
   // logging: msg => console.log('[sequelize]', msg),
 })
 
-const Player = sequelize.define('Player', {
-  playerId: {
-    type: Sequelize.STRING,
-    unique: true,
-  },
-  username: Sequelize.STRING,
-  data: Sequelize.JSON, // Store player state as JSON
-})
+const DB = {
+  Player: sequelize.define('Player', {
+    playerId: {
+      type: Sequelize.STRING,
+      unique: true,
+    },
+    username: Sequelize.STRING,
+    data: Sequelize.JSON, // Store player state as JSON
+  }),
+}
 await sequelize.sync() // Ensure the database tables are created
 
 const db = {
   async getPlayerAsync(playerId) {
-    return await Player.findOne({ where: { playerId } })
+    return await DB.Player.findOne({ where: { playerId } })
   },
 
-  async savePlayerAsync(playerId, playerState) {
-    const [player, created] = await Player.findOrCreate({
-      where: { playerId },
+  async savePlayerAsync(player) {
+    const state = player.serialize()
+    const [dbPlayer, created] = await DB.Player.findOrCreate({
+      where: { playerId: player.playerId },
       defaults: {
-        username: playerState.username,
-        data: playerState,
+        username: state.username,
+        data: state,
       },
     })
     if (!created) {
-      player.username = playerState.username
-      player.data = playerState
-      await player.save()
+      dbPlayer.username = state.username
+      dbPlayer.data = state
+      await dbPlayer.save()
     }
-    return player
-  }
+    player.lastSavedHash = state.inventory.hash
+    player.lastSavedUsername = state.username
+    return dbPlayer
+  },
 }
-
 
 export default db
