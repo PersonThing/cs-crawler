@@ -10,26 +10,34 @@ class LevelSprite extends Container {
   constructor(level, mapScale, isMinimap, isParallax) {
     super()
     this.level = JSON.parse(JSON.stringify(level))
-    this.mapScale = mapScale
-    this.blockSize = BLOCK_SIZE * this.mapScale * ART_SCALE
+    this.blockSize = BLOCK_SIZE * ART_SCALE
     this.tileSize = this.blockSize * 10
     this.isMinimap = isMinimap
     this.isParallax = isParallax
     this.tileContainer = new Container()
+    this.tileContainer.scale = mapScale
     this.addChild(this.tileContainer)
 
     // if debug mode changes, re-render all tiles
     DEBUG.subscribe(() => this.unrenderLevel())
   }
 
+  setScale(scale) {
+    this.tileContainer.scale = scale
+  }
+
   onTick(maxWidth, maxHeight) {
+    // note: maxWidth and maxHeight do not factor our scale in - so we should multiply them by our scale
+    maxWidth = maxWidth / this.tileContainer.scale.x
+    maxHeight = maxHeight / this.tileContainer.scale.y
+    
     const localPlayer = playerSpriteStore.getLocalPlayer()
     if (localPlayer == null) return
 
     // only render the tiles around the local player
     // figure out which tile the local player is inside
-    const playerTileX = Math.floor((localPlayer.x * this.mapScale) / this.tileSize)
-    const playerTileY = Math.floor((localPlayer.y * this.mapScale) / this.tileSize)
+    const playerTileX = Math.floor((localPlayer.x) / this.tileSize)
+    const playerTileY = Math.floor((localPlayer.y) / this.tileSize)
 
     // compute the bounds of the screen in tiles
     const numTilesWide = Math.ceil(maxWidth / this.tileSize)
@@ -89,7 +97,7 @@ class LevelSprite extends Container {
 
                     block.sprite = new Container()
                     block.sprite.alpha = 1
-                    block.sprite.scale.set(this.mapScale * ART_SCALE)
+                    block.sprite.scale.set(ART_SCALE)
                     block.sprite.x = block.x * this.blockSize
                     block.sprite.y = block.y * this.blockSize
                     block.sprite.addChild(Sprite.from(Textures.tiles.stone))
@@ -97,7 +105,7 @@ class LevelSprite extends Container {
                   } else {
                     block.sprite = new Container()
                     block.sprite.alpha = 1
-                    block.sprite.scale.set(this.mapScale * ART_SCALE)
+                    block.sprite.scale.set(ART_SCALE)
                     block.sprite.x = block.x * this.blockSize
                     block.sprite.y = block.y * this.blockSize
                     block.textures
@@ -171,8 +179,8 @@ class LevelSprite extends Container {
       blockRow
         .filter(b => b.sprite != null)
         .forEach(block => {
-          const dx = tile.container.x + block.sprite.x - localPlayer.x * this.mapScale
-          const dy = tile.container.y + block.sprite.y - localPlayer.y * this.mapScale
+          const dx = tile.container.x + block.sprite.x - localPlayer.x
+          const dy = tile.container.y + block.sprite.y - localPlayer.y
 
           // block.alpha = 1
           // block.sprite.alpha = 1
@@ -180,10 +188,10 @@ class LevelSprite extends Container {
 
           // if block.sprite is within 200px of the player, set it to discovered
           const distance = Math.sqrt(dx * dx + dy * dy)
-          if (distance < fullRevealDistance * this.mapScale) {
+          if (distance < fullRevealDistance) {
             block.alpha = 1
             block.sprite.alpha = 1
-          } else if (distance < partialRevealDistance * this.mapScale && block.sprite.alpha < 1) {
+          } else if (distance < partialRevealDistance && block.sprite.alpha < 1) {
             block.alpha = 0.5
             block.sprite.alpha = 0.5
           }

@@ -30,12 +30,12 @@ class Minimap extends Sprite {
 
   zoomIn() {
     this.mapScale = Math.min(this.mapScale + 0.05, 2)
-    this.createLevelSprite()
+    this.map.setScale(this.mapScale)
   }
 
   zoomOut() {
     this.mapScale = Math.max(this.mapScale - 0.05, 0.1)
-    this.createLevelSprite()
+    this.map.setScale(this.mapScale)
   }
 
   createLevelSprite() {
