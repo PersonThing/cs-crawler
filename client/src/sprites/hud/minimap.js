@@ -1,10 +1,4 @@
-import {
-  MINIMAP_SCALE,
-  MINIMAP_WIDTH,
-  MINIMAP_HEIGHT,
-  HUD_BORDER_COLOR,
-  HUD_FILL_COLOR,
-} from '#shared/config/constants.js'
+import { MINIMAP_SCALE, MINIMAP_WIDTH, MINIMAP_HEIGHT, HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
 import { Sprite, Container, Graphics, Text } from 'pixi.js'
 import LevelSprite from '../level-sprite.js'
 import screenSizeStore from '../../stores/screen-size-store.js'
@@ -74,13 +68,10 @@ class Minimap extends Sprite {
   }
 
   drawBorder() {
-    this.border = new Graphics()
-      .rect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT)
-      .fill(HUD_FILL_COLOR)
-      .stroke({
-        color: HUD_BORDER_COLOR,
-        width: 4,
-      })
+    this.border = new Graphics().rect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT).fill(HUD_FILL_COLOR).stroke({
+      color: HUD_BORDER_COLOR,
+      width: 4,
+    })
     this.border.alpha = 0.5
     this.border.x = -MINIMAP_WIDTH / 2
     this.border.y = -MINIMAP_HEIGHT / 2
@@ -114,7 +105,7 @@ class Minimap extends Sprite {
 
     // update local player dot
     if (!this.localPlayerMarker) {
-      this.localPlayerMarker = this.makePlayerMarker('You', 0x00aaff)
+      this.localPlayerMarker = this.makePlayerMarker('You', 0x00aaff, localPlayer.x, localPlayer.y)
     }
     this.localPlayerMarker.x = localPlayer.x * this.mapScale
     this.localPlayerMarker.y = localPlayer.y * this.mapScale
@@ -125,26 +116,31 @@ class Minimap extends Sprite {
     this.map.y = -this.localPlayerMarker.y + this.height / 2
 
     // update other player dots
-    const players = playerSpriteStore.get()
-    if (players.length) {
-      players
-        .filter(p => p.playerId !== localPlayer.playerId)
-        .forEach(player => {
-          const id = player.playerId
-          if (!this.remotePlayerMarkers[id]) {
-            this.remotePlayerMarkers[id] = this.makePlayerMarker(player.username, 0x00ff00)
-          }
-          this.remotePlayerMarkers[id].x = player.x * this.mapScale
-          this.remotePlayerMarkers[id].y = player.y * this.mapScale
-        })
+    const connectedPlayerStates = playerSpriteStore
+      .get()
+      .filter(p => !p.isLocalPlayer)
+      .map(p => p.state)
 
-      Object.keys(this.remotePlayerMarkers)
-        .filter(id => !players.find(p => p.playerId === id))
-        .forEach(id => {
-          this.map.removeChild(this.remotePlayerMarkers[id])
-          delete this.remotePlayerMarkers[id]
-        })
+    // add / update dots for connected players
+    if (connectedPlayerStates.length) {
+      connectedPlayerStates.forEach(player => {
+        if (!this.remotePlayerMarkers.hasOwnProperty(player.playerId)) {
+          this.remotePlayerMarkers[player.playerId] = this.makePlayerMarker(player.username, 0x00ff00)
+        }
+        this.remotePlayerMarkers[player.playerId].x = player.x * this.mapScale
+        this.remotePlayerMarkers[player.playerId].y = player.y * this.mapScale
+      })
     }
+
+    // remove dots for disconnected players
+    const connectedPlayerIds = connectedPlayerStates.map(p => p.playerId)
+    Object.keys(this.remotePlayerMarkers)
+      .filter(id => !connectedPlayerIds.includes(id))
+      .forEach(id => {
+        console.log('removing player in minimap', id)
+        this.map.removeChild(this.remotePlayerMarkers[id])
+        delete this.remotePlayerMarkers[id]
+      })
   }
 
   makePlayerMarker(name, color) {
