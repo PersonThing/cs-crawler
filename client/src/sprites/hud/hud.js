@@ -7,6 +7,7 @@ import HelpHud from './help-hud.js'
 import PlayersHud from './players-hud.js'
 import Minimap from './minimap.js'
 import PlayerControls from '../../player-controls.js'
+import InventorySoundMonitor from '../../inventory-sound-monitor.js'
 
 class Hud extends Container {
   constructor(app, world, levelConfig) {
@@ -50,6 +51,7 @@ class Hud extends Container {
     })
 
     this.playerControls = new PlayerControls(app, world, this.minimap, this)
+    this.inventorySoundMonitor = new InventorySoundMonitor()
   }
 
   toggleInventory() {
@@ -78,6 +80,7 @@ class Hud extends Container {
 
   destroy() {
     this.playerControls.stopListening()
+    this.inventorySoundMonitor.destroy()
   }
 }
 

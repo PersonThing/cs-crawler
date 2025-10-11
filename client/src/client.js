@@ -10,7 +10,6 @@ import playerSpriteStore from './stores/player-sprite-store.js'
 import preloadTextures from './preload-textures.js'
 import socket from './socket.js'
 import soundManager from './sound-manager.js'
-import InventorySoundMonitor from './inventory-sound-monitor.js'
 import World from './world.js'
 import Pather from '#shared/pather.js'
 import PlayerState from '#shared/state/player-state.js'
@@ -19,7 +18,6 @@ let world = null
 let app = null
 let pather = null
 let hud = null
-let inventorySoundMonitor = null
 let initialized = false
 let lastServerState = null
 
@@ -37,7 +35,6 @@ const init = async (levelConfig, localPlayerState) => {
   if (initialized) {
     console.log('re-initializing client, clearing existing data')
     hud.destroy()
-    inventorySoundMonitor.destroy()
     app.destroy(true, { children: true, texture: true, baseTexture: true })
     playerSpriteStore.set([])
   }
@@ -65,8 +62,6 @@ const init = async (levelConfig, localPlayerState) => {
   // create hud (and controls)
   hud = new Hud(app, world, levelConfig)
   app.stage.addChild(hud)
-
-  inventorySoundMonitor = new InventorySoundMonitor()
 
   // Client-side game loop - server has authority, but client predicts and corrects
   // app.ticker.maxFPS = 120
