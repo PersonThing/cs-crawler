@@ -6,12 +6,18 @@ export default class InventoryItem extends Container {
     super()
 
     this.item = item
+    const itemQualityColor = ItemQualityColors[item.itemQuality]
 
     this.eventMode = 'static'
 
+    this.x = x
+    this.y = y
+
     const itemSprite = Sprite.from(item.inventoryTexture)
-    itemSprite.x = x
-    itemSprite.y = y
+    itemSprite.x = 0
+    itemSprite.y = 0
+    this.addChild(itemSprite)
+
     if (item.itemType.bothHands) {
       const text2h = new Text({
         text: '2h',
@@ -22,88 +28,96 @@ export default class InventoryItem extends Container {
         },
       })
       text2h.x = 2
-      itemSprite.addChild(text2h)
+      text2h.y = 2
+      this.addChild(text2h)
     }
-    this.addChild(itemSprite)
 
-    if (!isDisabledOffHand) {
-      const itemDescription = new Container()
-      const itemDescriptionBg = new Graphics()
-      itemDescription.addChild(itemDescriptionBg)
-
-      // name
-      const itemNameText = new Text({
-        text: `${item.name}`,
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 14,
-          fontWeight: 'bold',
-          fill: ItemQualityColors[item.itemQuality],
-        },
-      })
-      itemDescription.addChild(itemNameText)
-
-      // quality + type
-      const itemTypeNameText = new Text({
-        text: `${item.itemQuality} ${item.itemType.name}`,
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 12,
-          fill: 0xffffff,
-        },
-      })
-      itemTypeNameText.y = 16
-      itemDescription.addChild(itemTypeNameText)
-
-      // attributes + description
-      const itemAttributeText = new Text({
-        text: Object.keys(item.attributes)
-          .map(attributeName => {
-            const attributeValue = item.attributes[attributeName]
-            let symbol = '+'
-            if (attributeValue < 0) {
-              symbol = '-'
-            }
-            return `${symbol}${attributeValue} ${attributeName}`
-          })
-          .join('\n'),
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 12,
-          fill: 0x999999,
-        },
-      })
-      if (item.description != null) {
-        itemAttributeText.text += `\n\n${item.description}`
-      }
-      itemAttributeText.y = 32
-      itemDescription.addChild(itemAttributeText)
-
-      // only show on mouseover
-      itemDescription.visible = false
-      itemDescription.eventMode = 'none'
-      itemSprite.eventMode = 'static'
-      itemSprite.addChild(itemDescription)
-      itemSprite.on('pointerover', () => {
-        this.zIndex = 10 // bring above any other items
-        itemDescription.visible = true
-      })
-      itemSprite.on('pointerout', () => {
-        this.zIndex = 1 // put back to normal
-        itemDescription.visible = false
-      })
-
-      // draw a background and set y based on height of the description container
-      itemDescription.x = -itemDescription.width
-      itemDescription.y = -itemDescription.height
-      itemDescriptionBg
-        .roundRect(-10, -10, itemDescription.width + 20, itemDescription.height + 20, 4)
-        .fill(0x000000)
-    } else {
+    if (isDisabledOffHand) {
       // grey it out a bit
       // make it slightly red ?
       itemSprite.alpha = 0.75
       itemSprite.tint = 0x666666
+      return
     }
+
+    const itemDescription = new Container()
+    const itemDescriptionBg = new Graphics()
+
+    itemDescription.addChild(itemDescriptionBg)
+
+    // name
+    const itemNameText = new Text({
+      text: `${item.name}`,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fill: itemQualityColor,
+      },
+    })
+    itemDescription.addChild(itemNameText)
+
+    // quality + type
+    const itemTypeNameText = new Text({
+      text: `${item.itemQuality} ${item.itemType.name}`,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 12,
+        fill: 0xffffff,
+      },
+    })
+    itemTypeNameText.y = 16
+    itemDescription.addChild(itemTypeNameText)
+
+    // attributes + description
+    const itemAttributeText = new Text({
+      text: Object.keys(item.attributes)
+        .map(attributeName => {
+          const attributeValue = item.attributes[attributeName]
+          let symbol = '+'
+          if (attributeValue < 0) {
+            symbol = '-'
+          }
+          return `${symbol}${attributeValue} ${attributeName}`
+        })
+        .join('\n'),
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 12,
+        fill: 0x999999,
+      },
+    })
+    if (item.description != null) {
+      itemAttributeText.text += `\n\n${item.description}`
+    }
+    itemAttributeText.y = 32
+    itemDescription.addChild(itemAttributeText)
+
+    // only show on mouseover
+    itemDescription.visible = false
+    itemDescription.eventMode = 'none'
+
+    this.addChild(itemDescription)
+
+    this.on('pointerover', () => {
+      this.zIndex = 10 // bring above any other items
+      itemDescription.visible = true
+    })
+
+    this.on('pointerout', () => {
+      this.zIndex = 1 // put back to normal
+      itemDescription.visible = false
+    })
+
+    // render description to left of item sprite so it's always visible at any screen size / item location
+    itemDescription.x = -itemDescription.width - 15
+    itemDescription.y = -10
+    itemDescriptionBg
+      .roundRect(-10, -10, itemDescription.width + 20, itemDescription.height + 20, 4)
+      .fill(0x000000)
+      .stroke({
+        color: itemQualityColor,
+        width: 1,
+      })
   }
 }

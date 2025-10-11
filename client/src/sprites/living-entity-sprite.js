@@ -24,11 +24,13 @@ class LivingEntitySprite extends Container {
 
   initSprite() {
     // Create main sprite
+    this.spriteContainer = new Container()
+    this.spriteContainer.scale.x = ART_SCALE
+    this.spriteContainer.scale.y = ART_SCALE
     this.sprite = Sprite.from(this.entityTexture)
     this.sprite.anchor.set(0.5)
-    this.sprite.scale.x = ART_SCALE
-    this.sprite.scale.y = ART_SCALE
-    this.addChild(this.sprite)
+    this.spriteContainer.addChild(this.sprite)
+    this.addChild(this.spriteContainer)
 
     // Create label
     this.labelSprite = new Text({
@@ -71,7 +73,7 @@ class LivingEntitySprite extends Container {
     this.y = this.state.y
     this.target = this.state.target
     this.tempTarget = this.state.tempTarget
-    this.sprite.rotation = this.state.rotation
+    this.spriteContainer.rotation = this.state.rotation
     this.labelSprite.text = this.state.label
 
     // Update equipped items
@@ -86,7 +88,7 @@ class LivingEntitySprite extends Container {
     
     // Remove old attached items
     Object.values(this.attachedItems).forEach(item => {
-      this.sprite.removeChild(item)
+      this.spriteContainer.removeChild(item)
       item.destroy()
     })
     this.attachedItems = {}
@@ -104,25 +106,25 @@ class LivingEntitySprite extends Container {
   }
 
   attachItemSprite(texture, slotName) {
-    const sprite = Sprite.from(texture)
-    sprite.anchor.set(0.5)
+    const itemSprite = Sprite.from(texture)
+    itemSprite.anchor.set(0.5)
 
     // flip the sprite if offhand
     if (slotName === InventorySlot.OffHand.name) {
-      sprite.scale.x = -1
+      itemSprite.scale.x = -1
     }
 
-    this.attachedItems[slotName] = sprite
-    this.sprite.addChild(sprite)
+    this.attachedItems[slotName] = itemSprite
+    this.spriteContainer.addChild(itemSprite)
   }
 
   animateAttack() {
     // Simple attack animation for testing
     const originalScale = this.sprite.scale.x
-    this.sprite.scale.set(originalScale * 1.2)
+    this.spriteContainer.scale.set(originalScale * 1.2)
 
     setTimeout(() => {
-      this.sprite.scale.set(originalScale)
+      this.spriteContainer.scale.set(originalScale)
     }, 100)
   }
 
