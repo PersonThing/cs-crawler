@@ -52,6 +52,12 @@ class PlayerControls {
       f1: event => {
         this.hud.toggleHelp()
       },
+      
+      escape: event => {
+        this.hud.closeAllHuds()
+        event.preventDefault()
+        return false
+      },
 
       // Action bar ability hotkeys
       q: event => {

@@ -88,6 +88,21 @@ class Hud extends Container {
     }
   }
 
+  closeAllHuds() {
+    // Close all HUD panels
+    this.inventory.visible = false
+    this.character.visible = false
+    this.help.visible = false
+    
+    // Reset players position when help is closed
+    this.players.x = 0
+    
+    // Close ability selection menu if open
+    if (this.actionBar && this.actionBar.abilityMenu) {
+      this.actionBar.closeAbilityMenu()
+    }
+  }
+
   onTick(time) {
     this.minimap.onTick()
     this.inventory.onTick()
