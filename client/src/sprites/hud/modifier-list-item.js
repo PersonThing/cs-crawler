@@ -1,6 +1,6 @@
 import { Container, Graphics, Text } from 'pixi.js'
 
-const ITEM_WIDTH = 180
+const ITEM_WIDTH = 120
 const ITEM_HEIGHT = 32
 const BORDER_COLOR_NORMAL = 0x666666
 const BORDER_COLOR_SELECTED = 0x00ff00

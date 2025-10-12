@@ -76,4 +76,17 @@ export const bonusItems = [
     abilities: [Abilities.Lightning.id],
     abilityModifiers: [],
   }),
+
+  // Healing Orb
+  new Item({
+    name: 'Healing Orb',
+    itemType: ItemType.Bonus,
+    itemQuality: ItemQuality.Rare,
+    inventoryTexture: Textures.inventory.item.gems.emerald,
+    attributes: {
+      [ItemAttributeType.Health]: 50,
+    },
+    abilities: [Abilities.Heal.id],
+    abilityModifiers: [],
+  }),
 ]

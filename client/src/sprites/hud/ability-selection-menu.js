@@ -66,7 +66,6 @@ class AbilitySelectionMenu extends Container {
   
   renderAbilityGrid() {
     const startY = 50
-    const gridWidth = 200
     
     // Section label
     const label = new Text({
@@ -112,7 +111,7 @@ class AbilitySelectionMenu extends Container {
   }
   
   renderModifierList() {
-    const startX = 204  // Adjusted to give 16px padding on right (400 - 180 - 16 = 204)
+    const startX = GRID_COLS * ITEM_SIZE + SECTION_PADDING * 3
     const startY = 50
     
     // Section label

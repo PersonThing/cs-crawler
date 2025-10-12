@@ -1,13 +1,34 @@
 import { Graphics, Container, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
 import { Abilities, AbilityModifiers } from '#shared/config/abilities.js'
+import ItemAttributeType, {
+  DefensiveAttributes,
+  UtilityAttributes,
+  OffensiveAttributes,
+  OnHitAttributes,
+  AbilityAttributes
+} from '#shared/config/item-attribute-type.js'
 
 import playerSpriteStore from '../../stores/player-sprite-store.js'
 
 const STAT_SIZE = 12
 const STAT_MARGIN = 10
-const WIDTH = 300
-const HEIGHT = 500
+const WIDTH = 500
+const HEIGHT = 400
+const LEFT_COLUMN_X = 20
+const RIGHT_COLUMN_X = 220
+
+// Color scheme for stat groups
+const COLORS = {
+  OFFENSIVE: 0xff8888,      // Red for offense
+  DEFENSIVE: 0x88aaff,      // Blue for defense  
+  UTILITY: 0x88ff88,        // Green for utility
+  ON_HIT: 0xffaa88,         // Orange for on-hit effects
+  OTHER: 0xcccccc,          // Grey for other stats
+  ABILITIES: 0x88ff88,      // Green for abilities
+  MODIFIERS: 0x88aaff,      // Blue for modifiers
+  ABILITY_ATTRS: 0xffaa44,  // Orange for ability attributes
+}
 
 class CharacterHud extends Container {
   constructor() {
@@ -59,18 +80,7 @@ class CharacterHud extends Container {
     gfx.y = 0
     this.bg.addChild(gfx)
 
-    // stats text
-    const title = new Text({
-      text: 'Stats',
-      style: {
-        fontSize: 20,
-        fill: 0xffffff,
-        fontWeight: 'bold',
-      },
-      x: 10,
-      y: 10,
-    })
-    this.bg.addChild(title)
+
   }
 
   renderStats() {
@@ -85,120 +95,145 @@ class CharacterHud extends Container {
     // Separate stats into categories
     const abilities = []
     const modifiers = []
-    const abilityRelatedStats = []
-    const regularStats = []
+    const defensiveStats = []
+    const offensiveStats = []
+    const utilityStats = []
+    const onHitStats = []
+    const abilityAttributeStats = []
+    const otherStats = []
     
     Object.keys(this.stats).forEach(statName => {
       if (Abilities[statName]) {
         abilities.push(statName)
       } else if (AbilityModifiers[statName]) {
         modifiers.push(statName)
-      } else if (statName === 'MaxAbilityModifiers') {
-        abilityRelatedStats.push(statName)
+      } else if (DefensiveAttributes[statName]) {
+        defensiveStats.push(statName)
+      } else if (OffensiveAttributes[statName]) {
+        offensiveStats.push(statName)
+      } else if (UtilityAttributes[statName]) {
+        utilityStats.push(statName)
+      } else if (OnHitAttributes[statName]) {
+        onHitStats.push(statName)
+      } else if (AbilityAttributes[statName]) {
+        abilityAttributeStats.push(statName)
       } else {
-        regularStats.push(statName)
+        otherStats.push(statName)
       }
     })
     
     // Sort each category
     abilities.sort()
     modifiers.sort()
-    abilityRelatedStats.sort()
-    regularStats.sort()
+    defensiveStats.sort()
+    offensiveStats.sort()
+    utilityStats.sort()
+    onHitStats.sort()
+    abilityAttributeStats.sort()
+    otherStats.sort()
     
-    let currentY = 50
-    let index = 0
+    // Left column: Grouped stats
+    let leftY = 20
     
-    // Render abilities first
-    abilities.forEach(statName => {
-      const statValue = this.stats[statName]
-      let displayText
-      if (statValue > 1) {
-        displayText = `Ability: ${statName} (by ${statValue} items)`
-      } else {
-        displayText = `Ability: ${statName}`
-      }
+    // Helper function to render a stat group
+    const renderStatGroup = (stats, title, color, x, y) => {
+      if (stats.length === 0) return y
       
-      const statText = new Text({
-        text: displayText,
+      // Group title
+      const groupTitle = new Text({
+        text: title,
         style: {
-          fontSize: STAT_SIZE,
-          fill: 0x88ff88, // Light green for abilities
+          fontSize: 14,
+          fill: 0xffffff,
+          fontWeight: 'bold',
         },
-        x: 20,
-        y: currentY,
+        x,
+        y,
       })
-      this.statContainer.addChild(statText)
-      currentY += STAT_SIZE + STAT_MARGIN
-      index++
-    })
-    
-    // Render modifiers second
-    modifiers.forEach(statName => {
-      const statValue = this.stats[statName]
-      let displayText
-      if (statValue > 1) {
-        displayText = `Ability Modifier: ${statName} (by ${statValue} items)`
-      } else {
-        displayText = `Ability Modifier: ${statName}`
-      }
+      this.statContainer.addChild(groupTitle)
+      y += 20
       
-      const statText = new Text({
-        text: displayText,
-        style: {
-          fontSize: STAT_SIZE,
-          fill: 0x88aaff, // Light blue for modifiers
-        },
-        x: 20,
-        y: currentY,
+      // Group stats
+      stats.forEach(statName => {
+        const statValue = this.stats[statName]
+        const displayText = `${statName}: ${statValue}`
+        
+        const statText = new Text({
+          text: displayText,
+          style: {
+            fontSize: STAT_SIZE,
+            fill: color,
+          },
+          x,
+          y,
+        })
+        this.statContainer.addChild(statText)
+        y += STAT_SIZE + STAT_MARGIN
       })
-      this.statContainer.addChild(statText)
-      currentY += STAT_SIZE + STAT_MARGIN
-      index++
-    })
-    
-    // Render ability-related stats third
-    abilityRelatedStats.forEach(statName => {
-      const statValue = this.stats[statName]
-      const displayText = `${statName}: ${statValue}`
       
-      const statText = new Text({
-        text: displayText,
-        style: {
-          fontSize: STAT_SIZE,
-          fill: 0xffaa44, // Orange for ability-related stats
-        },
-        x: 20,
-        y: currentY,
-      })
-      this.statContainer.addChild(statText)
-      currentY += STAT_SIZE + STAT_MARGIN
-      index++
-    })
-    
-    // Add spacing between abilities/modifiers/ability-related and regular stats
-    if ((abilities.length > 0 || modifiers.length > 0 || abilityRelatedStats.length > 0) && regularStats.length > 0) {
-      currentY += STAT_MARGIN
+      return y + 5 // Add small spacing between groups
     }
     
-    // Render regular stats last
-    regularStats.forEach(statName => {
-      const statValue = this.stats[statName]
-      const displayText = `${statName}: ${statValue}`
+    // Render stat groups in left column
+    leftY = renderStatGroup(offensiveStats, 'Offense', COLORS.OFFENSIVE, LEFT_COLUMN_X, leftY)
+    leftY = renderStatGroup(defensiveStats, 'Defense', COLORS.DEFENSIVE, LEFT_COLUMN_X, leftY)
+    leftY = renderStatGroup(utilityStats, 'Utility', COLORS.UTILITY, LEFT_COLUMN_X, leftY)
+    leftY = renderStatGroup(onHitStats, 'On Hit', COLORS.ON_HIT, LEFT_COLUMN_X, leftY)
+    leftY = renderStatGroup(otherStats, 'Other', COLORS.OTHER, LEFT_COLUMN_X, leftY)
+    
+    // Right column: Abilities and ability-related
+    let rightY = 20
+    
+    // Helper function for right column ability rendering
+    const renderAbilityItems = (items, title, color, x, y, showCount = false) => {
+      if (items.length === 0) return y
       
-      const statText = new Text({
-        text: displayText,
+      // Group title
+      const groupTitle = new Text({
+        text: title,
         style: {
-          fontSize: STAT_SIZE,
-          fill: 0xffffff, // White for regular stats
+          fontSize: 14,
+          fill: 0xffffff,
+          fontWeight: 'bold',
         },
-        x: 20,
-        y: currentY,
+        x,
+        y,
       })
-      this.statContainer.addChild(statText)
-      currentY += STAT_SIZE + STAT_MARGIN
-      index++
-    })
+      this.statContainer.addChild(groupTitle)
+      y += 20
+      
+      // Group items
+      items.forEach(itemName => {
+        const itemValue = this.stats[itemName]
+        let displayText
+        if (showCount && itemValue > 1) {
+          displayText = `${itemName} (from ${itemValue} sources)`
+        } else if (showCount) {
+          displayText = itemName
+        } else {
+          displayText = `${itemName}: ${itemValue}`
+        }
+        
+        const itemText = new Text({
+          text: displayText,
+          style: {
+            fontSize: STAT_SIZE,
+            fill: color,
+          },
+          x,
+          y,
+        })
+        this.statContainer.addChild(itemText)
+        y += STAT_SIZE + STAT_MARGIN
+      })
+      
+      return y + 5 // Add small spacing between groups
+    }
+    
+    // Render ability groups in right column
+    rightY = renderAbilityItems(abilities, 'Abilities', COLORS.ABILITIES, RIGHT_COLUMN_X, rightY, true)
+    rightY = renderAbilityItems(modifiers, 'Modifiers', COLORS.MODIFIERS, RIGHT_COLUMN_X, rightY, true)
+    rightY = renderAbilityItems(abilityAttributeStats, 'Ability Attributes', COLORS.ABILITY_ATTRS, RIGHT_COLUMN_X, rightY, false)
   }
 }
 

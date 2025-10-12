@@ -33,7 +33,6 @@ const Abilities = {
     cooldown: 1000,
     onUse: (source, target, modifiers) => {
       // projectile attack helper here to fire a projectile that then has its own tick handling
-      console.log('fireball', { source, target, modifiers })
       return false // Stop player movement, projectile doesn't require moving to target
     },
   },
@@ -46,7 +45,6 @@ const Abilities = {
     cooldown: 1200,
     onUse: (source, target, modifiers) => {
       // frost projectile attack helper - projectile that slows on hit
-      console.log('frost bolt', { source, target, modifiers })
       return false // Stop player movement, frost bolt is a projectile
     },
   },
@@ -59,10 +57,21 @@ const Abilities = {
     cooldown: 800,
     onUse: (source, target, modifiers) => {
       // lightning attack helper - instant projectile from source to target
-      console.log('lightning bolt', { source, target, modifiers })
       return false // Stop player movement, lightning is instant cast
     },
   },
+
+  Heal: {
+    id: 'Heal',
+    name: 'Heal',
+    description: 'Restore health to yourself or an ally.',
+    icon: Textures.inventory.item.gems.emerald, // Using emerald gem as heal icon placeholder
+    cooldown: 5000,
+    onUse: (source, target, modifiers) => {
+      // healing helper here to restore health to target entity
+      return true // Allow player to move to target
+    },
+  }
 }
 
 // Ability Modifiers

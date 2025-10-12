@@ -1,9 +1,4 @@
-const ItemAttributeType = {
-  // UTILITY
-  MovementSpeedPercent: 'MovementSpeedPercent',
-  Vision: 'Vision',
-  
-  // DEFENSIVE
+const DefensiveAttributes = {
   Health: 'Health',
   Defense: 'Defense', // reduces all damage
   PhysicalResist: 'PhysicalResistPercent',
@@ -12,12 +7,14 @@ const ItemAttributeType = {
   LightningResist: 'LightningResist',
   PoisonResist: 'PoisonResist',
 
-  // ON-HIT EFFECTS
-  LifePerHit: 'LifePerHit',
-  Knockback: 'Knockback',
-  Stun: 'Stun',
+}
 
-  // OFFENSIVE
+const UtilityAttributes = {
+  MovementSpeedPercent: 'MovementSpeedPercent',
+  Vision: 'Vision',
+}
+
+const OffensiveAttributes = {
   PercentDamage: 'PercentDamage', // multiply all damage types
   PhysicalDamage: 'PhysicalDamage',
   FireDamage: 'FireDamage',
@@ -28,11 +25,19 @@ const ItemAttributeType = {
   AreaDamageRadius: 'AreaDamageRadius',
   AttackHitChance: 'AttackHitChance',
   AttackSpeedPercent: 'AttackSpeedPercent',
-  
+
   ReflectDamagePercent: 'ReflectDamagePercent',
   ReflectDamageFlat: 'ReflectDamageFlat',
+}
 
-  // ABILITIES
+const OnHitAttributes = {
+  LifePerHit: 'LifePerHit',
+  Knockback: 'Knockback',
+  Stun: 'Stun',
+
+}
+
+const AbilityAttributes = {
   MaxAbilityModifiers: 'MaxAbilityModifiers', // increases the max number of ability modifiers you can have on an ability
   ExtraProjectiles: 'ExtraProjectiles', // modifier on an ability, adds # extra projectiles to projectile abilities
   HomingProjectiles: 'HomingProjectiles', // modifier on an ability, makes projectiles home in on enemies
@@ -41,6 +46,22 @@ const ItemAttributeType = {
   ChainProjectiles: 'ChainProjectiles', // modifier on an ability, makes projectiles chain between enemies
   MaxTurrets: 'MaxTurrets', // increases the max number of turrets you can have out at a time
   MaxPets: 'MaxPets', // increases the max number of pets you can have out at a time
+}
+
+const ItemAttributeType = {
+  ...DefensiveAttributes,
+  ...UtilityAttributes,
+  ...OffensiveAttributes,
+  ...OnHitAttributes,
+  ...AbilityAttributes,
+}
+
+export {
+  DefensiveAttributes,
+  UtilityAttributes,
+  OffensiveAttributes,
+  OnHitAttributes,
+  AbilityAttributes
 }
 
 export default ItemAttributeType
