@@ -90,7 +90,7 @@ export const Textures = {
         "emerald": "/assets/textures/inventory/item/gems/emerald.png",
         "quartz": "/assets/textures/inventory/item/gems/quartz.png",
         "ruby": "/assets/textures/inventory/item/gems/ruby.png",
-        "saphire": "/assets/textures/inventory/item/gems/saphire.png",
+        "sapphire": "/assets/textures/inventory/item/gems/sapphire.png",
         "topaz": "/assets/textures/inventory/item/gems/topaz.png"
       },
       "orb": "/assets/textures/inventory/item/orb.png",

@@ -33,8 +33,34 @@ const Abilities = {
     cooldown: 1000,
     onUse: (source, target, modifiers) => {
       // projectile attack helper here to fire a projectile that then has its own tick handling
-      console.log('fireball used by', source, 'at', target, 'with modifiers', modifiers)
+      console.log('fireball', { source, target, modifiers })
       return false // Stop player movement, projectile doesn't require moving to target
+    },
+  },
+
+  Frostbolt: {
+    id: 'Frostbolt',
+    name: 'Frostbolt',
+    description: 'Launch a bolt of frost that slows enemies.',
+    icon: Textures.inventory.item.gems.sapphire, // Using sapphire gem as frost icon placeholder
+    cooldown: 1200,
+    onUse: (source, target, modifiers) => {
+      // frost projectile attack helper - projectile that slows on hit
+      console.log('frost bolt', { source, target, modifiers })
+      return false // Stop player movement, frost bolt is a projectile
+    },
+  },
+
+  Lightning: {
+    id: 'Lightning',
+    name: 'Lightning Bolt',
+    description: 'Strike enemies at range with an instant lightning bolt.',
+    icon: Textures.inventory.item.gems.topaz, // Using topaz gem as lightning icon placeholder
+    cooldown: 800,
+    onUse: (source, target, modifiers) => {
+      // lightning attack helper - instant projectile from source to target
+      console.log('lightning bolt', { source, target, modifiers })
+      return false // Stop player movement, lightning is instant cast
     },
   },
 }
