@@ -1,6 +1,7 @@
 import { ItemQualityColors } from '#shared/config/item-quality.js'
 import { Sprite, Graphics, Text, Container } from 'pixi.js'
 import ItemSet from '#shared/config/items/sets.js'
+import InventoryStatCalculator from '#shared/utils/inventory-stat-calculator.js'
 
 const ATTRIBUTE_COLOR = 0xaaaaaa
 const ITEM_TYPE_COLOR = 0xffffff
@@ -117,25 +118,21 @@ export default class InventoryItem extends Container {
       const set = ItemSet[item.setId]
       if (set) {
         // Calculate currently equipped set pieces
-        const equippedSetPieces = Object.values(playerInventory.equipped).filter(
-          equippedItem => equippedItem && equippedItem.setId === item.setId
-        ).length
+        const setCounts = InventoryStatCalculator.calculateSetCounts(playerInventory.equipped)
+        const equippedSetPieces = setCounts[item.setId] || 0
 
         // Calculate starting Y position for set bonuses
         let currentY = itemAttributeText.y + itemAttributeText.height + 8
 
-        // Add each set bonus tier
-        for (let tierIndex = 0; tierIndex < set.bonuses.length; tierIndex++) {
-          const bonusTier = set.bonuses[tierIndex]
-          if (bonusTier == null || Object.keys(bonusTier).length === 0) {
-            continue // skip empty tiers
-          }
+        // Get all set bonus tiers
+        const setTiers = InventoryStatCalculator.getSetBonusTiers(item.setId, equippedSetPieces)
 
-          const isEarned = equippedSetPieces >= tierIndex + 1
+        // Add each set bonus tier
+        setTiers.forEach(({ itemCount, attributes, isEarned }) => {
 
           // Tier header with appropriate color
           const tierHeaderText = new Text({
-            text: `${tierIndex + 1} pieces:`,
+            text: `${itemCount} pieces:`,
             style: {
               fontFamily: 'Arial',
               fontSize: 12,
@@ -148,9 +145,9 @@ export default class InventoryItem extends Container {
           currentY += tierHeaderText.height
 
           // Bonus attributes for this tier
-          const bonusAttributes = Object.keys(bonusTier)
+          const bonusAttributes = Object.keys(attributes)
             .map(attributeName => {
-              const attributeValue = bonusTier[attributeName]
+              const attributeValue = attributes[attributeName]
               let symbol = '+'
               if (attributeValue < 0) {
                 symbol = '-'
@@ -172,7 +169,7 @@ export default class InventoryItem extends Container {
             itemDescription.addChild(tierBonusText)
             currentY += tierBonusText.height + 4
           }
-        }
+        })
       }
     }
 

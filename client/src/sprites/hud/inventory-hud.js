@@ -64,11 +64,6 @@ class InventoryHud extends Container {
 
     this.eventMode = 'static'
 
-    this.on('pointerdown', event => {
-      event.stopPropagation()
-      event.preventDefault()
-      return false
-    })
     this.on('mousedown', event => {
       event.stopPropagation()
       event.preventDefault()
@@ -129,7 +124,6 @@ class InventoryHud extends Container {
         const itemSprite = this.drawItem(item, coords)
         itemSprite.on('pointerdown', event => {
           socket.emit('inventoryBagSlotClick', index, GetEventArgs(event))
-          console.log('clicked bag slot', index, item)
           return false
         })
       }
@@ -146,7 +140,6 @@ class InventoryHud extends Container {
       const itemSprite = this.drawItem(item, coords)
       itemSprite.on('pointerdown', event => {
         socket.emit('inventoryEquippedSlotClick', slotName, GetEventArgs(event))
-        console.log('clicked equipped slot', slotName, item)
       })
 
       // if 2h weapon, render a greyed out version of sprite in offhand slot
@@ -234,7 +227,6 @@ class InventoryHud extends Container {
       bgSprite.eventMode = 'static'
       bgSprite.on('pointerdown', event => {
         socket.emit('inventoryEquippedSlotClick', inventorySlot.name)
-        console.log('clicked equipped slot', inventorySlot.name, 'empty')
       })
       this.bg.addChild(bgSprite)
     }
@@ -246,7 +238,6 @@ class InventoryHud extends Container {
       slotBg.eventMode = 'static'
       slotBg.on('pointerdown', event => {
         socket.emit('inventoryBagSlotClick', index)
-        console.log('clicked bag slot', index, 'empty')
       })
     }
 

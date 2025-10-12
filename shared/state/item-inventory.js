@@ -54,6 +54,7 @@ export default class ItemInventory {
       bags: this.bags,
       cursor: this.cursor,
       hash: this.hash,
+      equippedHash: this.equippedHash,
     }
   }
 
@@ -70,6 +71,11 @@ export default class ItemInventory {
         equipped: this.equipped,
         bags: this.bags,
         cursor: this.cursor,
+      })
+    )
+    this.equippedHash = GenerateShortHash(
+      JSON.stringify({
+        equipped: this.equipped,
       })
     )
   }
@@ -112,7 +118,9 @@ export default class ItemInventory {
 
   getValidSlotNamesForItem(item) {
     AssertValidItem(item)
-    return Object.values(InventorySlot).filter(slot => item.itemType.validSlotTypes.includes(slot.slotType)).map(slot => slot.name)
+    return Object.values(InventorySlot)
+      .filter(slot => item.itemType.validSlotTypes.includes(slot.slotType))
+      .map(slot => slot.name)
   }
 
   isItemValidForSlot(item, slotName) {
@@ -206,7 +214,7 @@ export default class ItemInventory {
     if (previouslyEquippedItem === item) {
       return true
     }
-    
+
     // trying to equip 2h to mainhand
     if (slotName === InventorySlot.MainHand.name && item.itemType.bothHands) {
       const otherSlot = slotName === InventorySlot.MainHand.name ? InventorySlot.OffHand.name : InventorySlot.MainHand.name
