@@ -1,5 +1,8 @@
 import ItemInventory from './item-inventory.js'
 import { BLOCK_SIZE } from '../config/constants.js'
+import ItemSet from '#shared/config/items/sets.js'
+
+const statsCache = {}
 
 export default class LivingEntityState {
   constructor({ id, label, pather, color, targetItem, inventory, x = 0, y = 0 }) {
@@ -200,7 +203,18 @@ export default class LivingEntityState {
   }
 
   computeStats() {
+    let stats = statsCache[this.inventory.hash]
+    if (stats == null) {
+      stats = this.calculateStatsFromInventory()
+      statsCache[this.inventory.hash] = stats
+    }
+    this.stats = stats
+  }
+
+  calculateStatsFromInventory() {
     const stats = {}
+    const setCounts = {}
+    
     // apply attributes from items
     Object.values(this.inventory.equipped).forEach(item => {
       if (item != null) {
@@ -208,12 +222,35 @@ export default class LivingEntityState {
           if (stats[stat] == null) stats[stat] = 0
           stats[stat] += item.attributes[stat]
         })
+
+        if (item.setId) {
+          setCounts[item.setId] = (setCounts[item.setId] || 0) + 1
+        }
       }
     })
+
+    // if item is a set, apply set bonuses if there are enough pieces equipped
+    if (Object.keys(setCounts).length) {
+      Object.keys(setCounts).forEach(setId => {
+        const setCount = setCounts[setId]
+        const set = ItemSet[setId]
+        if (set != null) {
+          // Apply bonuses for each earned tier (skip tier 0 which is empty)
+          for (let tierIndex = 0; tierIndex < setCount && tierIndex < set.bonuses.length; tierIndex++) {
+            const bonusTier = set.bonuses[tierIndex]
+            Object.keys(bonusTier).forEach(stat => {
+              if (stats[stat] == null) stats[stat] = 0
+              stats[stat] += bonusTier[stat]
+            })
+          }
+        }
+      })
+    }
+      
     // todo: apply stats for attack speed based on equipped weapons / 1h vs 2h etc
     // todo: apply entity base attributes (eg, from entity class, level, etc)
     // todo: apply temporary buffs/debuffs
-    this.stats = stats
+    return stats
   }
 }
 

@@ -168,7 +168,7 @@ class InventoryHud extends Container {
   }
 
   drawItem(item, { x, y }, isDisabledOffHand) {
-    const inventoryItem = new InventoryItem(item, { x, y }, isDisabledOffHand)
+    const inventoryItem = new InventoryItem(item, { x, y }, isDisabledOffHand, this.inventory)
     this.itemContainer.addChild(inventoryItem)
     return inventoryItem
   }

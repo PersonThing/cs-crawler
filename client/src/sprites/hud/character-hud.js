@@ -3,10 +3,10 @@ import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
 
 import playerSpriteStore from '../../stores/player-sprite-store.js'
 
-const STAT_SIZE = 18
-const STAT_MARGIN = 8
-const WIDTH = 200
-const HEIGHT = 300
+const STAT_SIZE = 12
+const STAT_MARGIN = 10
+const WIDTH = 300
+const HEIGHT = 400
 
 class CharacterHud extends Container {
   constructor() {
@@ -85,7 +85,7 @@ class CharacterHud extends Container {
         const statText = new Text({
           text: `${statName}: ${statValue}`,
           style: {
-            fontSize: 14,
+            fontSize: STAT_SIZE,
             fill: 0xffffff,
           },
           x: 20,

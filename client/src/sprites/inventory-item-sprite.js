@@ -1,8 +1,16 @@
 import { ItemQualityColors } from '#shared/config/item-quality.js'
 import { Sprite, Graphics, Text, Container } from 'pixi.js'
+import ItemSet from '#shared/config/items/sets.js'
+
+const ATTRIBUTE_COLOR = 0xaaaaaa
+const ITEM_TYPE_COLOR = 0xffffff
+const TWOH_INDICATOR_COLOR = 0xffffff
+const SET_TIER_DISABLED_COLOR = 0x666666
+const SET_TIER_ENABLED_COLOR = ItemQualityColors.Set
+const SET_TIER_DISABLED_ATTRIBUTE_COLOR = 0x666666
 
 export default class InventoryItem extends Container {
-  constructor(item, { x, y }, isDisabledOffHand) {
+  constructor(item, { x, y }, isDisabledOffHand, playerInventory) {
     super()
 
     this.item = item
@@ -24,7 +32,7 @@ export default class InventoryItem extends Container {
         style: {
           fontFamily: 'Arial',
           fontSize: 10,
-          fill: 0xffffff,
+          fill: TWOH_INDICATOR_COLOR,
         },
       })
       text2h.x = 2
@@ -45,9 +53,17 @@ export default class InventoryItem extends Container {
 
     itemDescription.addChild(itemDescriptionBg)
 
-    // name
+    // name (with set name if applicable)
+    let itemNameDisplay = item.name
+    if (item.setId && playerInventory) {
+      const set = ItemSet[item.setId]
+      if (set) {
+        itemNameDisplay += ` (${set.name})`
+      }
+    }
+
     const itemNameText = new Text({
-      text: `${item.name}`,
+      text: itemNameDisplay,
       style: {
         fontFamily: 'Arial',
         fontSize: 14,
@@ -63,35 +79,102 @@ export default class InventoryItem extends Container {
       style: {
         fontFamily: 'Arial',
         fontSize: 12,
-        fill: 0xffffff,
+        fill: ITEM_TYPE_COLOR,
       },
     })
     itemTypeNameText.y = 16
     itemDescription.addChild(itemTypeNameText)
 
     // attributes + description
+    let attributeText = Object.keys(item.attributes)
+      .map(attributeName => {
+        const attributeValue = item.attributes[attributeName]
+        let symbol = '+'
+        if (attributeValue < 0) {
+          symbol = '-'
+        }
+        return `${symbol}${attributeValue} ${attributeName}`
+      })
+      .join('\n')
+
+    if (item.description != null) {
+      attributeText += `\n\n${item.description}`
+    }
+
     const itemAttributeText = new Text({
-      text: Object.keys(item.attributes)
-        .map(attributeName => {
-          const attributeValue = item.attributes[attributeName]
-          let symbol = '+'
-          if (attributeValue < 0) {
-            symbol = '-'
-          }
-          return `${symbol}${attributeValue} ${attributeName}`
-        })
-        .join('\n'),
+      text: attributeText,
       style: {
         fontFamily: 'Arial',
         fontSize: 12,
-        fill: 0x999999,
+        fill: ATTRIBUTE_COLOR,
       },
     })
-    if (item.description != null) {
-      itemAttributeText.text += `\n\n${item.description}`
-    }
     itemAttributeText.y = 32
     itemDescription.addChild(itemAttributeText)
+
+    // Add set bonus information if this is a set item
+    if (item.setId && playerInventory) {
+      const set = ItemSet[item.setId]
+      if (set) {
+        // Calculate currently equipped set pieces
+        const equippedSetPieces = Object.values(playerInventory.equipped).filter(
+          equippedItem => equippedItem && equippedItem.setId === item.setId
+        ).length
+
+        // Calculate starting Y position for set bonuses
+        let currentY = itemAttributeText.y + itemAttributeText.height + 8
+
+        // Add each set bonus tier
+        for (let tierIndex = 0; tierIndex < set.bonuses.length; tierIndex++) {
+          const bonusTier = set.bonuses[tierIndex]
+          if (bonusTier == null || Object.keys(bonusTier).length === 0) {
+            continue // skip empty tiers
+          }
+
+          const isEarned = equippedSetPieces >= tierIndex + 1
+
+          // Tier header with appropriate color
+          const tierHeaderText = new Text({
+            text: `${tierIndex + 1} pieces:`,
+            style: {
+              fontFamily: 'Arial',
+              fontSize: 12,
+              fontWeight: 'bold',
+              fill: isEarned ? SET_TIER_ENABLED_COLOR : SET_TIER_DISABLED_COLOR,
+            },
+          })
+          tierHeaderText.y = currentY
+          itemDescription.addChild(tierHeaderText)
+          currentY += tierHeaderText.height
+
+          // Bonus attributes for this tier
+          const bonusAttributes = Object.keys(bonusTier)
+            .map(attributeName => {
+              const attributeValue = bonusTier[attributeName]
+              let symbol = '+'
+              if (attributeValue < 0) {
+                symbol = '-'
+              }
+              return `  ${symbol}${attributeValue} ${attributeName}`
+            })
+            .join('\n')
+
+          if (bonusAttributes) {
+            const tierBonusText = new Text({
+              text: bonusAttributes,
+              style: {
+                fontFamily: 'Arial',
+                fontSize: 12,
+                fill: isEarned ? ATTRIBUTE_COLOR : SET_TIER_DISABLED_ATTRIBUTE_COLOR,
+              },
+            })
+            tierBonusText.y = currentY
+            itemDescription.addChild(tierBonusText)
+            currentY += tierBonusText.height + 4
+          }
+        }
+      }
+    }
 
     // only show on mouseover
     itemDescription.visible = false
@@ -110,8 +193,9 @@ export default class InventoryItem extends Container {
     })
 
     // render description to left of item sprite so it's always visible at any screen size / item location
+    // align tooltip bottom with item sprite bottom
     itemDescription.x = -itemDescription.width - 15
-    itemDescription.y = -10
+    itemDescription.y = itemSprite.height - itemDescription.height
     itemDescriptionBg
       .roundRect(-10, -10, itemDescription.width + 20, itemDescription.height + 20, 4)
       .fill(0x000000)
