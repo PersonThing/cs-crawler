@@ -32,21 +32,17 @@ const ItemAttributeType = {
   ReflectDamagePercent: 'ReflectDamagePercent',
   ReflectDamageFlat: 'ReflectDamageFlat',
 
-  // ABILITIES
-  FireBall: 'FireBall',
-  IceBolt: 'IceBolt',
-  Lightning: 'Lightning',
+  // ABILITIES + ABILITY MODIFIERS
+  GrantAbility: 'GrantAbility', // grants an ability (like fireball, icebolt, etc)
+  GrantAbilityModifier: 'GrantAbilityModifier', // grants an ability modifier (like extra projectiles, homing, turret, pet, etc)
+  MaxAbilityModifiers: 'MaxAbilityModifiers', // increases the max number of ability modifiers you can have on an ability
 
-  // ABILITY MODIFIERS
-  MultiplyProjectiles: 'MultiplyProjectiles', // modifier on an ability, shoots multiple projectiles
+  // PASSIVE ABILITY MODIFIERS
+  ExtraProjectiles: 'ExtraProjectiles', // modifier on an ability, adds # extra projectiles to projectile abilities
   HomingProjectiles: 'HomingProjectiles', // modifier on an ability, makes projectiles home in on enemies
   PiercingProjectiles: 'PiercingProjectiles', // modifier on an ability, makes projectiles pierce through enemies
   ExplodingProjectiles: 'ExplodingProjectiles', // modifier on an ability, makes projectiles explode on impact
   ChainProjectiles: 'ChainProjectiles', // modifier on an ability, makes projectiles chain between enemies
-  Turret: 'Turret', // modifier on an ability, turns the ability into a turret that shoots periodically
-  Pet: 'Pet', // modifier on an ability, turns the ability into a pet that fights for you
-
-  // PASSIVE ABILITY MODIFIERS
   MaxTurrets: 'MaxTurrets', // increases the max number of turrets you can have out at a time
   MaxPets: 'MaxPets', // increases the max number of pets you can have out at a time
 }

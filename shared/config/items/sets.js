@@ -1,3 +1,4 @@
+import { Abilities, AbilityModifiers } from '../abilities.js'
 import ItemAttributeType from '../item-attribute-type.js'
 
 const ItemSet = {
@@ -10,13 +11,14 @@ const ItemSet = {
       // 2 items
       {
         [ItemAttributeType.Health]: 100,
-        [ItemAttributeType.Lightning]: 1, // grants lightning spell
+        [ItemAttributeType.LifePerHit]: 50,
+        [ItemAttributeType.GrantAbility]: Abilities.Fireball.id,
       },
       // 3 items
       {
-        [ItemAttributeType.Pet]: 1, // grants spell modifier to summon a pet that fights for you
+        [ItemAttributeType.GrantAbilityModifier]: AbilityModifiers.Pet.id,
+        [ItemAttributeType.MaxAbilityModifiers]: 2,
         [ItemAttributeType.MaxPets]: 2, // you can have 2 more pets out at a time
-        [ItemAttributeType.LifePerHit]: 50,
       },
     ],
   },
