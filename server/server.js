@@ -5,6 +5,7 @@ import http from 'http'
 import Pather from '#shared/pather.js'
 import PlayerState from '#shared/state/player-state.js'
 import GroundItem from '#shared/config/ground-item.js'
+import { Abilities } from '#shared/config/abilities.js'
 import db from './db.js'
 
 const FPS = 30
@@ -193,6 +194,34 @@ io.on('connection', async socket => {
       return
     }
     player.actionBarConfig = [...actionBarConfig]
+  })
+
+  socket.on('useAbility', ({ abilityId, target, modifiers }) => {
+    if (!player?.isConnected) {
+      return
+    }
+    
+    const ability = Abilities[abilityId]
+    if (!ability) {
+      console.log('Unknown ability:', abilityId)
+      return
+    }
+    
+    // Validate that player has ability unlocked
+    if (!player.hasAbilityUnlocked(abilityId)) {
+      console.log(`Player ${player.label} attempted to use locked ability: ${ability.name}`)
+      return
+    }
+    
+    // TODO: Check cooldowns, mana costs, etc.
+    // TODO: Validate target position is reasonable
+    
+    console.log(`Player ${player.label} using ability: ${ability.name} at`, target, 'with modifiers:', modifiers)
+    
+    // Execute ability on server
+    if (ability.onUse) {
+      ability.onUse(player, target, modifiers)
+    }
   })
 
   socket.on('inventoryBagSlotClick', (index, { ctrlKey, shiftKey, altKey, rightClick } = {}) => {

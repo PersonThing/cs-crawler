@@ -1,6 +1,7 @@
 import ItemInventory from './item-inventory.js'
 import { BLOCK_SIZE } from '../config/constants.js'
 import InventoryStatCalculator from '../utils/inventory-stat-calculator.js'
+import { Abilities } from '#shared/config/abilities.js'
 
 export default class LivingEntityState {
   constructor({ id, label, pather, color, targetItem, inventory, x = 0, y = 0 }) {
@@ -206,6 +207,19 @@ export default class LivingEntityState {
     }
     this.stats = InventoryStatCalculator.calculateStats(this.inventory.equipped)
     this.computedEquippedHash = this.inventory.equippedHash
+  }
+
+  hasAbilityUnlocked(abilityId) {
+    // BasicAttack is always available
+    if (abilityId === Abilities.BasicAttack.id) {
+      return true
+    }
+    
+    // Make sure stats are up to date
+    this.computeStats()
+    
+    // Check if the ability is granted by equipment (ability-specific stats)
+    return this.stats[abilityId] && this.stats[abilityId] > 0
   }
 }
 

@@ -20,7 +20,6 @@ const Abilities = {
     onUse: (source, target, modifiers) => {
       // melee attack helper here to do damage in a cone, or immediately where cursor is, etc
       // need helpers to get entities in range, apply damage, healing, etc
-      console.log('basic attack used by', source, 'at', target, 'with modifiers', modifiers)
       return true // Allow player to move to target
     },
   },

@@ -144,12 +144,15 @@ class ActionBarHud extends Container {
     
     console.log(`Using ability: ${ability.name} at`, targetPosition, 'with modifiers:', activeModifiers)
     
-    // Use the ability and return the result
-    if (ability.onUse) {
-      return ability.onUse(localPlayer?.state, targetPosition, activeModifiers)
-    }
+    // Emit to server to handle ability usage
+    socket.emit('useAbility', {
+      abilityId: config.abilityId,
+      target: targetPosition,
+      modifiers: activeModifiers
+    })
     
-    return null
+    // Return ability's movement behavior for client prediction
+    return ability.onUse ? ability.onUse(localPlayer?.state, targetPosition, activeModifiers) : null
   }
 
   // Methods to use specific slots from external code
@@ -226,7 +229,7 @@ class ActionBarHud extends Container {
   }
 
   getUnlockedAbilities(playerStats) {
-    const unlocked = ['BasicAttack'] // Always have basic attack
+    const unlocked = [Abilities.BasicAttack.id] // Always have basic attack
     
     // Check for abilities granted by equipment (now converted to ability-specific stats)
     Object.keys(Abilities).forEach(abilityKey => {
