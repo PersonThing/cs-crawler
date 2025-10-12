@@ -49,10 +49,14 @@ function tick() {
       const serializedPlayer = player.serialize()
       connectedPlayers[playerId] = serializedPlayer
 
-      // if player inventory or username changed, save to db
-      if (player.lastSavedHash !== serializedPlayer.inventory.hash || player.username !== player.lastSavedUsername) {
+      // if player inventory, username, or action bar config changed, save to db
+      const actionBarConfigChanged = JSON.stringify(player.actionBarConfig) !== JSON.stringify(player.lastSavedActionBarConfig)
+      if (player.lastSavedHash !== serializedPlayer.inventory.hash || 
+          player.username !== player.lastSavedUsername || 
+          actionBarConfigChanged) {
         // intentionally not awaiting, we don't care if it fails, it'll try again on next tick
         db.savePlayerAsync(player)
+        player.lastSavedActionBarConfig = JSON.parse(JSON.stringify(player.actionBarConfig)) // deep copy
       }
     }
   }
@@ -182,6 +186,13 @@ io.on('connection', async socket => {
     }
     dropToGround(player, item)
     player.inventory.clearCursor()
+  })
+
+  socket.on('updateActionBarConfig', (actionBarConfig) => {
+    if (!player?.isConnected) {
+      return
+    }
+    player.actionBarConfig = [...actionBarConfig]
   })
 
   socket.on('inventoryBagSlotClick', (index, { ctrlKey, shiftKey, altKey, rightClick } = {}) => {

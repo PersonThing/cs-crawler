@@ -2,7 +2,6 @@
 // need helpers to get entities in range, apply damage, healing, etc
 
 import { Textures } from './textures.js'
-import ItemAttributeType from './item-attribute-type.js'
 
 const DamageType = {
   Physical: 'Physical',
@@ -11,21 +10,6 @@ const DamageType = {
   Lightning: 'Lightning',
   Poison: 'Poison',
 }
-
-export default class Ability {
-  /**
-   *
-   * @param {String} name
-   * @param {String} description
-   * @param {Texture} icon
-   */
-  constructor(name, description, icon) {
-    this.name = name
-    this.description = description
-    this.icon = icon
-  }
-}
-
 const Abilities = {
   BasicAttack: {
     id: 'BasicAttack',
@@ -33,10 +17,11 @@ const Abilities = {
     description: 'A basic attack dealing physical damage.',
     icon: Textures.inventory.one_handed.sword, // for basic attack, this would change depending on equipped item
     cooldown: 250,
-    onUse: (source, targetPosition, modifiers) => {
+    onUse: (source, target, modifiers) => {
       // melee attack helper here to do damage in a cone, or immediately where cursor is, etc
       // need helpers to get entities in range, apply damage, healing, etc
-      console.log('basic attack used by', source, 'at', targetPosition, 'with modifiers', modifiers)
+      console.log('basic attack used by', source, 'at', target, 'with modifiers', modifiers)
+      return true // Allow player to move to target
     },
   },
 
@@ -46,14 +31,13 @@ const Abilities = {
     description: 'A fiery projectile that explodes upon impact, dealing area fire damage.',
     icon: Textures.particle.blaze,
     cooldown: 1000,
-    onUse: (source, targetPosition, modifiers) => {
+    onUse: (source, target, modifiers) => {
       // projectile attack helper here to fire a projectile that then has its own tick handling
-      console.log('fireball used by', source, 'at', targetPosition, 'with modifiers', modifiers)
+      console.log('fireball used by', source, 'at', target, 'with modifiers', modifiers)
+      return false // Stop player movement, projectile doesn't require moving to target
     },
   },
 }
-
-export { Ability, Abilities, AbilityModifiers, DamageType }
 
 // Ability Modifiers
 // when assigning an ability to an action bar, you will be able to assign modifiers to the ability (for now, just allow assigning up to 2 modifiers)
@@ -97,3 +81,5 @@ const AbilityModifiers = {
     description: 'Cast this ability automatically when your health is low.',
   },
 }
+
+export { Abilities, AbilityModifiers, DamageType }

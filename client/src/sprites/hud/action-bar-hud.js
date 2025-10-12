@@ -5,11 +5,12 @@ import InventoryStatCalculator from '#shared/utils/inventory-stat-calculator.js'
 import playerSpriteStore from '../../stores/player-sprite-store.js'
 import ActionBarSlot from './action-bar-slot.js'
 import AbilitySelectionMenu from './ability-selection-menu.js'
+import socket from '../../socket.js'
 
 const SLOT_COUNT = 6
 const SLOT_SIZE = 48
-const SLOT_PADDING = 0
-const MARGIN = 0
+const SLOT_PADDING = 2
+const MARGIN = 8
 
 class ActionBarHud extends Container {
   constructor(app) {
@@ -20,7 +21,7 @@ class ActionBarHud extends Container {
     this.selectedSlotIndex = null
     this.abilityMenu = null
     
-    // Action bar configuration (persisted across sessions)
+    // Action bar configuration (loaded from player state)
     this.slotConfigs = Array(SLOT_COUNT).fill(null).map(() => ({
       abilityId: null,
       modifiers: []
@@ -30,23 +31,32 @@ class ActionBarHud extends Container {
     this.renderSlots()
     this.positionAtBottom()
 
-    // Listen for player changes to update unlocked abilities
+    // Listen for player changes to update unlocked abilities and load config
     this.unsubscribeFromPlayers = playerSpriteStore.subscribe(players => {
       const player = players.find(p => p.isLocalPlayer)
       this.updateUnlockedAbilities(player?.state?.stats || {})
+      this.loadPlayerActionBarConfig(player)
     })
 
     // Kill any click events that bubble through
     this.eventMode = 'static'
+    
+    // Handle all pointer events to prevent player movement
+    const stopEvent = (event) => {
+      event.stopPropagation()
+      event.preventDefault()
+      return false
+    }
+    
     this.on('pointerdown', event => {
       // Close menu if clicking on action bar background (not on slots)
       if (this.abilityMenu && event.target === this.bg) {
         this.closeAbilityMenu()
       }
-      event.stopPropagation()
-      event.preventDefault()
-      return false
+      stopEvent(event)
     })
+    
+    this.on('mousedown', stopEvent)
   }
 
   renderBackground() {
@@ -61,10 +71,6 @@ class ActionBarHud extends Container {
     this.bg = new Graphics()
       .rect(0, 0, width, height)
       .fill(HUD_FILL_COLOR)
-      .stroke({
-        color: HUD_BORDER_COLOR,
-        width: 2,
-      })
     
     this.bg.alpha = 0.8
     this.addChild(this.bg)
@@ -85,6 +91,7 @@ class ActionBarHud extends Container {
       slot.y = MARGIN
       
       slot.on('click', () => this.onSlotClick(i))
+      slot.on('clear', () => this.onSlotClear(i))
       slot.on('rightclick', () => this.onSlotRightClick(i))
       
       this.addChild(slot)
@@ -102,11 +109,20 @@ class ActionBarHud extends Container {
     this.openAbilityMenu(slotIndex)
   }
 
-  useAbility(slotIndex) {
+  onSlotClear(slotIndex) {
+    // Middle click - clear the slot
+    this.slotConfigs[slotIndex] = { abilityId: null, modifiers: [] }
+    this.slots[slotIndex].updateConfig(this.slotConfigs[slotIndex])
+    this.savePlayerActionBarConfig()
+  }
+
+
+
+  useAbility(slotIndex, target = null) {
     const config = this.slotConfigs[slotIndex]
     const ability = Abilities[config.abilityId]
     
-    if (!ability) return
+    if (!ability) return null
     
     // Check if ability is unlocked
     const localPlayer = playerSpriteStore.getLocalPlayer()
@@ -114,25 +130,51 @@ class ActionBarHud extends Container {
     
     if (!unlockedAbilities.includes(config.abilityId)) {
       console.log('Ability not unlocked:', ability.name)
-      return
+      return null
     }
     
     // TODO: Check cooldown, mana cost, etc.
     
-    // Get cursor position for targeting
-    // TODO: Get actual cursor/target position
-    const targetPosition = { x: 0, y: 0 }
+    // Use provided target or default to origin
+    const targetPosition = target || { x: 0, y: 0 }
     
     // Filter modifiers to only include unlocked ones
     const unlockedModifiers = this.getUnlockedModifiers(localPlayer?.state?.stats || {})
     const activeModifiers = config.modifiers.filter(modId => unlockedModifiers.includes(modId))
     
-    console.log(`Using ability: ${ability.name} with modifiers:`, activeModifiers)
+    console.log(`Using ability: ${ability.name} at`, targetPosition, 'with modifiers:', activeModifiers)
     
-    // Use the ability
+    // Use the ability and return the result
     if (ability.onUse) {
-      ability.onUse(localPlayer?.state, targetPosition, activeModifiers)
+      return ability.onUse(localPlayer?.state, targetPosition, activeModifiers)
     }
+    
+    return null
+  }
+
+  // Methods to use specific slots from external code
+  useSlot1(target) {
+    return this.useAbility(0, target)
+  }
+
+  useSlot2(target) {
+    return this.useAbility(1, target)
+  }
+
+  useSlot3(target) {
+    return this.useAbility(2, target)
+  }
+
+  useSlot4(target) {
+    return this.useAbility(3, target)
+  }
+
+  useSlot5(target) {
+    return this.useAbility(4, target)
+  }
+
+  useSlot6(target) {
+    return this.useAbility(5, target)
   }
 
   openAbilityMenu(slotIndex) {
@@ -158,12 +200,15 @@ class ActionBarHud extends Container {
     this.abilityMenu.y = -this.abilityMenu.height - 10
     
     this.addChild(this.abilityMenu)
+    
+
   }
 
   onAbilitySelected(config) {
     if (this.selectedSlotIndex !== null) {
       this.slotConfigs[this.selectedSlotIndex] = { ...config }
       this.slots[this.selectedSlotIndex].updateConfig(this.slotConfigs[this.selectedSlotIndex])
+      this.savePlayerActionBarConfig() // Save configuration to player state
     }
     
     this.closeAbilityMenu()
@@ -176,6 +221,8 @@ class ActionBarHud extends Container {
       this.abilityMenu = null
     }
     this.selectedSlotIndex = null
+    
+
   }
 
   getUnlockedAbilities(playerStats) {
@@ -219,6 +266,30 @@ class ActionBarHud extends Container {
         this.getUnlockedAbilities(playerStats),
         this.getUnlockedModifiers(playerStats)
       )
+    }
+  }
+
+  loadPlayerActionBarConfig(player) {
+    if (player?.state?.actionBarConfig) {
+      // Load configuration from player state
+      this.slotConfigs = [...player.state.actionBarConfig]
+      this.renderSlots() // Re-render slots with new config
+    } else if (player?.state) {
+      // Initialize default config if player has no saved config
+      this.slotConfigs = Array(SLOT_COUNT).fill(null).map(() => ({
+        abilityId: null,
+        modifiers: []
+      }))
+      this.savePlayerActionBarConfig() // Save the default config
+    }
+  }
+
+  savePlayerActionBarConfig() {
+    const localPlayer = playerSpriteStore.getLocalPlayer()
+    if (localPlayer?.state) {
+      localPlayer.state.actionBarConfig = [...this.slotConfigs]
+      // Send update to server to persist the change
+      socket.emit('updateActionBarConfig', this.slotConfigs)
     }
   }
 

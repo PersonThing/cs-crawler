@@ -29,11 +29,6 @@ class AbilitySelectionMenu extends Container {
     this.renderModifierList()
     
     this.eventMode = 'static'
-    this.on('pointerdown', event => {
-      event.stopPropagation()
-      event.preventDefault()
-      return false
-    })
   }
   
   renderBackground() {
@@ -64,6 +59,43 @@ class AbilitySelectionMenu extends Container {
     title.y = SECTION_PADDING
     
     this.addChild(title)
+    
+    // Clear button
+    const clearButton = new Container()
+    clearButton.eventMode = 'static'
+    clearButton.cursor = 'pointer'
+    
+    const clearBg = new Graphics()
+      .rect(0, 0, 60, 20)
+      .fill(0xaa0000)
+      .stroke({ color: 0xffffff, width: 1 })
+    
+    const clearLabel = new Text({
+      text: 'Clear',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 10,
+        fill: 0xffffff,
+        align: 'center'
+      }
+    })
+    
+    clearLabel.x = (60 - clearLabel.width) / 2
+    clearLabel.y = (20 - clearLabel.height) / 2
+    
+    clearButton.addChild(clearBg)
+    clearButton.addChild(clearLabel)
+    
+    clearButton.x = MENU_WIDTH - 80
+    clearButton.y = SECTION_PADDING
+    
+    clearButton.on('pointerdown', () => {
+      // Clear the slot
+      const clearedConfig = { abilityId: null, modifiers: [] }
+      this.onSelectionChange(clearedConfig)
+    })
+    
+    this.addChild(clearButton)
   }
   
   renderAbilityGrid() {
@@ -146,7 +178,7 @@ class AbilitySelectionMenu extends Container {
       const isSelected = this.currentConfig.modifiers.includes(modifierKey)
       
       const item = new ModifierListItem(modifier, isUnlocked, isSelected)
-      item.y = index * 32
+      item.y = index * 34  // Add 2px spacing between items
       
       item.on('toggle', () => this.onModifierToggle(modifierKey))
       

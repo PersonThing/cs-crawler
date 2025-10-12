@@ -40,6 +40,7 @@ const db = {
     }
     player.lastSavedHash = state.inventory.hash
     player.lastSavedUsername = state.username
+    player.lastSavedActionBarConfig = JSON.parse(JSON.stringify(state.actionBarConfig)) // deep copy
     return dbPlayer
   },
 }

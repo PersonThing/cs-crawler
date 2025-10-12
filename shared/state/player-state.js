@@ -11,6 +11,7 @@ export default class PlayerState extends LivingEntityState {
     pather,
     x = 0,
     y = 0,
+    actionBarConfig = null,
   }) {
     super({
       id: playerId,
@@ -26,6 +27,10 @@ export default class PlayerState extends LivingEntityState {
     this.playerId = playerId
     this.socketId = socketId
     this.username = username
+    this.actionBarConfig = actionBarConfig || Array(6).fill(null).map(() => ({
+      abilityId: null,
+      modifiers: []
+    }))
   }
 
   serialize() {
@@ -34,6 +39,18 @@ export default class PlayerState extends LivingEntityState {
       playerId: this.playerId,
       socketId: this.socketId,
       username: this.username,
+      actionBarConfig: this.actionBarConfig,
+    }
+  }
+
+  deserialize(data) {
+    super.deserialize(data)
+    // Ensure actionBarConfig is properly initialized if missing from saved data
+    if (!this.actionBarConfig) {
+      this.actionBarConfig = Array(6).fill(null).map(() => ({
+        abilityId: null,
+        modifiers: []
+      }))
     }
   }
 

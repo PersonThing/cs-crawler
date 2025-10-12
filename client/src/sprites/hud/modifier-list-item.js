@@ -1,8 +1,13 @@
 import { Container, Graphics, Text } from 'pixi.js'
 
-const ITEM_WIDTH = 160
-const ITEM_HEIGHT = 28
-const CHECKBOX_SIZE = 16
+const ITEM_WIDTH = 180
+const ITEM_HEIGHT = 32
+const BORDER_COLOR_NORMAL = 0x666666
+const BORDER_COLOR_SELECTED = 0x00ff00
+const BORDER_COLOR_LOCKED = 0x333333
+const FILL_COLOR_NORMAL = 0x222222
+const FILL_COLOR_SELECTED = 0x004400
+const FILL_COLOR_LOCKED = 0x111111
 
 class ModifierListItem extends Container {
   constructor(modifier, isUnlocked, isSelected) {
@@ -23,47 +28,21 @@ class ModifierListItem extends Container {
     // Clear existing content
     this.removeChildren()
     
-    // Background
-    const fillColor = this.isUnlocked ? 0x222222 : 0x111111
+    // Background - same styling as abilities
+    const borderColor = this.isSelected ? BORDER_COLOR_SELECTED : 
+                       this.isUnlocked ? BORDER_COLOR_NORMAL : BORDER_COLOR_LOCKED
+    const fillColor = this.isSelected ? FILL_COLOR_SELECTED :
+                     this.isUnlocked ? FILL_COLOR_NORMAL : FILL_COLOR_LOCKED
     
     this.bg = new Graphics()
       .rect(0, 0, ITEM_WIDTH, ITEM_HEIGHT)
       .fill(fillColor)
       .stroke({
-        color: this.isUnlocked ? 0x666666 : 0x333333,
-        width: 1,
+        color: borderColor,
+        width: this.isSelected ? 3 : 2,
       })
     
     this.addChild(this.bg)
-    
-    // Checkbox
-    this.checkbox = new Graphics()
-      .rect(4, (ITEM_HEIGHT - CHECKBOX_SIZE) / 2, CHECKBOX_SIZE, CHECKBOX_SIZE)
-      .fill(this.isSelected && this.isUnlocked ? 0x00aa00 : 0x444444)
-      .stroke({
-        color: this.isUnlocked ? 0x888888 : 0x444444,
-        width: 1,
-      })
-    
-    this.addChild(this.checkbox)
-    
-    // Checkmark
-    if (this.isSelected && this.isUnlocked) {
-      const checkmark = new Text({
-        text: '✓',
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 12,
-          fill: 0xffffff,
-          align: 'center'
-        }
-      })
-      
-      checkmark.x = 4 + (CHECKBOX_SIZE - checkmark.width) / 2
-      checkmark.y = (ITEM_HEIGHT - checkmark.height) / 2
-      
-      this.addChild(checkmark)
-    }
     
     // Label
     const label = new Text({
@@ -75,7 +54,7 @@ class ModifierListItem extends Container {
       }
     })
     
-    label.x = 4 + CHECKBOX_SIZE + 8
+    label.x = 8
     label.y = (ITEM_HEIGHT - label.height) / 2
     
     this.addChild(label)

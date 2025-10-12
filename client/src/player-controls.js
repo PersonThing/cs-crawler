@@ -53,6 +53,40 @@ class PlayerControls {
         this.hud.toggleHelp()
       },
 
+      // Action bar ability hotkeys
+      q: event => {
+        const target = cursorPositionStore.get()
+        const abilityResult = this.hud.actionBar.useSlot3(target)
+        if (abilityResult === false) {
+          // Stop movement if ability returns false
+          socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+        }
+      },
+      w: event => {
+        const target = cursorPositionStore.get()
+        const abilityResult = this.hud.actionBar.useSlot4(target)
+        if (abilityResult === false) {
+          // Stop movement if ability returns false
+          socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+        }
+      },
+      e: event => {
+        const target = cursorPositionStore.get()
+        const abilityResult = this.hud.actionBar.useSlot5(target)
+        if (abilityResult === false) {
+          // Stop movement if ability returns false
+          socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+        }
+      },
+      r: event => {
+        const target = cursorPositionStore.get()
+        const abilityResult = this.hud.actionBar.useSlot6(target)
+        if (abilityResult === false) {
+          // Stop movement if ability returns false
+          socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+        }
+      },
+
       // temp debug methods for items
       n: event => {
         socket.emit('pickupRandomItem')
@@ -133,24 +167,47 @@ class PlayerControls {
   onMouseDown(event) {
     if (!this.player) return
 
-    // handle right-click for attacking
+    const target = cursorPositionStore.get()
+
+    // handle right-click for slot 2 ability
     if (event.button === 2) {
-      // attacking isn't implemented yet
-      // this.player.startAttacking(cursorPositionStore.get())
       this.isRightMouseDown = true
+      
+      // Try to use slot 2 ability
+      const abilityResult = this.hud.actionBar.useSlot2(target)
+      if (abilityResult === true) {
+        // Ability allows movement, set target
+        this.updateTargetPosition()
+      } else if (abilityResult === false) {
+        // Ability stops movement, stop where we are
+        socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+      }
       return
     }
 
-    // if item on cursor, drop it
-    if (this.player.inventory.cursor != null) {
-      socket.emit('dropCursorItem')
-      return
+    // handle left-click for slot 1 ability
+    if (event.button === 0) {
+      // if item on cursor, drop it
+      if (this.player.inventory.cursor != null) {
+        socket.emit('dropCursorItem')
+        return
+      }
+
+      this.isMouseDown = true
+      
+      // Try to use slot 1 ability
+      const abilityResult = this.hud.actionBar.useSlot1(target)
+      if (abilityResult === true) {
+        // Ability allows movement, set target
+        this.updateTargetPosition()
+      } else if (abilityResult === false) {
+        // Ability stops movement, stop where we are
+        socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+      } else {
+        // No ability in slot, normal movement
+        this.updateTargetPosition()
+      }
     }
-
-    // otherwise we can move
-
-    this.isMouseDown = true
-    this.updateTargetPosition()
   }
 
   onMouseMove(event) {

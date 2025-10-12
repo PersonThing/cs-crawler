@@ -2,6 +2,7 @@ import { Container, Graphics, Sprite, Text } from 'pixi.js'
 import { Abilities, AbilityModifiers } from '#shared/config/abilities.js'
 
 const SLOT_SIZE = 48
+const KEY_LABELS = ['LClick', 'RClick', 'Q', 'W', 'E', 'R']
 const BORDER_COLOR = 0x666666
 const BORDER_COLOR_LOCKED = 0x444444
 const FILL_COLOR = 0x222222
@@ -81,14 +82,14 @@ class ActionBarSlot extends Container {
       this.renderModifierIndicators(isLocked)
     }
     
-    // Render keybind number
+    // Render keybind label
     this.renderKeybind()
   }
   
   renderEmptySlot() {
-    // Show slot number for empty slots
+    // Show key label for empty slots
     const text = new Text({
-      text: (this.index + 1).toString(),
+      text: KEY_LABELS[this.index],
       style: {
         fontFamily: 'Arial',
         fontSize: 12,
@@ -126,9 +127,9 @@ class ActionBarSlot extends Container {
   }
   
   renderKeybind() {
-    // Show keybind number in bottom right
+    // Show keybind label in bottom right
     const text = new Text({
-      text: (this.index + 1).toString(),
+      text: KEY_LABELS[this.index],
       style: {
         fontFamily: 'Arial',
         fontSize: 10,
@@ -144,20 +145,31 @@ class ActionBarSlot extends Container {
   }
   
   setupEvents() {
-    this.on('pointerdown', (event) => {
+    // Helper to stop all events from propagating
+    const stopEvent = (event) => {
       event.stopPropagation()
+      event.preventDefault()
+      return false
+    }
+    
+    this.on('pointerdown', (event) => {
+      stopEvent(event)
       
       if (event.button === 0) { // Left click
-        this.emit('click')
+        if (event.shiftKey) { // Shift + Left click - clear binding
+          this.emit('clear')
+        } else {
+          this.emit('click')
+        }
+      } else if (event.button === 1) { // Middle click - clear binding
+        this.emit('clear')
       } else if (event.button === 2) { // Right click
         this.emit('rightclick')
       }
     })
-    
     this.on('pointerover', () => {
       this.showTooltip()
     })
-    
     this.on('pointerout', () => {
       this.hideTooltip()
     })
@@ -179,7 +191,7 @@ class ActionBarSlot extends Container {
   
   updateConfig(newConfig) {
     this.config = { ...newConfig }
-    this.renderBackground()
+    this.renderBackground() // This should preserve highlight state via this.isHighlighted
     this.renderContent()
   }
   
