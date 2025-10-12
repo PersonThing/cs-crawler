@@ -27,7 +27,7 @@ export default class Ability {
 }
 
 const Abilities = {
-  BasicAttack: new Ability({
+  BasicAttack: {
     id: 'BasicAttack',
     name: 'Basic Attack',
     description: 'A basic attack dealing physical damage.',
@@ -38,9 +38,9 @@ const Abilities = {
       // need helpers to get entities in range, apply damage, healing, etc
       console.log('basic attack used by', source, 'at', targetPosition, 'with modifiers', modifiers)
     },
-  }),
+  },
 
-  Fireball: new Ability({
+  Fireball: {
     id: 'Fireball',
     name: 'Fireball',
     description: 'A fiery projectile that explodes upon impact, dealing area fire damage.',
@@ -50,8 +50,9 @@ const Abilities = {
       // projectile attack helper here to fire a projectile that then has its own tick handling
       console.log('fireball used by', source, 'at', targetPosition, 'with modifiers', modifiers)
     },
-  }),
-}+
+  },
+}
+
 export { Ability, Abilities, AbilityModifiers, DamageType }
 
 // Ability Modifiers

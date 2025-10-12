@@ -41,11 +41,23 @@ export const chestItems = [
     attributes: {
       [ItemAttributeType.Defense]: 25,
       [ItemAttributeType.ExtraProjectiles]: 5,
-
-      // abilities
-      [ItemAttributeType.GrantAbility]: Abilities.Fireball.id,
-      [ItemAttributeType.GrantAbilityModifier]: AbilityModifiers.Turret.id,
       [ItemAttributeType.MaxTurrets]: 5,
     },
+    abilities: [Abilities.Fireball.id],
+    abilityModifiers: [AbilityModifiers.Turret.id],
+  }),
+
+  new Item({
+    // Multi-ability caster chest for testing
+    name: 'Arcane Robes',
+    itemType: ItemType.Chest,
+    itemQuality: ItemQuality.Unique,
+    inventoryTexture: Textures.inventory.chest.ornatearmor, // reusing texture for now
+    attributes: {
+      [ItemAttributeType.Defense]: 15,
+      [ItemAttributeType.MaxPets]: 3,
+    },
+    abilities: [Abilities.Fireball.id],
+    abilityModifiers: [AbilityModifiers.Pet.id, AbilityModifiers.CastOnCooldown.id],
   }),
 ]

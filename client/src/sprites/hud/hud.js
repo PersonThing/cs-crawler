@@ -8,12 +8,24 @@ import PlayersHud from './players-hud.js'
 import Minimap from './minimap.js'
 import PlayerControls from '../../player-controls.js'
 import InventorySoundMonitor from '../../inventory-sound-monitor.js'
+import ActionBarHud from './action-bar-hud.js'
 
 class Hud extends Container {
   constructor(app, world, levelConfig) {
     super()
 
     this.eventMode = 'static'
+    
+    // Handle clicks outside action bar to close menus
+    this.on('pointerdown', (event) => {
+      if (this.actionBar && this.actionBar.abilityMenu) {
+        // Check if click is outside action bar
+        const bounds = this.actionBar.getBounds()
+        if (!bounds.contains(event.global.x, event.global.y)) {
+          this.actionBar.closeAbilityMenu()
+        }
+      }
+    })
     
     this.minimap = new Minimap(levelConfig, false)
     this.addChild(this.minimap)
@@ -36,6 +48,9 @@ class Hud extends Container {
     this.inventory = new InventoryHud(app)
     this.addChild(this.inventory)
     this.inventory.visible = DEBUG.get()
+
+    this.actionBar = new ActionBarHud(app)
+    this.addChild(this.actionBar)
     
     screenSizeStore.subscribe(({ width, height }) => {
       // minimap aligned to top right
@@ -76,11 +91,13 @@ class Hud extends Container {
   onTick(time) {
     this.minimap.onTick()
     this.inventory.onTick()
+    this.actionBar.onTick()
   }
 
   destroy() {
     this.playerControls.stopListening()
     this.inventorySoundMonitor.destroy()
+    this.actionBar.destroy()
   }
 }
 

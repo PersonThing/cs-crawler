@@ -1,3 +1,4 @@
+import ItemAttributeType from '#shared/config/item-attribute-type.js'
 import ItemSet from '#shared/config/items/sets.js'
 
 /**
@@ -18,8 +19,20 @@ export default class InventoryStatCalculator {
       if (item != null) {
         // Add item attributes to stats
         Object.keys(item.attributes).forEach(stat => {
+          const value = item.attributes[stat]
           if (stats[stat] == null) stats[stat] = 0
-          stats[stat] += item.attributes[stat]
+          stats[stat] += value
+        })
+
+        // Add abilities and modifiers to stats
+        item.abilities.forEach(abilityId => {
+          if (stats[abilityId] == null) stats[abilityId] = 0
+          stats[abilityId] += 1
+        })
+
+        item.abilityModifiers.forEach(modifierId => {
+          if (stats[modifierId] == null) stats[modifierId] = 0
+          stats[modifierId] += 1
         })
 
         // Count set pieces
@@ -33,11 +46,24 @@ export default class InventoryStatCalculator {
     if (Object.keys(setCounts).length) {
       Object.keys(setCounts).forEach(setId => {
         const setCount = setCounts[setId]
-        this.getSetBonusTiers(setId, setCount).forEach(({ attributes, isEarned }) => {
+        this.getSetBonusTiers(setId, setCount).forEach(({ attributes, abilities, abilityModifiers, isEarned }) => {
           if (isEarned) {
+            // Apply attribute bonuses
             Object.keys(attributes).forEach(stat => {
               if (stats[stat] == null) stats[stat] = 0
               stats[stat] += attributes[stat]
+            })
+            
+            // Apply ability bonuses
+            abilities.forEach(abilityId => {
+              if (stats[abilityId] == null) stats[abilityId] = 0
+              stats[abilityId] += 1
+            })
+            
+            // Apply modifier bonuses
+            abilityModifiers.forEach(modifierId => {
+              if (stats[modifierId] == null) stats[modifierId] = 0
+              stats[modifierId] += 1
             })
           }
         })
@@ -84,15 +110,26 @@ export default class InventoryStatCalculator {
     
     // Iterate through all bonus tiers (bonuses[0] = 1 item, bonuses[1] = 2 items, etc.)
     for (let arrayIndex = 0; arrayIndex < set.bonuses.length; arrayIndex++) {
-      const attributes = set.bonuses[arrayIndex]
+      const bonusTier = set.bonuses[arrayIndex]
       const itemCount = arrayIndex + 1  // 1 item, 2 items, 3 items, etc.
       const isEarned = equippedCount >= itemCount
       
-      // Only include tiers that have bonuses (skip empty objects)
-      if (attributes && Object.keys(attributes).length > 0) {
+      // Extract the three bonus types
+      const attributes = bonusTier.attributes || {}
+      const abilities = bonusTier.abilities || []
+      const abilityModifiers = bonusTier.abilityModifiers || []
+      
+      // Only include tiers that have bonuses (skip completely empty tiers)
+      const hasAttributes = Object.keys(attributes).length > 0
+      const hasAbilities = abilities.length > 0
+      const hasModifiers = abilityModifiers.length > 0
+      
+      if (hasAttributes || hasAbilities || hasModifiers) {
         tiers.push({
           itemCount,
           attributes,
+          abilities,
+          abilityModifiers,
           isEarned
         })
       }

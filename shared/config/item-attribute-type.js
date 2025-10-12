@@ -32,12 +32,8 @@ const ItemAttributeType = {
   ReflectDamagePercent: 'ReflectDamagePercent',
   ReflectDamageFlat: 'ReflectDamageFlat',
 
-  // ABILITIES + ABILITY MODIFIERS
-  GrantAbility: 'GrantAbility', // grants an ability (like fireball, icebolt, etc)
-  GrantAbilityModifier: 'GrantAbilityModifier', // grants an ability modifier (like extra projectiles, homing, turret, pet, etc)
+  // ABILITIES
   MaxAbilityModifiers: 'MaxAbilityModifiers', // increases the max number of ability modifiers you can have on an ability
-
-  // PASSIVE ABILITY MODIFIERS
   ExtraProjectiles: 'ExtraProjectiles', // modifier on an ability, adds # extra projectiles to projectile abilities
   HomingProjectiles: 'HomingProjectiles', // modifier on an ability, makes projectiles home in on enemies
   PiercingProjectiles: 'PiercingProjectiles', // modifier on an ability, makes projectiles pierce through enemies

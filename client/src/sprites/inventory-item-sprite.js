@@ -2,8 +2,9 @@ import { ItemQualityColors } from '#shared/config/item-quality.js'
 import { Sprite, Graphics, Text, Container } from 'pixi.js'
 import ItemSet from '#shared/config/items/sets.js'
 import InventoryStatCalculator from '#shared/utils/inventory-stat-calculator.js'
+import { Abilities, AbilityModifiers } from '#shared/config/abilities'
 
-const ATTRIBUTE_COLOR = 0xaaaaaa
+const ATTRIBUTE_COLOR = 0xbbbbbb
 const ITEM_TYPE_COLOR = 0xffffff
 const TWOH_INDICATOR_COLOR = 0xffffff
 const SET_TIER_DISABLED_COLOR = 0x666666
@@ -86,17 +87,30 @@ export default class InventoryItem extends Container {
     itemTypeNameText.y = 16
     itemDescription.addChild(itemTypeNameText)
 
-    // attributes + description
-    let attributeText = Object.keys(item.attributes)
-      .map(attributeName => {
-        const attributeValue = item.attributes[attributeName]
-        let symbol = '+'
-        if (attributeValue < 0) {
-          symbol = '-'
-        }
-        return `${symbol}${attributeValue} ${attributeName}`
-      })
-      .join('\n')
+    // attributes + abilities + modifiers + description
+    const attributeLines = []
+    
+    // Add regular attributes
+    Object.keys(item.attributes).forEach(attributeName => {
+      const attributeValue = item.attributes[attributeName]
+      let symbol = '+'
+      if (attributeValue < 0) {
+        symbol = '-'
+      }
+      attributeLines.push(`${symbol}${attributeValue} ${attributeName}`)
+    })
+    
+    // Add abilities granted by this item
+    item.abilities.forEach(abilityId => {
+      attributeLines.push(`Ability: ${Abilities[abilityId].name}`)
+    })
+    
+    // Add modifiers granted by this item
+    item.abilityModifiers.forEach(modifierId => {
+      attributeLines.push(`Ability Modifier: ${AbilityModifiers[modifierId].name}`)
+    })
+    
+    let attributeText = attributeLines.join('\n')
 
     if (item.description != null) {
       attributeText += `\n\n${item.description}`
@@ -128,11 +142,11 @@ export default class InventoryItem extends Container {
         const setTiers = InventoryStatCalculator.getSetBonusTiers(item.setId, equippedSetPieces)
 
         // Add each set bonus tier
-        setTiers.forEach(({ itemCount, attributes, isEarned }) => {
+        setTiers.forEach(({ itemCount, attributes, abilities, abilityModifiers, isEarned }) => {
 
           // Tier header with appropriate color
           const tierHeaderText = new Text({
-            text: `${itemCount} pieces:`,
+            text: `${itemCount} pieces:` + (isEarned ? '' : ' (not equipped)'),
             style: {
               fontFamily: 'Arial',
               fontSize: 12,
@@ -144,21 +158,32 @@ export default class InventoryItem extends Container {
           itemDescription.addChild(tierHeaderText)
           currentY += tierHeaderText.height
 
-          // Bonus attributes for this tier
-          const bonusAttributes = Object.keys(attributes)
-            .map(attributeName => {
-              const attributeValue = attributes[attributeName]
-              let symbol = '+'
-              if (attributeValue < 0) {
-                symbol = '-'
-              }
-              return `  ${symbol}${attributeValue} ${attributeName}`
-            })
-            .join('\n')
+          // Collect all bonuses for this tier
+          const bonusLines = []
+          
+          // Add attribute bonuses
+          Object.keys(attributes).forEach(attributeName => {
+            const attributeValue = attributes[attributeName]
+            let symbol = '+'
+            if (attributeValue < 0) {
+              symbol = '-'
+            }
+            bonusLines.push(`  ${symbol}${attributeValue} ${attributeName}`)
+          })
+          
+          // Add ability bonuses
+          abilities.forEach(abilityId => {
+            bonusLines.push(`  Ability: ${Abilities[abilityId].name}`)
+          })
+          
+          // Add modifier bonuses
+          abilityModifiers.forEach(modifierId => {
+            bonusLines.push(`  Ability Modifier: ${AbilityModifiers[modifierId].name} `)
+          })
 
-          if (bonusAttributes) {
+          if (bonusLines.length > 0) {
             const tierBonusText = new Text({
-              text: bonusAttributes,
+              text: bonusLines.join('\n'),
               style: {
                 fontFamily: 'Arial',
                 fontSize: 12,

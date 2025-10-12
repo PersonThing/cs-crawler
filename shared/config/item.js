@@ -2,7 +2,7 @@ import ItemQuality from './item-quality.js'
 import ItemSlotType from './item-slot-type.js'
 
 export default class Item {
-  constructor({ itemType, itemQuality, name, inventoryTexture, equippedTexture, attackingTexture, attributes, description, setId }) {
+  constructor({ itemType, itemQuality, name, inventoryTexture, equippedTexture, attackingTexture, attributes, description, setId, abilities, abilityModifiers }) {
     if (itemType == null) {
       throw new Error(`cannot create item, invalid itemType: ${itemType}`)
     }
@@ -28,5 +28,7 @@ export default class Item {
     this.attributes = attributes
     this.description = description
     this.setId = setId
+    this.abilities = abilities || []
+    this.abilityModifiers = abilityModifiers || []
   }
 }
