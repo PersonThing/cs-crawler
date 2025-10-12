@@ -10,7 +10,7 @@ import socket from '../../socket.js'
 const SLOT_COUNT = 6
 const SLOT_SIZE = 48
 const SLOT_PADDING = 2
-const MARGIN = 8
+const MARGIN = 0
 
 class ActionBarHud extends Container {
   constructor(app) {
@@ -65,8 +65,8 @@ class ActionBarHud extends Container {
       this.bg.destroy()
     }
 
-    const width = SLOT_COUNT * (SLOT_SIZE + SLOT_PADDING) + MARGIN * 2 - SLOT_PADDING
-    const height = SLOT_SIZE + MARGIN * 2
+    const width = SLOT_COUNT * (SLOT_SIZE + SLOT_PADDING) - SLOT_PADDING
+    const height = SLOT_SIZE
 
     this.bg = new Graphics()
       .rect(0, 0, width, height)
@@ -87,8 +87,8 @@ class ActionBarHud extends Container {
     // Create new slots
     for (let i = 0; i < SLOT_COUNT; i++) {
       const slot = new ActionBarSlot(i, this.slotConfigs[i])
-      slot.x = MARGIN + i * (SLOT_SIZE + SLOT_PADDING)
-      slot.y = MARGIN
+      slot.x = i * (SLOT_SIZE + SLOT_PADDING)
+      slot.y = 0
       
       slot.on('click', () => this.onSlotClick(i))
       slot.on('clear', () => this.onSlotClear(i))

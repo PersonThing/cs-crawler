@@ -37,7 +37,7 @@ class ActionBarSlot extends Container {
       .rect(0, 0, SLOT_SIZE, SLOT_SIZE)
       .fill(isLocked ? FILL_COLOR_LOCKED : FILL_COLOR)
       .stroke({
-        color: isLocked ? BORDER_COLOR_LOCKED : BORDER_COLOR,
+        color: BORDER_COLOR,
         width: 2,
       })
     
@@ -87,21 +87,8 @@ class ActionBarSlot extends Container {
   }
   
   renderEmptySlot() {
-    // Show key label for empty slots
-    const text = new Text({
-      text: KEY_LABELS[this.index],
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 12,
-        fill: 0x666666,
-        align: 'center'
-      }
-    })
-    
-    text.x = (SLOT_SIZE - text.width) / 2
-    text.y = (SLOT_SIZE - text.height) / 2
-    
-    this.contentContainer.addChild(text)
+    // Show keybind label in bottom right (same as filled slots)
+    this.renderKeybind()
   }
   
   renderModifierIndicators(abilityLocked) {

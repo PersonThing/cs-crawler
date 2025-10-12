@@ -5,11 +5,13 @@ import AbilityGridItem from './ability-grid-item.js'
 import ModifierListItem from './modifier-list-item.js'
 
 const MENU_WIDTH = 400
-const MENU_HEIGHT = 300
+const MENU_HEIGHT = 380
 const GRID_COLS = 4
 const ITEM_SIZE = 48
 const ITEM_PADDING = 4
 const SECTION_PADDING = 16
+const BUTTON_HEIGHT = 40
+const BUTTON_WIDTH = 120
 
 class AbilitySelectionMenu extends Container {
   constructor(currentConfig, unlockedAbilities, unlockedModifiers, onSelectionChange) {
@@ -27,6 +29,7 @@ class AbilitySelectionMenu extends Container {
     this.renderHeader()
     this.renderAbilityGrid()
     this.renderModifierList()
+    this.renderBottomButtons()
     
     this.eventMode = 'static'
   }
@@ -59,43 +62,6 @@ class AbilitySelectionMenu extends Container {
     title.y = SECTION_PADDING
     
     this.addChild(title)
-    
-    // Clear button
-    const clearButton = new Container()
-    clearButton.eventMode = 'static'
-    clearButton.cursor = 'pointer'
-    
-    const clearBg = new Graphics()
-      .rect(0, 0, 60, 20)
-      .fill(0xaa0000)
-      .stroke({ color: 0xffffff, width: 1 })
-    
-    const clearLabel = new Text({
-      text: 'Clear',
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 10,
-        fill: 0xffffff,
-        align: 'center'
-      }
-    })
-    
-    clearLabel.x = (60 - clearLabel.width) / 2
-    clearLabel.y = (20 - clearLabel.height) / 2
-    
-    clearButton.addChild(clearBg)
-    clearButton.addChild(clearLabel)
-    
-    clearButton.x = MENU_WIDTH - 80
-    clearButton.y = SECTION_PADDING
-    
-    clearButton.on('pointerdown', () => {
-      // Clear the slot
-      const clearedConfig = { abilityId: null, modifiers: [] }
-      this.onSelectionChange(clearedConfig)
-    })
-    
-    this.addChild(clearButton)
   }
   
   renderAbilityGrid() {
@@ -146,7 +112,7 @@ class AbilitySelectionMenu extends Container {
   }
   
   renderModifierList() {
-    const startX = 220
+    const startX = 204  // Adjusted to give 16px padding on right (400 - 180 - 16 = 204)
     const startY = 50
     
     // Section label
@@ -187,12 +153,85 @@ class AbilitySelectionMenu extends Container {
     })
   }
   
+  renderBottomButtons() {
+    const buttonY = MENU_HEIGHT - BUTTON_HEIGHT - SECTION_PADDING
+    
+    // Clear button (black with light grey text)
+    const clearButton = new Container()
+    clearButton.eventMode = 'static'
+    clearButton.cursor = 'pointer'
+    
+    const clearBg = new Graphics()
+      .rect(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT)
+      .fill(0x000000)
+      .stroke({ color: 0x666666, width: 2 })
+    
+    const clearLabel = new Text({
+      text: 'Clear',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fontWeight: 'bold',
+        fill: 0xcccccc,
+      }
+    })
+    
+    clearLabel.x = (BUTTON_WIDTH - clearLabel.width) / 2
+    clearLabel.y = (BUTTON_HEIGHT - clearLabel.height) / 2
+    
+    clearButton.addChild(clearBg)
+    clearButton.addChild(clearLabel)
+    
+    clearButton.x = MENU_WIDTH - BUTTON_WIDTH - SECTION_PADDING
+    clearButton.y = buttonY
+    
+    clearButton.on('pointerdown', () => {
+      this.currentConfig = { abilityId: null, modifiers: [] }
+      this.updateSelections()
+      this.onSelectionChange(this.currentConfig)
+    })
+    
+    this.addChild(clearButton)
+    
+    // Apply button (black with green text)
+    const applyButton = new Container()
+    applyButton.eventMode = 'static'
+    applyButton.cursor = 'pointer'
+    
+    const applyBg = new Graphics()
+      .rect(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT)
+      .fill(0x000000)
+      .stroke({ color: 0x00aa00, width: 2 })
+    
+    const applyLabel = new Text({
+      text: 'Apply',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fontWeight: 'bold',
+        fill: 0x00ff00,
+      }
+    })
+    
+    applyLabel.x = (BUTTON_WIDTH - applyLabel.width) / 2
+    applyLabel.y = (BUTTON_HEIGHT - applyLabel.height) / 2
+    
+    applyButton.addChild(applyBg)
+    applyButton.addChild(applyLabel)
+    
+    applyButton.x = SECTION_PADDING
+    applyButton.y = buttonY
+    
+    applyButton.on('pointerdown', () => {
+      this.onSelectionChange(this.currentConfig)
+    })
+    
+    this.addChild(applyButton)
+  }
 
-  
   onAbilitySelect(abilityKey) {
     this.currentConfig.abilityId = abilityKey
     this.updateSelections()
-    this.onSelectionChange(this.currentConfig)
   }
   
   onModifierToggle(modifierKey) {
@@ -209,7 +248,6 @@ class AbilitySelectionMenu extends Container {
     }
     
     this.updateSelections()
-    this.onSelectionChange(this.currentConfig)
   }
   
   updateSelections() {
