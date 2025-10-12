@@ -24,8 +24,8 @@ const ItemSet = {
       // 3 items
       {
         attributes: {
-          [ItemAttributeType.MaxAbilityModifiers]: 2,
           [ItemAttributeType.MaxPets]: 2, // you can have 2 more pets out at a time
+          [ItemAttributeType.MaxAbilityModifiers]: 2,
         },
         abilities: [],
         abilityModifiers: [AbilityModifiers.Pet.id]

@@ -1,6 +1,5 @@
 import { Container, Graphics, Text } from 'pixi.js'
 
-const ITEM_WIDTH = 120
 const ITEM_HEIGHT = 32
 const BORDER_COLOR_NORMAL = 0x666666
 const BORDER_COLOR_SELECTED = 0x00ff00
@@ -10,12 +9,13 @@ const FILL_COLOR_SELECTED = 0x004400
 const FILL_COLOR_LOCKED = 0x111111
 
 class ModifierListItem extends Container {
-  constructor(modifier, isUnlocked, isSelected) {
+  constructor(modifier, isUnlocked, isSelected, width) {
     super()
     
     this.modifier = modifier
     this.isUnlocked = isUnlocked
     this.isSelected = isSelected
+    this.ITEM_WIDTH = width
     
     this.eventMode = 'static'
     this.cursor = 'pointer'
@@ -35,7 +35,7 @@ class ModifierListItem extends Container {
                      this.isUnlocked ? FILL_COLOR_NORMAL : FILL_COLOR_LOCKED
     
     this.bg = new Graphics()
-      .rect(0, 0, ITEM_WIDTH, ITEM_HEIGHT)
+      .rect(0, 0, this.ITEM_WIDTH, ITEM_HEIGHT)
       .fill(fillColor)
       .stroke({
         color: borderColor,

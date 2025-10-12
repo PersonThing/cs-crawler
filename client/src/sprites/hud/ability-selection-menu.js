@@ -4,14 +4,15 @@ import { Abilities, AbilityModifiers } from '#shared/config/abilities.js'
 import AbilityGridItem from './ability-grid-item.js'
 import ModifierListItem from './modifier-list-item.js'
 
-const MENU_WIDTH = 400
-const MENU_HEIGHT = 380
 const GRID_COLS = 4
 const ITEM_SIZE = 48
 const ITEM_PADDING = 4
 const SECTION_PADDING = 16
 const BUTTON_HEIGHT = 40
 const BUTTON_WIDTH = 120
+const MENU_HEIGHT = 380
+const MODIFIER_WIDTH = 120
+const MENU_WIDTH = SECTION_PADDING * 2 + (ITEM_SIZE + ITEM_PADDING) * GRID_COLS + MODIFIER_WIDTH + SECTION_PADDING
 
 class AbilitySelectionMenu extends Container {
   constructor(currentConfig, unlockedAbilities, unlockedModifiers, onSelectionChange) {
@@ -111,7 +112,7 @@ class AbilitySelectionMenu extends Container {
   }
   
   renderModifierList() {
-    const startX = GRID_COLS * ITEM_SIZE + SECTION_PADDING * 3
+    const startX = GRID_COLS * (ITEM_SIZE + ITEM_PADDING) + SECTION_PADDING * 2
     const startY = 50
     
     // Section label
@@ -142,7 +143,7 @@ class AbilitySelectionMenu extends Container {
       const isUnlocked = this.unlockedModifiers.includes(modifierKey)
       const isSelected = this.currentConfig.modifiers.includes(modifierKey)
       
-      const item = new ModifierListItem(modifier, isUnlocked, isSelected)
+      const item = new ModifierListItem(modifier, isUnlocked, isSelected, MODIFIER_WIDTH)
       item.y = index * 34  // Add 2px spacing between items
       
       item.on('toggle', () => this.onModifierToggle(modifierKey))
