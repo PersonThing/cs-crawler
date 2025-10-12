@@ -8,8 +8,8 @@ import AbilitySelectionMenu from './ability-selection-menu.js'
 
 const SLOT_COUNT = 6
 const SLOT_SIZE = 48
-const SLOT_PADDING = 4
-const MARGIN = 8
+const SLOT_PADDING = 0
+const MARGIN = 0
 
 class ActionBarHud extends Container {
   constructor(app) {
@@ -59,7 +59,7 @@ class ActionBarHud extends Container {
     const height = SLOT_SIZE + MARGIN * 2
 
     this.bg = new Graphics()
-      .roundRect(0, 0, width, height, 6)
+      .rect(0, 0, width, height)
       .fill(HUD_FILL_COLOR)
       .stroke({
         color: HUD_BORDER_COLOR,
@@ -93,14 +93,8 @@ class ActionBarHud extends Container {
   }
 
   onSlotClick(slotIndex) {
-    // Left click - use ability or open selection menu if empty
-    const config = this.slotConfigs[slotIndex]
-    
-    if (config.abilityId) {
-      this.useAbility(slotIndex)
-    } else {
-      this.openAbilityMenu(slotIndex)
-    }
+    // Left click - always open selection menu
+    this.openAbilityMenu(slotIndex)
   }
 
   onSlotRightClick(slotIndex) {

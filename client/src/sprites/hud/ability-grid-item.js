@@ -34,7 +34,7 @@ class AbilityGridItem extends Container {
                      this.isUnlocked ? FILL_COLOR_NORMAL : FILL_COLOR_LOCKED
     
     this.bg = new Graphics()
-      .roundRect(0, 0, ITEM_SIZE, ITEM_SIZE, 4)
+      .rect(0, 0, ITEM_SIZE, ITEM_SIZE)
       .fill(fillColor)
       .stroke({
         color: borderColor,
@@ -75,30 +75,7 @@ class AbilityGridItem extends Container {
       this.addChild(text)
     }
     
-    // Lock overlay
-    if (!this.isUnlocked) {
-      const lockOverlay = new Graphics()
-        .roundRect(0, 0, ITEM_SIZE, ITEM_SIZE, 4)
-        .fill(0x000000, 0.5)
-      
-      this.addChild(lockOverlay)
-      
-      // Lock icon or text
-      const lockText = new Text({
-        text: '🔒',
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 16,
-          fill: 0xffffff,
-          align: 'center'
-        }
-      })
-      
-      lockText.x = (ITEM_SIZE - lockText.width) / 2
-      lockText.y = (ITEM_SIZE - lockText.height) / 2
-      
-      this.addChild(lockText)
-    }
+
   }
   
   setupEvents() {

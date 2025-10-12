@@ -33,7 +33,7 @@ class ActionBarSlot extends Container {
     const isLocked = this.config.abilityId && !this.unlockedAbilities.includes(this.config.abilityId)
     
     this.bg = new Graphics()
-      .roundRect(0, 0, SLOT_SIZE, SLOT_SIZE, 4)
+      .rect(0, 0, SLOT_SIZE, SLOT_SIZE)
       .fill(isLocked ? FILL_COLOR_LOCKED : FILL_COLOR)
       .stroke({
         color: isLocked ? BORDER_COLOR_LOCKED : BORDER_COLOR,
@@ -71,10 +71,7 @@ class ActionBarSlot extends Container {
       icon.x = 4
       icon.y = 4
       
-      if (isLocked) {
-        icon.alpha = 0.3
-        icon.tint = 0x666666
-      }
+
       
       this.contentContainer.addChild(icon)
     }

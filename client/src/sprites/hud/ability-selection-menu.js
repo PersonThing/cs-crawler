@@ -27,7 +27,6 @@ class AbilitySelectionMenu extends Container {
     this.renderHeader()
     this.renderAbilityGrid()
     this.renderModifierList()
-    this.renderActionButtons()
     
     this.eventMode = 'static'
     this.on('pointerdown', event => {
@@ -39,7 +38,7 @@ class AbilitySelectionMenu extends Container {
   
   renderBackground() {
     this.bg = new Graphics()
-      .roundRect(0, 0, MENU_WIDTH, MENU_HEIGHT, 8)
+      .rect(0, 0, MENU_WIDTH, MENU_HEIGHT)
       .fill(HUD_FILL_COLOR)
       .stroke({
         color: HUD_BORDER_COLOR,
@@ -156,69 +155,12 @@ class AbilitySelectionMenu extends Container {
     })
   }
   
-  renderActionButtons() {
-    const buttonY = MENU_HEIGHT - 50
-    
-    // Apply button
-    this.applyButton = this.createButton('Apply', 0x00aa00, () => {
-      this.onSelectionChange(this.currentConfig)
-    })
-    this.applyButton.x = MENU_WIDTH - 120
-    this.applyButton.y = buttonY
-    this.addChild(this.applyButton)
-    
-    // Clear button
-    this.clearButton = this.createButton('Clear', 0xaa0000, () => {
-      this.currentConfig = { abilityId: null, modifiers: [] }
-      this.updateSelections()
-    })
-    this.clearButton.x = MENU_WIDTH - 200
-    this.clearButton.y = buttonY
-    this.addChild(this.clearButton)
-    
-    // Cancel button
-    this.cancelButton = this.createButton('Cancel', 0x666666, () => {
-      this.parent?.closeAbilityMenu?.()
-    })
-    this.cancelButton.x = SECTION_PADDING
-    this.cancelButton.y = buttonY
-    this.addChild(this.cancelButton)
-  }
-  
-  createButton(text, color, onClick) {
-    const container = new Container()
-    container.eventMode = 'static'
-    container.cursor = 'pointer'
-    
-    const bg = new Graphics()
-      .roundRect(0, 0, 70, 25, 4)
-      .fill(color)
-      .stroke({ color: 0xffffff, width: 1 })
-    
-    const label = new Text({
-      text,
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 12,
-        fill: 0xffffff,
-        align: 'center'
-      }
-    })
-    
-    label.x = (70 - label.width) / 2
-    label.y = (25 - label.height) / 2
-    
-    container.addChild(bg)
-    container.addChild(label)
-    
-    container.on('pointerdown', onClick)
-    
-    return container
-  }
+
   
   onAbilitySelect(abilityKey) {
     this.currentConfig.abilityId = abilityKey
     this.updateSelections()
+    this.onSelectionChange(this.currentConfig)
   }
   
   onModifierToggle(modifierKey) {
@@ -235,6 +177,7 @@ class AbilitySelectionMenu extends Container {
     }
     
     this.updateSelections()
+    this.onSelectionChange(this.currentConfig)
   }
   
   updateSelections() {

@@ -27,7 +27,7 @@ class ModifierListItem extends Container {
     const fillColor = this.isUnlocked ? 0x222222 : 0x111111
     
     this.bg = new Graphics()
-      .roundRect(0, 0, ITEM_WIDTH, ITEM_HEIGHT, 4)
+      .rect(0, 0, ITEM_WIDTH, ITEM_HEIGHT)
       .fill(fillColor)
       .stroke({
         color: this.isUnlocked ? 0x666666 : 0x333333,
@@ -38,7 +38,7 @@ class ModifierListItem extends Container {
     
     // Checkbox
     this.checkbox = new Graphics()
-      .roundRect(4, (ITEM_HEIGHT - CHECKBOX_SIZE) / 2, CHECKBOX_SIZE, CHECKBOX_SIZE, 2)
+      .rect(4, (ITEM_HEIGHT - CHECKBOX_SIZE) / 2, CHECKBOX_SIZE, CHECKBOX_SIZE)
       .fill(this.isSelected && this.isUnlocked ? 0x00aa00 : 0x444444)
       .stroke({
         color: this.isUnlocked ? 0x888888 : 0x444444,
@@ -80,29 +80,7 @@ class ModifierListItem extends Container {
     
     this.addChild(label)
     
-    // Lock overlay
-    if (!this.isUnlocked) {
-      const lockOverlay = new Graphics()
-        .roundRect(0, 0, ITEM_WIDTH, ITEM_HEIGHT, 4)
-        .fill(0x000000, 0.3)
-      
-      this.addChild(lockOverlay)
-      
-      // Lock icon
-      const lockText = new Text({
-        text: '🔒',
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 10,
-          fill: 0x888888,
-        }
-      })
-      
-      lockText.x = ITEM_WIDTH - lockText.width - 4
-      lockText.y = (ITEM_HEIGHT - lockText.height) / 2
-      
-      this.addChild(lockText)
-    }
+
   }
   
   setupEvents() {

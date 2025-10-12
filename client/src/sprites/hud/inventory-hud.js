@@ -189,7 +189,7 @@ class InventoryHud extends Container {
     this.bg = new Container()
     this.addChild(this.bg)
 
-    const gfx = new Graphics().roundRect(0, 0, INVENTORY_WIDTH, INVENTORY_HEIGHT, 6).fill(HUD_FILL_COLOR).stroke({
+    const gfx = new Graphics().rect(0, 0, INVENTORY_WIDTH, INVENTORY_HEIGHT).fill(HUD_FILL_COLOR).stroke({
       color: HUD_BORDER_COLOR,
       width: 4,
     })

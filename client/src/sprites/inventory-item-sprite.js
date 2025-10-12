@@ -219,7 +219,7 @@ export default class InventoryItem extends Container {
     itemDescription.x = -itemDescription.width - 15
     itemDescription.y = itemSprite.height - itemDescription.height
     itemDescriptionBg
-      .roundRect(-10, -10, itemDescription.width + 20, itemDescription.height + 20, 4)
+      .rect(-10, -10, itemDescription.width + 20, itemDescription.height + 20)
       .fill(0x000000)
       .stroke({
         color: itemQualityColor,
