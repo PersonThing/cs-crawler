@@ -84,30 +84,6 @@ export default class LivingEntityState {
         }
       }
     }
-
-    // if (this.attacking) {
-    //   // if enough time has passed, animate attack again
-    //   if (this.lastAttackTime == null || deltaMs - this.lastAttackTime > 200) {
-    //     // console.log('animate an attack', deltaMs)
-    //     // const mainHandEquipped = this.equipped[InventorySlot.MainHand.name]
-    //     // const offhandEquipped = this.equipped[InventorySlot.OffHand.name]
-
-    //     // if (mainHandEquipped != null && mainHandEquipped.itemType.bothHands === true) {
-    //     //   // 2h weapon in main hand, animate that
-    //     //   this.animateAttack(InventorySlot.MainHand.name, mainHandEquipped.attackingTexture)
-    //     // } else {
-    //     //   // animate both hands
-    //     //   if (mainHandEquipped != null) {
-    //     //     this.animateAttack(InventorySlot.MainHand.name, mainHandEquipped.attackingTexture)
-    //     //   }
-    //     //   if (offhandEquipped != null) {
-    //     //     this.animateAttack(InventorySlot.OffHand.name, offhandEquipped.attackingTexture)
-    //     //   }
-    //     // }
-    //     this.lastAttackTime = deltaMS
-    //   }
-    //   // console.log(deltaMS)
-    // }
   }
 
   moveTowardTarget(deltaMS) {

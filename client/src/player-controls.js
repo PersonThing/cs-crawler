@@ -2,8 +2,8 @@ import { DEBUG } from '#shared/config/constants.js'
 import cursorPositionStore from './stores/cursor-position-store.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
 import socket from './socket.js'
-import throttle from '#shared/utils/throttle.js'
 import usernameStore from './stores/username-store.js'
+import clientPrediction from './client-prediction.js'
 
 class PlayerControls {
   constructor(app, world, minimap, hud) {
@@ -15,14 +15,26 @@ class PlayerControls {
     this.isRightMouseDown = false
 
     this.player = playerSpriteStore.getLocalPlayer().state
+    clientPrediction.setPlayer(this.player)
+    
     this.unsubscribeFromplayerSpriteStore = playerSpriteStore.subscribe(sprite => {
       if (sprite.isLocalPlayer) {
         console.log('playercontrols player set', sprite.state)
         this.player = sprite.state
+        clientPrediction.setPlayer(this.player)
       }
     })
 
     this.startListening()
+  }
+  
+  // Helper method to stop movement with client prediction
+  stopMovement() {
+    if (!this.player) return
+    
+    const currentPosition = { x: this.player.x, y: this.player.y }
+    clientPrediction.addInput(currentPosition)
+    this.player.setTarget(currentPosition)
   }
 
   startListening() {
@@ -65,7 +77,7 @@ class PlayerControls {
         const abilityResult = this.hud.actionBar.useSlot3(target)
         if (abilityResult === false) {
           // Stop movement if ability returns false
-          socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+          this.stopMovement()
         }
       },
       w: event => {
@@ -73,7 +85,7 @@ class PlayerControls {
         const abilityResult = this.hud.actionBar.useSlot4(target)
         if (abilityResult === false) {
           // Stop movement if ability returns false
-          socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+          this.stopMovement()
         }
       },
       e: event => {
@@ -81,7 +93,7 @@ class PlayerControls {
         const abilityResult = this.hud.actionBar.useSlot5(target)
         if (abilityResult === false) {
           // Stop movement if ability returns false
-          socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+          this.stopMovement()
         }
       },
       r: event => {
@@ -89,7 +101,7 @@ class PlayerControls {
         const abilityResult = this.hud.actionBar.useSlot6(target)
         if (abilityResult === false) {
           // Stop movement if ability returns false
-          socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+          this.stopMovement()
         }
       },
 
@@ -147,15 +159,14 @@ class PlayerControls {
   }
 
   // only pass new position to server at most every 50ms (20 times per second)
-  throttledSetTargetOnServer = throttle(target => {
-    socket.emit('setTarget', target)
-  }, 50)
-
   updateTargetPosition() {
     const target = cursorPositionStore.get()
     if (this.isMouseDown) {
+      // Use client prediction - movement happens at full framerate in tick()
+      clientPrediction.addInput(target)
+      
+      // Still set on local player for immediate visual feedback
       this.player.setTarget(target)
-      this.throttledSetTargetOnServer(target)
     }
   }
 
@@ -179,14 +190,14 @@ class PlayerControls {
     if (event.button === 2) {
       this.isRightMouseDown = true
       
-      // Try to use slot 2 ability
+      // Try to use slot 2 ability (right-click)
       const abilityResult = this.hud.actionBar.useSlot2(target)
       if (abilityResult === true) {
         // Ability allows movement, set target
         this.updateTargetPosition()
       } else if (abilityResult === false) {
         // Ability stops movement, stop where we are
-        socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+        this.stopMovement()
       }
       return
     }
@@ -208,7 +219,7 @@ class PlayerControls {
         this.updateTargetPosition()
       } else if (abilityResult === false) {
         // Ability stops movement, stop where we are
-        socket.emit('setTarget', { x: this.player.x, y: this.player.y })
+        this.stopMovement()
       } else {
         // No ability in slot, normal movement
         this.updateTargetPosition()
@@ -238,6 +249,9 @@ class PlayerControls {
   }
 
   onTick(time) {
+    // Update client prediction at full framerate
+    clientPrediction.tick(this.app.ticker.deltaMS)
+    
     if (this.isRightMouseDown) {
       this.player.attackTarget = cursorPositionStore.get()
     } else if (this.isMouseDown) {

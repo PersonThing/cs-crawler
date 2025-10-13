@@ -13,6 +13,7 @@ import soundManager from './sound-manager.js'
 import World from './world.js'
 import Pather from '#shared/pather.js'
 import PlayerState from '#shared/state/player-state.js'
+import clientPrediction from './client-prediction.js'
 
 let world = null
 let app = null
@@ -44,6 +45,8 @@ const init = async (levelConfig, localPlayerState) => {
 
   pather = new Pather(levelConfig)
 
+  clientPrediction.setPather(pather)
+
   // create pixi.js app
   app = new Application()
   await app.init({ background: 0x000000, resizeTo: window })
@@ -56,8 +59,14 @@ const init = async (levelConfig, localPlayerState) => {
   })
   app.stage.addChild(world)
 
+  // Initialize debug visualization for client prediction
+  clientPrediction.initDebug(app, world)
+
   // create local player
   createPlayer(localPlayerState, LOCAL_PLAYER_COLOR, true)
+  
+  // Initialize client prediction for local player
+  clientPrediction.setPlayer(localPlayerState, true)
 
   // create hud (and controls)
   hud = new Hud(app, world, levelConfig)
@@ -72,6 +81,9 @@ const init = async (levelConfig, localPlayerState) => {
       lastServerState = null
     }
 
+    // Update all players' visual positions from client prediction every frame
+    updatePlayersFromPrediction()
+
     world.onTick(time)
     hud.onTick(time)
 
@@ -80,6 +92,24 @@ const init = async (levelConfig, localPlayerState) => {
   })
 
   initialized = true
+}
+
+// Update all players' visual positions from client prediction every frame (60+ fps)
+function updatePlayersFromPrediction() {
+  const players = playerSpriteStore.get()
+  for (const player of players) {
+    const playerId = player.state.playerId
+    const predictedState = clientPrediction.getPredictedStateForPlayer(playerId)
+    if (predictedState) {
+      // Update player's state with predicted position
+      player.state.x = predictedState.x
+      player.state.y = predictedState.y
+      player.state.rotation = predictedState.rotation
+      
+      // Update visual representation
+      player.updateFromState()
+    }
+  }
 }
 
 // server may request level if it's the first player to connect (only client can create levels for now)
@@ -100,35 +130,44 @@ socket.on('serverState', state => {
   lastServerState = state
 })
 
-function applyServerState(state) {
+function applyServerState(serverState) {
   let players = playerSpriteStore.get()
 
   // add any new players that weren't in store
-  Object.entries(state.players).forEach(([playerId, playerState]) => {
+  Object.entries(serverState.players).forEach(([playerId, playerState]) => {
     if (!players.find(p => p.state.playerId === playerId)) {
-      // new player
       console.log('creating new player from server', players.length, playerState)
       createPlayer(playerState, OTHER_PLAYER_COLOR, false)
+      clientPrediction.setPlayer(playerState, false)
     }
   })
 
   players.forEach(p => {
-    const updatedState = state.players[p.state.playerId]
-    if (updatedState == null) {
+    const playerServerState = serverState.players[p.state.playerId]
+    if (playerServerState == null) {
       // remove disconnected player
       console.log('removing disconnected player', p.state.playerId, p.state.username)
+      clientPrediction.removePlayer(p.state.playerId)
       playerSpriteStore.remove(p.state.playerId)
     } else {
-      // update existing players if found
-      p.state.deserialize(updatedState)
-      p.updateFromState()
+      // Handle client prediction update (unified method for all players)
+      if (serverState.serverTimestamp) {
+        // Unified reconciliation - automatically handles local vs remote differences
+        clientPrediction.reconcilePlayerWithServer(p.state.playerId, playerServerState, serverState.serverTimestamp)
+      }
+      
+      // Update non-position state from server (inventory, abilities, etc.) - same for all players
+      // Position is handled by updatePlayersFromPrediction() every frame
+      const currentPos = { x: p.state.x, y: p.state.y, rotation: p.state.rotation }
+      p.state.deserialize(playerServerState)
+      p.state.x = currentPos.x
+      p.state.y = currentPos.y
+      p.state.rotation = currentPos.rotation
     }
-  })
-
-  // force trigger subscribers, since changes to object properties in array won't automatically do that
+  })  // force trigger subscribers, since changes to object properties in array won't automatically do that
   // TODO: how can we do that better?
   playerSpriteStore.triggerSubscribers()
 
   // update ground items store - we should track a hash and only do it if it changes
-  world.setGroundItems(state.groundItems)
+  world.setGroundItems(serverState.groundItems)
 }

@@ -31,6 +31,9 @@ export default class PlayerState extends LivingEntityState {
       abilityId: null,
       modifiers: []
     }))
+    
+    // Client prediction fields
+    this.lastProcessedInputSequence = 0
   }
 
   serialize() {
@@ -40,6 +43,7 @@ export default class PlayerState extends LivingEntityState {
       socketId: this.socketId,
       username: this.username,
       actionBarConfig: this.actionBarConfig,
+      lastProcessedInputSequence: this.lastProcessedInputSequence,
     }
   }
 

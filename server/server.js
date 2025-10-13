@@ -8,7 +8,7 @@ import GroundItem from '#shared/config/ground-item.js'
 import { Abilities } from '#shared/config/abilities.js'
 import db from './db.js'
 
-const FPS = 30
+const FPS = 20 // server runs slower, client runs at higher framerate and reconciles with server
 const SERVER_TICK_RATE = 1000 / FPS
 const PORT = process.env.PORT || 3000
 
@@ -66,6 +66,7 @@ function tick() {
     players: connectedPlayers,
     // TODO: maybe send ground items only when they change?
     groundItems,
+    serverTimestamp: now,
   })
 }
 setInterval(tick, SERVER_TICK_RATE)
@@ -163,10 +164,20 @@ io.on('connection', async socket => {
   })
 
   // Handle player movement
-  socket.on('setTarget', target => {
+  socket.on('setTarget', (data) => {
     if (!player?.isConnected) {
       return
     }
+    
+    let target, inputSequence
+    target = data.target
+    inputSequence = data.inputSequence
+    
+    // Update the last processed input sequence
+    if (inputSequence && inputSequence > player.lastProcessedInputSequence) {
+      player.lastProcessedInputSequence = inputSequence
+    }
+    
     player.setTarget(target)
   })
 

@@ -128,28 +128,28 @@ class LivingEntitySprite extends Container {
     }, 100)
   }
 
-  drawPathLine() {
-    if (!this.state.path || this.state.path.length === 0) return
+  // drawPathLine() {
+  //   this.clearPathLine()
+  //   if (!this.state.path || this.state.path.length === 0) return
 
-    this.clearPathLine()
-    this.pathLine = new Graphics()
+  //   this.pathLine = new Graphics()
 
-    this.pathLine.moveTo(this.state.x, this.state.y)
-    this.state.path.forEach(point => {
-      this.pathLine.lineTo(point.x, point.y)
-    })
-    this.pathLine.stroke({ color: this.color, width: 2, alpha: 0.5 })
+  //   this.pathLine.moveTo(this.state.x, this.state.y)
+  //   this.state.path.forEach(point => {
+  //     this.pathLine.lineTo(point.x, point.y)
+  //   })
+  //   this.pathLine.stroke({ color: this.color, width: 2, alpha: 0.5 })
 
-    this.world.addChild(this.pathLine)
-  }
+  //   this.world.addChild(this.pathLine)
+  // }
 
-  clearPathLine() {
-    if (this.pathLine) {
-      this.world.removeChild(this.pathLine)
-      this.pathLine.destroy()
-      this.pathLine = null
-    }
-  }
+  // clearPathLine() {
+  //   if (this.pathLine) {
+  //     this.world.removeChild(this.pathLine)
+  //     this.pathLine.destroy()
+  //     this.pathLine = null
+  //   }
+  // }
 }
 
 export default LivingEntitySprite
