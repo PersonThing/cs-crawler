@@ -178,11 +178,11 @@ export default class LivingEntityState {
   }
 
   computeStats() {
-    if (this.inventory.equippedHash === this.computedEquippedHash) {
+    if (this.inventory.equippedSequence === this.computedEquippedSequence) {
       return
     }
     this.stats = InventoryStatCalculator.calculateStats(this.inventory.equipped)
-    this.computedEquippedHash = this.inventory.equippedHash
+    this.computedEquippedSequence = this.inventory.equippedSequence
   }
 
   hasAbilityUnlocked(abilityId) {

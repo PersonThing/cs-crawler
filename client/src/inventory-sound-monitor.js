@@ -4,7 +4,7 @@ import playerSpriteStore from './stores/player-sprite-store.js'
 
 class InventorySoundMonitor {
   constructor() {
-    this.lastInventoryHash = null
+    this.lastInventorySequence = null
     this.lastEquippedItems = {}
     this.lastBagItems = []
     this.lastCursor = null
@@ -24,7 +24,7 @@ class InventorySoundMonitor {
 
     // Skip the first check to avoid playing sounds on initial load
     if (!this.isInitialized) {
-      this.lastInventoryHash = inventory.hash
+      this.lastInventorySequence = inventory.sequence
       this.lastEquippedItems = { ...inventory.equipped }
       this.lastBagItems = [...inventory.bags]
       this.lastCursor = inventory.cursor
@@ -33,7 +33,7 @@ class InventorySoundMonitor {
     }
 
     // Only check if inventory actually changed
-    if (this.lastInventoryHash === inventory.hash) {
+    if (this.lastInventorySequence === inventory.sequence) {
       return
     }
 
@@ -79,7 +79,7 @@ class InventorySoundMonitor {
     }
 
     // Update tracking variables
-    this.lastInventoryHash = inventory.hash
+    this.lastInventorySequence = inventory.sequence
     this.lastEquippedItems = { ...currentEquipped }
     this.lastBagItems = [...currentBagItems]
     this.lastCursor = currentCursor

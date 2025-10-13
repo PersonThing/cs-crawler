@@ -59,11 +59,6 @@ class LivingEntitySprite extends Container {
     this.addChildAt(this.shadowSprite, 0)
   }
 
-  onTick(time) {
-    // this.state.onTick(time)
-    this.updateFromState()
-  }
-
   updateFromState() {
     if (this.state == null) return
     if (this == null) return
@@ -82,7 +77,7 @@ class LivingEntitySprite extends Container {
 
   updateEquippedItems() {
     // don't update if nothing changed
-    if (this.renderedInventoryHash === this.state.inventory.hash) {
+    if (this.renderedInventorySequence === this.state.inventory.sequence) {
       return
     }
     
@@ -101,8 +96,8 @@ class LivingEntitySprite extends Container {
       )
       .forEach(([slot, item]) => this.attachItemSprite(item.equippedTexture, slot))
 
-    // update rendered hash
-    this.renderedInventoryHash = this.state.inventory.hash
+    // update rendered sequence
+    this.renderedInventorySequence = this.state.inventory.sequence
   }
 
   attachItemSprite(texture, slotName) {

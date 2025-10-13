@@ -28,6 +28,8 @@ app.use(express.static('../client/dist'))
 
 const players = {} // player cache - also stored in db
 let groundItems = [] // ground item cache - not stored in db until picked up (game servers will be temporary state only)
+let groundItemsSequence = 0 // incremented each time ground items change, so clients can track changes
+let groundItemsChangedAt = null
 
 // level and pather set when first player connects and creates or loads a level
 let level = null
@@ -46,13 +48,17 @@ function tick() {
   for (const playerId in players) {
     const player = players[playerId]
     if (player.isConnected) {
+      const len = groundItems.length
       player.onTick(time, groundItems)
+      if (groundItems.length !== len) {
+        groundItemsChanged()
+      }
       const serializedPlayer = player.serialize()
       connectedPlayers[playerId] = serializedPlayer
 
       // if player inventory, username, or action bar config changed, save to db
       const actionBarConfigChanged = JSON.stringify(player.actionBarConfig) !== JSON.stringify(player.lastSavedActionBarConfig)
-      if (player.lastSavedHash !== serializedPlayer.inventory.hash || 
+      if (player.lastSavedInventorySequence !== serializedPlayer.inventory.sequence || 
           player.username !== player.lastSavedUsername || 
           actionBarConfigChanged) {
         // intentionally not awaiting, we don't care if it fails, it'll try again on next tick
@@ -62,12 +68,23 @@ function tick() {
     }
   }
 
-  io.emit('serverState', {
+  const state = {
     players: connectedPlayers,
-    // TODO: maybe send ground items only when they change?
-    groundItems,
+    groundItemsSequence,
     serverTimestamp: now,
-  })
+  }
+
+  // set groundItems in the state only if:
+  // - items have changed
+  // - or we're on a frame less than 1s since the last change
+  // so if a client misses an update, they get it in one of the following frames at least
+  // clients will keep the last known state and only update when sequence changes and items are sent
+  if (now - (groundItemsChangedAt || 0) < 1000) {
+    state.groundItems = groundItems
+    console.log('sending ground items update to clients, sequence:', groundItemsSequence)
+  }
+
+  io.emit('serverState', state)
 }
 setInterval(tick, SERVER_TICK_RATE)
 
@@ -84,6 +101,12 @@ function dropToGround(position, item) {
       )
     )
   )
+  groundItemsChanged()
+}
+
+function groundItemsChanged() {
+  groundItemsSequence++
+  groundItemsChangedAt = Date.now()
 }
 
 // handle socket communication with players
@@ -321,6 +344,7 @@ io.on('connection', async socket => {
       return
     }
     groundItems = []
+    groundItemsChanged()
     console.log('cleared ground items, # items:', groundItems.length)
   })
 

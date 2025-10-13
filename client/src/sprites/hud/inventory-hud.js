@@ -79,10 +79,10 @@ class InventoryHud extends Container {
     }
     this.inventory = localPlayer.state.inventory
 
-    // re-draw inventory if hash changed
-    if (this.renderedInventoryHash !== this.inventory.hash) {
+    // re-draw inventory if sequence changed
+    if (this.renderedInventorySequence !== this.inventory.sequence) {
       this.setContent(this.inventory.serialize())
-      this.renderedInventoryHash = this.inventory.hash
+      this.renderedInventorySequence = this.inventory.sequence
     }
   }
 

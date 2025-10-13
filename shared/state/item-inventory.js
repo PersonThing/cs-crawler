@@ -3,15 +3,6 @@ import ItemType from '#shared/config/item-type.js'
 import { BAG_SLOTS } from '../config/constants.js'
 import InventorySlot from '../config/inventory-slot.js'
 
-const GenerateShortHash = string => {
-  let hash = 0
-  for (const char of string) {
-    hash = (hash << 5) - hash + char.charCodeAt(0)
-    hash |= 0 // Constrain to 32bit integer
-  }
-  return hash
-}
-
 const LogAndThrow = (message, ...args) => {
   console.error(message, ...args)
   throw new Error(message)
@@ -53,56 +44,52 @@ export default class ItemInventory {
       equipped: this.equipped,
       bags: this.bags,
       cursor: this.cursor,
-      hash: this.hash,
-      equippedHash: this.equippedHash,
+      sequence: this.sequence,
+      equippedSequence: this.equippedSequence,
     }
   }
 
   deserialize(content) {
+    this.sequence = content.sequence || 0
+    this.equippedSequence = content.equippedSequence || 0
     this.equipped = content.equipped || {}
     this.bags = content.bags || []
     this.cursor = content.cursor || null
-    this.updateHash()
+    this.updateSequence()
   }
 
-  updateHash() {
-    this.hash = GenerateShortHash(
-      JSON.stringify({
-        equipped: this.equipped,
-        bags: this.bags,
-        cursor: this.cursor,
-      })
-    )
-    this.equippedHash = GenerateShortHash(
-      JSON.stringify({
-        equipped: this.equipped,
-      })
-    )
+  updateSequence() {
+    this.sequence++
+  }
+  
+  updateEquippedSequence() {
+    this.sequence++
+    this.equippedSequence++
   }
 
   reset() {
     this.equipped = {}
     this.bags = []
-    this.updateHash()
+    this.updateSequence()
   }
 
   setBagSlot(index, item) {
     AssertValidSlotIndex(index)
     AssertValidItem(item)
     this.bags[index] = item
-    this.updateHash()
+    this.updateSequence()
   }
 
   clearBagSlot(index) {
     this.bags[index] = null
-    this.updateHash()
+    this.updateSequence()
   }
 
   setEquippedSlot(slotName, item) {
     AssertValidSlotName(slotName)
     AssertValidItem(item)
     this.equipped[slotName] = item
-    this.updateHash()
+    this.updateEquippedSequence()
   }
 
   getEquippedSlot(slotName) {
@@ -113,7 +100,7 @@ export default class ItemInventory {
   clearEquippedSlot(slotName) {
     AssertValidSlotName(slotName)
     this.equipped[slotName] = null
-    this.updateHash()
+    this.updateEquippedSequence()
   }
 
   getValidSlotNamesForItem(item) {
@@ -151,12 +138,12 @@ export default class ItemInventory {
   setCursor(item) {
     AssertValidItem(item)
     this.cursor = item
-    this.updateHash()
+    this.updateSequence()
   }
 
   clearCursor() {
     this.cursor = null
-    this.updateHash()
+    this.updateSequence()
   }
 
   // returns whether the item was successfully picked up or not

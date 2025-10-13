@@ -26,11 +26,8 @@ class World extends Container {
 
     // add another level sprite slightly scaled up for parallax effect
     this.levelSpriteParallax = new LevelSprite(levelConfig, PARALLAX_SCALE, false, true)
-    // this.levelSpriteParallax.tileContainer.alpha = 0.25
     this.levelSpriteParallax.mask = null
     this.levelSpriteParallax.zIndex = 4 // players are at 3, so parallax seems to be above them
-    // TODO: render player labels separate from the player sprites
-    // so we see them above the parallax (and anything else)
 
     this.addChild(this.levelSpriteParallax)
 
@@ -40,39 +37,38 @@ class World extends Container {
 
     playerSpriteStore.subscribe(players => {
       // remove any players that are no longer in the store
-      this.children
-        .filter(child => child instanceof PlayerSprite)
-        .forEach(child => {
-          if (!players.includes(child)) {
-            this.removePlayer(child)
-          }
-        })
+      const playerSprites = this.children.filter(child => child instanceof PlayerSprite)
+      for (const child of playerSprites) {
+        if (!players.includes(child)) {
+          this.removePlayer(child)
+        }
+      }
 
       // add any players that are in the store but not yet rendered
-      players.forEach(player => {
+      for (const player of players) {
         if (!this.children.includes(player)) {
           this.addPlayer(player)
         }
-      })
+      }
     })
   }
 
   setGroundItems(groundItems) {
     // remove any items that are no longer there
-    this.groundItemsContainer.children.forEach(groundItemSprite => {
-      const groundItem = groundItems.find(groundItem => groundItem.item.id === groundItemSprite.id)
+    for (const id of this.groundItemsContainer.children.map(sprite => sprite.id)) {
+      const groundItem = groundItems.find(groundItem => groundItem.item.id === id)
       if (!groundItem) {
-        this.unrenderItem(groundItemSprite.id)
+        this.unrenderItem(id)
       }
-    })
+    }
 
     // add any items that are not yet rendered
-    groundItems.forEach(groundItem => {
+    for (const groundItem of groundItems) {
       if (!this.groundItemsContainer.children.find(sprite => sprite.id === groundItem.item.id)) {
         this.renderItem(groundItem)
         soundManager.play('item-drop', { startTime: 0.1, endTime: 0.3, volume: 0.5 })
       }
-    })
+    }
   }
 
   createLightRadiusMask() {
@@ -156,12 +152,11 @@ class World extends Container {
   }
 
   unrenderItem(id) {
-    this.groundItemsContainer.children.forEach(groundItemSprite => {
-      if (groundItemSprite.id === id) {
-        groundItemSprite.destroy()
-        this.groundItemsContainer.removeChild(groundItemSprite)
-      }
-    })
+    const groundItemSprite = this.groundItemsContainer.children.find(sprite => sprite.id === id)
+    if (groundItemSprite) {
+      groundItemSprite.destroy()
+      this.groundItemsContainer.removeChild(groundItemSprite)
+    }
   }
 }
 

@@ -38,7 +38,7 @@ const db = {
       dbPlayer.data = state
       await dbPlayer.save()
     }
-    player.lastSavedHash = state.inventory.hash
+    player.lastSavedInventorySequence = state.inventory.sequence
     player.lastSavedUsername = state.username
     player.lastSavedActionBarConfig = JSON.parse(JSON.stringify(state.actionBarConfig)) // deep copy
     return dbPlayer

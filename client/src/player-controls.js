@@ -103,6 +103,9 @@ class PlayerControls {
           // Stop movement if ability returns false
           this.stopMovement()
         }
+        if (event.ctrlKey) {
+          return true
+        }
       },
 
       // temp debug methods for items
@@ -249,8 +252,7 @@ class PlayerControls {
   }
 
   onTick(time) {
-    // Update client prediction at full framerate
-    clientPrediction.tick(this.app.ticker.deltaMS)
+    clientPrediction.tick(time.deltaMS)
     
     if (this.isRightMouseDown) {
       this.player.attackTarget = cursorPositionStore.get()

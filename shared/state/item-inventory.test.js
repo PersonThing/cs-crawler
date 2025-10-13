@@ -351,61 +351,48 @@ describe('ItemInventory', () => {
     expect(inv.bags.includes(oneA)).toBe(true)
   })
 
-  it('hash changes when equip, bags, or cursor change', () => {
-    const initialHash = inv.hash
+  it('sequence changes when equip, bags, or cursor change', () => {
+    const initialSequence = inv.seq
     const item = makeItem()
     const slot = inv.getValidSlotNamesForItem(item)[0]
     inv.tryEquip(item, slot)
-    expect(inv.hash).not.toBe(initialHash)
+    expect(inv.sequence).not.toBe(initialSequence)
     
-    const afterEquipHash = inv.hash
+    const afterEquipSequence = inv.sequence
     fillBags()
-    expect(inv.hash).not.toBe(afterEquipHash)
+    expect(inv.sequence).not.toBe(afterEquipSequence)
 
-    const afterBagsHash = inv.hash
+    const afterBagsSequence = inv.sequence
     inv.setCursor(makeItem())
-    expect(inv.hash).not.toBe(afterBagsHash)
+    expect(inv.sequence).not.toBe(afterBagsSequence)
 
-    const afterCursorHash = inv.hash
+    const afterCursorSequence = inv.sequence
     inv.clearCursor()
-    expect(inv.hash).not.toBe(afterCursorHash)
+    expect(inv.sequence).not.toBe(afterCursorSequence)
 
-    const afterClearCursorHash = inv.hash
+    const afterClearCursorSequence = inv.sequence
     inv.clearBagSlot(0)
-    expect(inv.hash).not.toBe(afterClearCursorHash)
+    expect(inv.sequence).not.toBe(afterClearCursorSequence)
   })
 
-  it('equip hash changes only when equip changes, not bags or cursor', () => {
-    const initialHash = inv.equippedHash
+  it('equippedSequence changes only when equip changes, not bags or cursor', () => {
+    const initialSequence = inv.equippedSequence
     const item = makeItem()
     const slot = inv.getValidSlotNamesForItem(item)[0]
     inv.tryEquip(item, slot)
-    expect(inv.equippedHash).not.toBe(initialHash)
+    expect(inv.equippedSequence).not.toBe(initialSequence)
 
-    const afterEquipHash = inv.equippedHash
+    const afterEquipSequence = inv.equippedSequence
     fillBags()
-    expect(inv.equippedHash).toBe(afterEquipHash)
+    expect(inv.equippedSequence).toBe(afterEquipSequence)
 
     inv.setCursor(makeItem())
-    expect(inv.equippedHash).toBe(afterEquipHash)
+    expect(inv.equippedSequence).toBe(afterEquipSequence)
 
     inv.clearCursor()
-    expect(inv.equippedHash).toBe(afterEquipHash)
+    expect(inv.equippedSequence).toBe(afterEquipSequence)
 
     inv.clearBagSlot(0)
-    expect(inv.equippedHash).toBe(afterEquipHash)
-  })
-
-  it('2 inv with same content yield same hash', () => {
-    const item = makeItem()
-    const slot = inv.getValidSlotNamesForItem(item)[0]
-    inv.tryEquip(item, slot)
-    const hash1 = inv.hash
-    const snap = inv.serialize()
-
-    const inv2 = new ItemInventory()
-    inv2.deserialize(snap)
-    const hash2 = inv2.hash
-    expect(hash2).toBe(hash1)
+    expect(inv.equippedSequence).toBe(afterEquipSequence)
   })
 })

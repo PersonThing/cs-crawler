@@ -64,7 +64,7 @@ const init = async (levelConfig, localPlayerState) => {
 
   // create local player
   createPlayer(localPlayerState, LOCAL_PLAYER_COLOR, true)
-  
+
   // Initialize client prediction for local player
   clientPrediction.setPlayer(localPlayerState, true)
 
@@ -81,14 +81,9 @@ const init = async (levelConfig, localPlayerState) => {
       lastServerState = null
     }
 
-    // Update all players' visual positions from client prediction every frame
-    updatePlayersFromPrediction()
-
     world.onTick(time)
     hud.onTick(time)
-
-    // client tick for player sprites from store
-    playerSpriteStore.get().forEach(player => player.onTick(time))
+    updatePlayersFromPrediction()
   })
 
   initialized = true
@@ -105,7 +100,7 @@ function updatePlayersFromPrediction() {
       player.state.x = predictedState.x
       player.state.y = predictedState.y
       player.state.rotation = predictedState.rotation
-      
+
       // Update visual representation
       player.updateFromState()
     }
@@ -130,7 +125,16 @@ socket.on('serverState', state => {
   lastServerState = state
 })
 
+let lastAppliedGroundItemSequence = null
 function applyServerState(serverState) {
+  // update ground items if the sequence changed and server sent them (server only sends every few ticks or when changed)
+  if (serverState.groundItemsSequence !== lastAppliedGroundItemSequence && serverState.groundItems != null) {
+    world.setGroundItems(serverState.groundItems)
+    lastAppliedGroundItemSequence = serverState.groundItemsSequence
+    console.log('applying ground items update from server, sequence:', lastAppliedGroundItemSequence, serverState.groundItems.length)
+  }
+
+  // update players
   let players = playerSpriteStore.get()
 
   // add any new players that weren't in store
@@ -155,7 +159,7 @@ function applyServerState(serverState) {
         // Unified reconciliation - automatically handles local vs remote differences
         clientPrediction.reconcilePlayerWithServer(p.state.playerId, playerServerState, serverState.serverTimestamp)
       }
-      
+
       // Update non-position state from server (inventory, abilities, etc.) - same for all players
       // Position is handled by updatePlayersFromPrediction() every frame
       const currentPos = { x: p.state.x, y: p.state.y, rotation: p.state.rotation }
@@ -164,10 +168,7 @@ function applyServerState(serverState) {
       p.state.y = currentPos.y
       p.state.rotation = currentPos.rotation
     }
-  })  // force trigger subscribers, since changes to object properties in array won't automatically do that
+  }) // force trigger subscribers, since changes to object properties in array won't automatically do that
   // TODO: how can we do that better?
   playerSpriteStore.triggerSubscribers()
-
-  // update ground items store - we should track a hash and only do it if it changes
-  world.setGroundItems(serverState.groundItems)
 }

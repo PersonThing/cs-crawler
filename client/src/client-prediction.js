@@ -13,6 +13,7 @@ class ClientPrediction {
 
     // State history for all players (Map of playerId -> array of snapshots)
     this.stateHistories = new Map() // Per-player circular buffers of client state snapshots
+    this.lastServerTimestamp = null // Track last server timestamp for cleanup
     this.maxHistorySize = 120 // ~2 seconds at 60fps
 
     // Reconciliation settings
@@ -40,6 +41,9 @@ class ClientPrediction {
     
     // Pather instance (set when level loads)
     this.pather = null
+    
+    // Frame counter for periodic tasks
+    this.frameCounter = 0
 
     // Throttled network send
     this.throttledSendInput = throttle(input => {
@@ -329,15 +333,15 @@ class ClientPrediction {
     // Update debug sprite with server state
     this.updateDebugSprite(playerId, serverState)
 
+    // Clean up old state history based on server timestamp
+    if (serverTimestamp) {
+      this.lastServerTimestamp = serverTimestamp
+      this.cleanupOldStates(serverTimestamp)
+    }
+
     const { x, y, rotation, target, tempTarget, path, lastProcessedInputSequence } = serverState
     const isLocalPlayer = playerId === this.localPlayerId
     const threshold = isLocalPlayer ? this.reconciliationThresholdLocal : this.reconciliationThresholdRemote
-
-    if (DEBUG.get() && Math.random() < 0.05) { // 5% chance to log
-      const hasTarget = predictedEntity.target ? 'has target' : 'no target'
-      const pathLength = predictedEntity.path ? predictedEntity.path.length : 0
-      console.log(`[DEBUG] Player ${playerId} server: (${x.toFixed(1)}, ${y.toFixed(1)}) predicted: (${predictedEntity.x.toFixed(1)}, ${predictedEntity.y.toFixed(1)}) ${hasTarget} path:${pathLength}`)
-    }
 
     // Handle input sequence acknowledgment for local player only
     if (isLocalPlayer && lastProcessedInputSequence !== undefined) {
@@ -360,35 +364,38 @@ class ClientPrediction {
 
     // Apply corrections if divergence is too large
     if (distance > threshold) {
-      console.log(`Correcting player ${playerId}: distance=${distance.toFixed(2)} (${isLocalPlayer ? 'local' : 'remote'})`)
-      
       // Apply server position correction
       predictedEntity.setPosition(x, y)
       predictedEntity.rotation = rotation
       
+      // Apply server movement state for both local and remote players
+      predictedEntity.target = target ? { ...target } : null
+      predictedEntity.tempTarget = tempTarget ? { ...tempTarget } : null
+      predictedEntity.path = path ? [...path] : []
+      
       if (isLocalPlayer) {
-        // Local player: rollback and replay inputs
-        predictedEntity.stopMoving()
+        // Local player: replay any remaining pending inputs on top of server state
         for (const input of this.pendingInputs) {
           predictedEntity.setTarget(input.target)
         }
-      } else {
-        // Remote player: apply server movement state when correcting position
-        predictedEntity.target = target ? { ...target } : null
-        predictedEntity.tempTarget = tempTarget ? { ...tempTarget } : null
-        predictedEntity.path = path ? [...path] : []
       }
-    } else if (!isLocalPlayer) {
-      // For remote players: only update movement state if it has meaningfully changed
-      // This allows continued client prediction between server updates
+    } else {
+      // No position correction needed - update movement state if it has meaningfully changed
+      // This allows continued client prediction between server updates for both local and remote players
       const targetChanged = this.hasTargetChanged(predictedEntity, target)
       const pathChanged = this.hasPathChanged(predictedEntity, path)
       
       if (targetChanged || pathChanged) {
-        console.log(`Updating remote player ${playerId} movement: targetChanged=${targetChanged}, pathChanged=${pathChanged}`)
         predictedEntity.target = target ? { ...target } : null
         predictedEntity.tempTarget = tempTarget ? { ...tempTarget } : null
         predictedEntity.path = path ? [...path] : []
+        
+        if (isLocalPlayer) {
+          // Local player: replay any remaining pending inputs on top of updated server state
+          for (const input of this.pendingInputs) {
+            predictedEntity.setTarget(input.target)
+          }
+        }
       }
     }
 
@@ -485,25 +492,42 @@ class ClientPrediction {
     }
   }
 
-  // Clean up old state history and pending inputs
-  cleanup() {
-    const now = Date.now()
-    const maxAge = 3000 // 3 seconds
+  // Clean up states older than the last server update for all players
+  cleanupOldStates(serverTimestamp) {
+    if (!serverTimestamp) return
 
-    // Clean up state histories for all players
+    // Remove all states older than the server timestamp for all players
+    // Keep a small buffer (100ms) to handle slight timing differences
+    const bufferTime = 100
+    const cutoffTime = serverTimestamp - bufferTime
+    
+    let totalCleaned = 0
+    
     for (const [playerId, history] of this.stateHistories) {
-      const filteredHistory = history.filter(state => now - state.timestamp < maxAge)
-      this.stateHistories.set(playerId, filteredHistory)
+      const filteredHistory = history.filter(state => state.timestamp >= cutoffTime)
+      
+      if (filteredHistory.length !== history.length) {
+        totalCleaned += history.length - filteredHistory.length
+        this.stateHistories.set(playerId, filteredHistory)
+      }
     }
+  }
 
+  // Clean up very old pending inputs (fallback safety)
+  cleanupPendingInputs() {
+    const now = Date.now()
+    const maxAge = 5000 // 5 seconds - very conservative
+    
     // Clean up very old pending inputs (shouldn't happen normally)
     this.pendingInputs = this.pendingInputs.filter(input => now - input.timestamp < maxAge)
   }
 
   // Periodic update for client prediction
   tick(deltaTime) {
+    this.frameCounter++
+    
     // Update all predicted entities (local and remote players)
-    for (const entity of this.predictedEntities.values()) {
+    for (const [playerId, entity] of this.predictedEntities) {
       // Continue movement if there's a target - use actual LivingEntityState method
       entity.moveTowardTarget(deltaTime)
     }
@@ -511,17 +535,16 @@ class ClientPrediction {
     // Save snapshots for all players every frame (needed for reconciliation)
     this.saveStateSnapshot()
 
-    // Update debug trail sprites occasionally
-    if (DEBUG.get() && Math.random() < 0.2) { // 20% chance per frame (~12fps)
+    // Update debug trail sprites every few frames
+    if (DEBUG.get() && this.frameCounter % 5 === 0) {
       for (const playerId of this.predictedEntities.keys()) {
         this.updateTrailSprites(playerId)
       }
     }
 
-    // Periodic cleanup
-    if (Math.random() < 0.01) {
-      // ~1% chance per frame
-      this.cleanup()
+    // Cleanup pending inputs every 10 seconds (600 frames at 60fps)
+    if (this.frameCounter % 600 === 0) {
+      this.cleanupPendingInputs()
     }
   }
 
