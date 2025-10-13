@@ -28,7 +28,7 @@ export const chestItems = [
     inventoryTexture: Textures.inventory.chest.ornatearmor,
     attributes: {
       [ItemAttributeType.Defense]: 100,
-      [ItemAttributeType.PhysicalResist]: 50,
+      [ItemAttributeType.PhysicalResistPercent]: 50,
     },
   }),
 

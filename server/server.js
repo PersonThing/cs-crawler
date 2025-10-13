@@ -49,7 +49,7 @@ function tick() {
     const player = players[playerId]
     if (player.isConnected) {
       const len = groundItems.length
-      player.onTick(time, groundItems)
+      player.tick(time, groundItems)
       if (groundItems.length !== len) {
         groundItemsChanged()
       }

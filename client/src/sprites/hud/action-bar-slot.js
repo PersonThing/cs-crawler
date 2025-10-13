@@ -189,7 +189,7 @@ class ActionBarSlot extends Container {
     this.renderContent()
   }
   
-  onTick() {
+  tick() {
     // TODO: Update cooldown display, etc.
   }
 }

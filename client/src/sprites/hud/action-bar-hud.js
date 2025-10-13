@@ -311,9 +311,9 @@ class ActionBarHud extends Container {
     this.app.renderer.on('resize', updatePosition)
   }
 
-  onTick() {
+  tick() {
     // Update cooldowns, etc.
-    this.slots.forEach(slot => slot.onTick())
+    this.slots.forEach(slot => slot.tick())
   }
 
   destroy() {

@@ -44,7 +44,7 @@ class PlayerControls {
     this.app.canvas.addEventListener('mouseup', this.onMouseUp.bind(this))
     this.app.canvas.addEventListener('contextmenu', this.onContextMenu.bind(this))
     this.app.canvas.addEventListener('wheel', this.onMouseWheel.bind(this))
-    this.app.ticker.add(this.onTick.bind(this))
+    this.app.ticker.add(this.tick.bind(this))
 
     this.keyHandlers = {
       f2: event => {
@@ -146,7 +146,7 @@ class PlayerControls {
     this.app.canvas.removeEventListener('contextmenu', this.onContextMenu)
     this.app.canvas.removeEventListener('wheel', this.onMouseWheel)
     if (this.app.ticker != null) {
-      this.app.ticker.remove(this.onTick)
+      this.app.ticker.remove(this.tick)
     }
     this.unsubscribeFromplayerSpriteStore()
   }
@@ -251,7 +251,7 @@ class PlayerControls {
     this.isMouseDown = false
   }
 
-  onTick(time) {
+  tick(time) {
     clientPrediction.tick(time.deltaMS)
     
     if (this.isRightMouseDown) {

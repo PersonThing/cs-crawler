@@ -86,7 +86,7 @@ class Minimap extends Sprite {
     }
   }
 
-  onTick() {
+  tick() {
     const localPlayer = playerSpriteStore.getLocalPlayer()
     if (localPlayer == null) return
 
@@ -101,7 +101,7 @@ class Minimap extends Sprite {
     }
     const maxMapWidth = this.centered ? width : MINIMAP_WIDTH
     const maxMapHeight = this.centered ? height : MINIMAP_HEIGHT
-    this.map.onTick(maxMapWidth, maxMapHeight)
+    this.map.tick(maxMapWidth, maxMapHeight)
 
     // update local player dot
     if (!this.localPlayerMarker) {

@@ -26,7 +26,7 @@ class LevelSprite extends Container {
     this.tileContainer.scale = scale
   }
 
-  onTick(maxWidth, maxHeight) {
+  tick(maxWidth, maxHeight) {
     // note: maxWidth and maxHeight do not factor our scale in - so we should multiply them by our scale
     maxWidth = maxWidth / this.tileContainer.scale.x
     maxHeight = maxHeight / this.tileContainer.scale.y

@@ -54,7 +54,7 @@ export default class LivingEntityState {
     this.computeStats()
   }
 
-  onTick(time, groundItems) {
+  tick(time, groundItems) {
     this.moveTowardTarget(time.deltaMS)
 
     // is attempting to pick up item?
@@ -62,25 +62,20 @@ export default class LivingEntityState {
       // is item still on the ground?
       const groundItemIndex = groundItems.findIndex(gi => gi.item.id === this.targetItem.item.id)
       if (groundItemIndex === -1) {
-        console.log('target item no longer exists on ground, clearing targetItem')
+        console.log('targetItem no longer exists on ground, clearing')
         this.targetItem = null
       } else {
         const groundItem = groundItems[groundItemIndex]
-        if (groundItem == null) {
-          console.log('target item no longer exists on ground, clearing targetItem')
+        // is it close enough to pick up yet?
+        const distance = Math.hypot(
+          this.targetItem.position.x - this.x,
+          this.targetItem.position.y - this.y
+        )
+        if (distance <= BLOCK_SIZE * 2 && this.inventory.pickup(groundItem.item)) {
+          // successfully picked up - remove from the passed groundItems array
+          groundItems.splice(groundItemIndex, 1)
           this.targetItem = null
-        } else {
-          // is it close enough to pick up yet?
-          const distance = Math.hypot(
-            this.targetItem.position.x - this.x,
-            this.targetItem.position.y - this.y
-          )
-          if (distance <= BLOCK_SIZE * 2 && this.inventory.pickup(groundItem.item)) {
-            // successfully picked up
-            groundItems.splice(groundItemIndex, 1)
-            this.targetItem = null
-            console.log('picked up item', groundItem.item.name)
-          }
+          console.log('picked up item', groundItem.item.name)
         }
       }
     }

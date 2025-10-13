@@ -28,6 +28,7 @@ const createPlayer = (serializedPlayerState, color, isLocalPlayer) => {
   const player = new PlayerSprite(playerState, Textures.player.base, world, pather, color)
   player.isLocalPlayer = isLocalPlayer
   playerSpriteStore.add(player)
+  clientPrediction.setPlayer(playerState, isLocalPlayer)
   return player
 }
 
@@ -65,9 +66,6 @@ const init = async (levelConfig, localPlayerState) => {
   // create local player
   createPlayer(localPlayerState, LOCAL_PLAYER_COLOR, true)
 
-  // Initialize client prediction for local player
-  clientPrediction.setPlayer(localPlayerState, true)
-
   // create hud (and controls)
   hud = new Hud(app, world, levelConfig)
   app.stage.addChild(hud)
@@ -81,30 +79,27 @@ const init = async (levelConfig, localPlayerState) => {
       lastServerState = null
     }
 
-    world.onTick(time)
-    hud.onTick(time)
-    updatePlayersFromPrediction()
+    world.tick(time)
+    hud.tick(time)
+    
+    // update players from client prediction (which by now is reconciled with the latest server state)
+    const players = playerSpriteStore.get()
+    for (const player of players) {
+      const playerId = player.state.playerId
+      const predictedState = clientPrediction.getPredictedStateForPlayer(playerId)
+      if (predictedState) {
+        // Update player's state with predicted position
+        player.state.x = predictedState.x
+        player.state.y = predictedState.y
+        player.state.rotation = predictedState.rotation
+
+        // Update visual representation
+        player.updateFromState()
+      }
+    }
   })
 
   initialized = true
-}
-
-// Update all players' visual positions from client prediction every frame (60+ fps)
-function updatePlayersFromPrediction() {
-  const players = playerSpriteStore.get()
-  for (const player of players) {
-    const playerId = player.state.playerId
-    const predictedState = clientPrediction.getPredictedStateForPlayer(playerId)
-    if (predictedState) {
-      // Update player's state with predicted position
-      player.state.x = predictedState.x
-      player.state.y = predictedState.y
-      player.state.rotation = predictedState.rotation
-
-      // Update visual representation
-      player.updateFromState()
-    }
-  }
 }
 
 // server may request level if it's the first player to connect (only client can create levels for now)
@@ -142,7 +137,6 @@ function applyServerState(serverState) {
     if (!players.find(p => p.state.playerId === playerId)) {
       console.log('creating new player from server', players.length, playerState)
       createPlayer(playerState, OTHER_PLAYER_COLOR, false)
-      clientPrediction.setPlayer(playerState, false)
     }
   })
 

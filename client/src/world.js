@@ -94,7 +94,7 @@ class World extends Container {
     return focus
   }
 
-  onTick(time) {
+  tick(time) {
     const { width: screenWidth, height: screenHeight } = screenSizeStore.get()
     const localPlayer = playerSpriteStore.getLocalPlayer()
     if (localPlayer == null) return
@@ -107,12 +107,12 @@ class World extends Container {
     this.mask.y = localPlayer.y
 
     // update the parallax level - it needs to offset by the difference in level size and parallax size
-    this.levelSpriteParallax.onTick(screenWidth, screenHeight)
+    this.levelSpriteParallax.tick(screenWidth, screenHeight)
     this.levelSpriteParallax.x = -localPlayer.x * (PARALLAX_SCALE - 1)
     this.levelSpriteParallax.y = -localPlayer.y * (PARALLAX_SCALE - 1)
 
     // update the rendered level
-    this.levelSprite.onTick(screenWidth, screenHeight)
+    this.levelSprite.tick(screenWidth, screenHeight)
   }
 
   addPlayer(player) {

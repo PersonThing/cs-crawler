@@ -71,7 +71,7 @@ class InventoryHud extends Container {
     })
   }
 
-  onTick() {
+  tick() {
     // update content from localPlayer inventory
     const localPlayer = playerSpriteStore.getLocalPlayer()
     if (localPlayer == null || localPlayer.state.inventory == null) {

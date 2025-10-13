@@ -1,7 +1,7 @@
 const DefensiveAttributes = {
   Health: 'Health',
   Defense: 'Defense', // reduces all damage
-  PhysicalResist: 'PhysicalResistPercent',
+  PhysicalResistPercent: 'PhysicalResistPercent',
   ColdResist: 'ColdResist',
   FireResist: 'FireResist',
   LightningResist: 'LightningResist',

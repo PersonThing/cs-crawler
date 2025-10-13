@@ -103,10 +103,10 @@ class Hud extends Container {
     }
   }
 
-  onTick(time) {
-    this.minimap.onTick()
-    this.inventory.onTick()
-    this.actionBar.onTick()
+  tick(time) {
+    this.minimap.tick()
+    this.inventory.tick()
+    this.actionBar.tick()
   }
 
   destroy() {
