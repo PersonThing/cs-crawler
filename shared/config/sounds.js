@@ -4,7 +4,9 @@
 
 export const Sounds = {
   "abilities": {
-    "Shoot": "/assets/sounds/abilities/Shoot.m4a"
+    "Pet": "/assets/sounds/abilities/Pet.m4a",
+    "Shoot": "/assets/sounds/abilities/Shoot.m4a",
+    "Turret": "/assets/sounds/abilities/Turret.m4a"
   },
   "item": {
     "ItemDrop": "/assets/sounds/item/ItemDrop.m4a",

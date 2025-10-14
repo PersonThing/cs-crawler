@@ -140,7 +140,7 @@ function applyLastServerState(players) {
     } else {
       // set non-position fields that server might have changed directly from server state
       player.label = player.username = serverPlayerState.username
-      player.inventory.deserialize(serverPlayerState.inventory)
+      player.setInventory(serverPlayerState.inventory) // has to deserialize and re-compute stats after setting
 
       // reconcile position with server state
       clientPrediction.reconcileWithServer(player, serverPlayerState, lastServerState.serverTimestamp)

@@ -1,16 +1,15 @@
-import { Container, Graphics, Sprite, Text } from 'pixi.js'
-import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
+import { Container, Graphics } from 'pixi.js'
+import { HUD_FILL_COLOR } from '#shared/config/constants.js'
 import { Abilities, AbilityModifiers } from '#shared/config/abilities.js'
-import InventoryStatCalculator from '#shared/utils/inventory-stat-calculator.js'
 import playerSpriteStore from '../../stores/player-sprite-store.js'
 import ActionBarSlot from './action-bar-slot.js'
 import AbilitySelectionMenu from './ability-selection-menu.js'
 import socket from '../../socket.js'
+import soundManager from '../../sound-manager.js'
 
 const SLOT_COUNT = 6
 const SLOT_SIZE = 48
 const SLOT_PADDING = 2
-const MARGIN = 0
 
 class ActionBarHud extends Container {
   constructor(app) {
@@ -133,8 +132,8 @@ class ActionBarHud extends Container {
       return null
     }
     
-    // TODO: Check cooldown, mana cost, etc.
-    
+    // TODO: Check cooldown, cost, etc.
+
     // Use provided target or default to origin
     const targetPosition = target || { x: 0, y: 0 }
     
@@ -150,6 +149,25 @@ class ActionBarHud extends Container {
       target: targetPosition,
       modifiers: activeModifiers
     })
+    
+    // Play ability sound effect if it has one
+    let sound = ability.sound
+    let soundOptions = ability.soundOptions || {}
+
+    // if any modifiers have a sound, play their sound instead
+    for (const modId of activeModifiers) {
+      const modifier = AbilityModifiers[modId]
+      if (modifier.sound) {
+        sound = modifier.sound
+        soundOptions = modifier.soundOptions || {}
+        break
+      }
+    }
+    
+    // TODO: will it be possible for multiple modifiers to have sounds?
+    if (sound) {
+      soundManager.play(sound, soundOptions)
+    }
     
     // Return ability's movement behavior for client prediction
     return ability.onUse ? ability.onUse(localPlayer?.state, targetPosition, activeModifiers) : null

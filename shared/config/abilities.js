@@ -1,6 +1,7 @@
 // mocking out possible abilities and what they might look like
 // need helpers to get entities in range, apply damage, healing, etc
 
+import { Sounds } from './sounds.js'
 import { Textures } from './textures.js'
 
 const DamageType = {
@@ -29,6 +30,8 @@ const Abilities = {
     name: 'Fireball',
     description: 'A fiery projectile that explodes upon impact, dealing area fire damage.',
     icon: Textures.particle.blaze,
+    sound: Sounds.abilities.Shoot,
+    soundOptions: { volume: 0.6, startTime: 0.2, endTime: 0.9 },
     cooldown: 1000,
     onUse: (source, target, modifiers) => {
       // projectile attack helper here to fire a projectile that then has its own tick handling
@@ -70,7 +73,7 @@ const Abilities = {
       // healing helper here to restore health to target entity
       return true // Allow player to move to target
     },
-  }
+  },
 }
 
 // Ability Modifiers
@@ -83,12 +86,16 @@ const AbilityModifiers = {
     id: 'Turret',
     name: 'Turret',
     description: 'Summon a turret that uses this ability for you.',
+    sound: Sounds.abilities.Turret,
+    soundOptions: { volume: 0.6, startTime: 0.2, endTime: 0.9 },
   },
 
   Pet: {
     id: 'Pet',
     name: 'Pet',
     description: 'Summon a pet that follows you and uses this ability for you.',
+    sound: Sounds.abilities.Pet,
+    soundOptions: { volume: 0.6, startTime: 0.2, endTime: 0.9 },
   },
 
   CastOnEnemyHit: {

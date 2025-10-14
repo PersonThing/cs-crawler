@@ -52,6 +52,11 @@ export default class LivingEntityState {
     this.computeStats()
   }
 
+  setInventory(inventory) {
+    this.inventory.deserialize(inventory)
+    this.computeStats()
+  }
+
   tick(time, groundItems) {
     this.moveTowardTarget(time.deltaMS)
 
