@@ -12,10 +12,11 @@ const SLOT_SIZE = 48
 const SLOT_PADDING = 2
 
 class ActionBarHud extends Container {
-  constructor(app) {
+  constructor(app, tooltipContainer = null) {
     super()
 
     this.app = app
+    this.tooltipContainer = tooltipContainer
     this.slots = []
     this.selectedSlotIndex = null
     this.abilityMenu = null
@@ -30,11 +31,29 @@ class ActionBarHud extends Container {
     this.renderSlots()
     this.positionAtBottom()
 
+    // Keep track of last known state to detect changes
+    this.lastPlayerStats = null
+    this.lastActionBarConfig = null
+
     // Listen for player changes to update unlocked abilities and load config
     this.unsubscribeFromPlayers = playerSpriteStore.subscribe(players => {
       const player = players.find(p => p.isLocalPlayer)
-      this.updateUnlockedAbilities(player?.state?.stats || {})
-      this.loadPlayerActionBarConfig(player)
+      const currentStats = player?.state?.stats || {}
+      const currentConfig = player?.state?.actionBarConfig
+
+      // Only update if stats actually changed
+      const statsChanged = JSON.stringify(this.lastPlayerStats) !== JSON.stringify(currentStats)
+      if (statsChanged) {
+        this.lastPlayerStats = { ...currentStats }
+        this.updateUnlockedAbilities(currentStats)
+      }
+
+      // Only reload config if it actually changed
+      const configChanged = JSON.stringify(this.lastActionBarConfig) !== JSON.stringify(currentConfig)
+      if (configChanged) {
+        this.lastActionBarConfig = currentConfig ? [...currentConfig] : null
+        this.loadPlayerActionBarConfig(player)
+      }
     })
 
     // Kill any click events that bubble through
@@ -85,7 +104,7 @@ class ActionBarHud extends Container {
 
     // Create new slots
     for (let i = 0; i < SLOT_COUNT; i++) {
-      const slot = new ActionBarSlot(i, this.slotConfigs[i])
+      const slot = new ActionBarSlot(i, this.slotConfigs[i], this.tooltipContainer)
       slot.x = i * (SLOT_SIZE + SLOT_PADDING)
       slot.y = 0
       

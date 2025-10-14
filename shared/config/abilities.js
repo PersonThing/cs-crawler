@@ -31,7 +31,7 @@ const Abilities = {
     description: 'A fiery projectile that explodes upon impact, dealing area fire damage.',
     icon: Textures.particle.blaze,
     sound: Sounds.abilities.Shoot,
-    soundOptions: { volume: 0.6, startTime: 0.2, endTime: 0.9 },
+    soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
     cooldown: 1000,
     onUse: (source, target, modifiers) => {
       // projectile attack helper here to fire a projectile that then has its own tick handling
@@ -87,7 +87,7 @@ const AbilityModifiers = {
     name: 'Turret',
     description: 'Summon a turret that uses this ability for you.',
     sound: Sounds.abilities.Turret,
-    soundOptions: { volume: 0.6, startTime: 0.2, endTime: 0.9 },
+    soundOptions: { volume: 0.5, start: 0.2, end: 0.6 },
   },
 
   Pet: {
@@ -95,7 +95,7 @@ const AbilityModifiers = {
     name: 'Pet',
     description: 'Summon a pet that follows you and uses this ability for you.',
     sound: Sounds.abilities.Pet,
-    soundOptions: { volume: 0.6, startTime: 0.2, endTime: 0.9 },
+    soundOptions: { volume: 0.5, start: 0.2, end: 0.7 },
   },
 
   CastOnEnemyHit: {

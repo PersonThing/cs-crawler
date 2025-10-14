@@ -69,6 +69,12 @@ class InventoryHud extends Container {
       event.preventDefault()
       return false
     })
+
+    this.on('pointerdown', event => {
+      event.stopPropagation()
+      event.preventDefault()
+      return false
+    })
   }
 
   tick() {
@@ -124,7 +130,6 @@ class InventoryHud extends Container {
         const itemSprite = this.drawItem(item, coords)
         itemSprite.on('pointerdown', event => {
           socket.emit('inventoryBagSlotClick', index, GetEventArgs(event))
-          return false
         })
       }
     }
@@ -176,7 +181,7 @@ class InventoryHud extends Container {
       .fill(0x000000)
     g.x = x
     g.y = y
-    
+
     this.bg.addChild(g)
     return g
   }
@@ -205,7 +210,7 @@ class InventoryHud extends Container {
       // if cursor item is set and can go in this slot, highlight it green
       if (this.content?.cursor != null) {
         color = this.inventory.isItemValidForSlot(this.content.cursor, inventorySlot.name) ? 0x00ff00 : DEFAULT_SLOT_COLOR
-      } 
+      }
       this.drawItemBg(color, coords)
 
       if (

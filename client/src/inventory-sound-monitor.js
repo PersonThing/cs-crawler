@@ -74,9 +74,9 @@ class InventorySoundMonitor {
 
     // Play appropriate sounds (don't play both at once)
     if (itemWasEquipped) {
-      soundManager.play(Sounds.item.ItemEquip, { startTime: 0.15, endTime: 0.3, volume: 0.5 })
+      soundManager.play(Sounds.item.ItemEquip, { start: 0.15, end: 0.3, volume: 0.5 })
     } else if (itemWasPickedUp) {
-      soundManager.play(Sounds.item.ItemPickup, { startTime: 0.15, endTime: 0.3, volume: 0.5 })
+      soundManager.play(Sounds.item.ItemPickup, { start: 0.15, end: 0.3, volume: 0.5 })
     }
 
     // Update tracking variables

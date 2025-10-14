@@ -1,4 +1,5 @@
 import { Container, Graphics, Text } from 'pixi.js'
+import AbilityTooltip from './ability-tooltip.js'
 
 const ITEM_HEIGHT = 32
 const BORDER_COLOR_NORMAL = 0x666666
@@ -9,17 +10,24 @@ const FILL_COLOR_SELECTED = 0x004400
 const FILL_COLOR_LOCKED = 0x111111
 
 class ModifierListItem extends Container {
-  constructor(modifier, isUnlocked, isSelected, width) {
+  constructor(modifier, isUnlocked, isSelected, width, tooltipContainer = null) {
     super()
     
     this.modifier = modifier
     this.isUnlocked = isUnlocked
     this.isSelected = isSelected
     this.ITEM_WIDTH = width
+    this.tooltipContainer = tooltipContainer
     
     this.eventMode = 'static'
     this.cursor = 'pointer'
     
+    // Create tooltip instance if we have a container to add it to
+    if (this.tooltipContainer) {
+      this.tooltip = new AbilityTooltip()
+      this.tooltipContainer.addChild(this.tooltip)
+    }
+
     this.render()
     this.setupEvents()
   }
@@ -85,12 +93,21 @@ class ModifierListItem extends Container {
   }
   
   showTooltip() {
-    // TODO: Show tooltip with modifier description
-    console.log('Show tooltip for modifier:', this.modifier.name, this.modifier.description)
+    if (!this.tooltip || !this.modifier) return
+
+    // Position similar to ability grid items
+    let containerPos = this.tooltipContainer.toLocal(this.toGlobal({ x: 0, y: 0 }))
+
+    this.tooltip.show({
+      name: this.modifier.name,
+      description: this.modifier.description || 'No description available'
+    }, containerPos.x, containerPos.y)
   }
   
   hideTooltip() {
-    // TODO: Hide tooltip
+    if (this.tooltip) {
+      this.tooltip.hide()
+    }
   }
   
   setSelected(selected) {
@@ -105,6 +122,14 @@ class ModifierListItem extends Container {
       this.isUnlocked = unlocked
       this.render()
     }
+  }
+
+  destroy() {
+    if (this.tooltip) {
+      this.tooltip.destroy()
+      this.tooltip = null
+    }
+    super.destroy()
   }
 }
 

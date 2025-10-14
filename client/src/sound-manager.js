@@ -33,7 +33,7 @@ class SoundManager {
   }
 
   play(soundPath, options = {}) {
-    const { volume = this.volume, startTime = 0, endTime = null, duration = null } = options
+    const { volume = this.volume, start = 0, end = null, duration = null } = options
     if (!this.enabled || !this.sounds[soundPath]) {
       console.warn(`Sound not found or not loaded: ${soundPath}`)
       return
@@ -44,14 +44,14 @@ class SoundManager {
       audio.volume = volume
       
       // Set start time
-      if (startTime > 0) {
-        audio.currentTime = startTime
+      if (start > 0) {
+        audio.currentTime = start
       }
       
       // Set up end time or duration handling
       let stopTimer = null
-      if (endTime !== null) {
-        const playDuration = (endTime - startTime) * 1000 // convert to milliseconds
+      if (end !== null) {
+        const playDuration = (end - start) * 1000 // convert to milliseconds
         stopTimer = setTimeout(() => {
           audio.pause()
           audio.currentTime = 0

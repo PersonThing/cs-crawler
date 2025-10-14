@@ -1,5 +1,6 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
 import { Abilities, AbilityModifiers } from '#shared/config/abilities.js'
+import AbilityTooltip from './ability-tooltip.js'
 
 const SLOT_SIZE = 48
 const KEY_LABELS = ['LClick', 'RClick', 'Q', 'W', 'E', 'R']
@@ -9,19 +10,27 @@ const FILL_COLOR = 0x222222
 const FILL_COLOR_LOCKED = 0x111111
 
 class ActionBarSlot extends Container {
-  constructor(index, config) {
+  constructor(index, config, tooltipContainer = null) {
     super()
     
     this.index = index
     this.config = config || { abilityId: null, modifiers: [] }
     this.unlockedAbilities = []
     this.unlockedModifiers = []
+    this.tooltipContainer = tooltipContainer
     
     this.eventMode = 'static'
     this.cursor = 'pointer'
     
+    // Create tooltip instance if we have a container to add it to
+    if (this.tooltipContainer) {
+      this.tooltip = new AbilityTooltip()
+      this.tooltipContainer.addChild(this.tooltip)
+    }
+    
     this.renderBackground()
     this.renderContent()
+    console.log('action bar slot created')
     this.setupEvents()
   }
   
@@ -52,6 +61,7 @@ class ActionBarSlot extends Container {
     }
     
     this.contentContainer = new Container()
+    this.contentContainer.eventMode = 'none' // Prevent child events from interfering
     this.addChild(this.contentContainer)
     
     if (!this.config.abilityId) {
@@ -72,7 +82,14 @@ class ActionBarSlot extends Container {
       icon.x = 4
       icon.y = 4
       
-
+      // Desaturate and dim locked abilities
+      if (isLocked) {
+        icon.alpha = 0.3
+        icon.tint = 0x666666
+      } else {
+        icon.alpha = 1.0
+        icon.tint = 0xffffff
+      }
       
       this.contentContainer.addChild(icon)
     }
@@ -92,24 +109,52 @@ class ActionBarSlot extends Container {
   }
   
   renderModifierIndicators(abilityLocked) {
-    const modifierSize = 8
-    const spacing = 2
-    
+    // Remove any previous modifier label container if exists
+    if (this.modifierLabelContainer) {
+      this.contentContainer.removeChild(this.modifierLabelContainer)
+      this.modifierLabelContainer.destroy({ children: true })
+    }
+
+    this.modifierLabelContainer = new Container()
+    this.modifierLabelContainer.eventMode = 'none'
+    this.contentContainer.addChild(this.modifierLabelContainer)
+
+    const maxWidth = SLOT_SIZE - 6 // leave some padding
+    const startX = SLOT_SIZE - 2 // we will right-align each label
+    const startY = 2
+    const lineHeight = 9 // very small stacked lines
+
     this.config.modifiers.forEach((modifierId, index) => {
       const modifier = AbilityModifiers[modifierId]
       if (!modifier) return
-      
-      const isModifierLocked = !this.unlockedModifiers.includes(modifierId)
-      
-      // Small colored dot to indicate modifier
-      const dot = new Graphics()
-        .circle(0, 0, modifierSize / 2)
-        .fill(isModifierLocked || abilityLocked ? 0x444444 : 0x00ff00)
-      
-      dot.x = SLOT_SIZE - modifierSize - 2
-      dot.y = 2 + modifierSize + (index * (modifierSize + spacing))
-      
-      this.contentContainer.addChild(dot)
+
+      const isModifierLocked = abilityLocked || !this.unlockedModifiers.includes(modifierId)
+
+      // Use a short name. Prefer explicit shortName property if provided, else take first 3-4 chars.
+      let label = modifier.shortName || modifier.name || modifierId || ''
+      if (label.length > 4) {
+        label = label.substring(0, 4)
+      }
+
+      const text = new Text({
+        text: label,
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 9,
+          fill: isModifierLocked ? 0x555555 : 0xeeeeee,
+        }
+      })
+
+      // If too wide, truncate with ellipsis (single char) until fits
+      while (text.width > maxWidth && label.length > 1) {
+        label = label.substring(0, label.length - 1)
+        text.text = label
+      }
+
+      text.x = startX - text.width // right align
+      text.y = startY + index * lineHeight
+
+      this.modifierLabelContainer.addChild(text)
     })
   }
   
@@ -163,17 +208,30 @@ class ActionBarSlot extends Container {
   }
   
   showTooltip() {
-    if (!this.config.abilityId) return
+    if (!this.tooltip || !this.config.abilityId) return
     
     const ability = Abilities[this.config.abilityId]
     if (!ability) return
     
-    // TODO: Create and show tooltip with ability name, description, and modifiers
-    console.log('Show tooltip for:', ability.name)
+    // Get global position of this slot
+    const globalPos = this.toGlobal({ x: 0, y: 0 })
+    
+    // Build modifier info list (preserve locked modifiers but grey them)
+    const modifierInfo = (this.config.modifiers || []).map(modId => {
+      const mod = AbilityModifiers[modId]
+      if (!mod) return null
+      const locked = !this.unlockedModifiers.includes(modId) || !this.unlockedAbilities.includes(this.config.abilityId)
+      return { id: modId, name: mod.name || modId, locked }
+    }).filter(Boolean)
+    
+    // Show tooltip positioned relative to this slot including modifiers
+    this.tooltip.show(ability, globalPos.x, globalPos.y, modifierInfo)
   }
   
   hideTooltip() {
-    // TODO: Hide tooltip
+    if (this.tooltip) {
+      this.tooltip.hide()
+    }
   }
   
   updateConfig(newConfig) {
@@ -183,6 +241,14 @@ class ActionBarSlot extends Container {
   }
   
   updateUnlockedState(unlockedAbilities, unlockedModifiers) {
+    // Only re-render if the unlocked state actually changed
+    const abilitiesChanged = JSON.stringify(this.unlockedAbilities) !== JSON.stringify(unlockedAbilities)
+    const modifiersChanged = JSON.stringify(this.unlockedModifiers) !== JSON.stringify(unlockedModifiers)
+    
+    if (!abilitiesChanged && !modifiersChanged) {
+      return // No change, skip re-rendering
+    }
+    
     this.unlockedAbilities = unlockedAbilities
     this.unlockedModifiers = unlockedModifiers
     this.renderBackground()
@@ -191,6 +257,14 @@ class ActionBarSlot extends Container {
   
   tick() {
     // TODO: Update cooldown display, etc.
+  }
+  
+  destroy() {
+    if (this.tooltip) {
+      this.tooltip.destroy()
+      this.tooltip = null
+    }
+    super.destroy()
   }
 }
 

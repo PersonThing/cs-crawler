@@ -16,17 +16,6 @@ class Hud extends Container {
 
     this.eventMode = 'static'
     
-    // Handle clicks outside action bar to close menus
-    this.on('pointerdown', (event) => {
-      if (this.actionBar && this.actionBar.abilityMenu) {
-        // Check if click is outside action bar
-        const bounds = this.actionBar.getBounds()
-        if (!bounds.contains(event.global.x, event.global.y)) {
-          this.actionBar.closeAbilityMenu()
-        }
-      }
-    })
-    
     this.minimap = new Minimap(levelConfig, false)
     this.addChild(this.minimap)
 
@@ -49,7 +38,7 @@ class Hud extends Container {
     this.addChild(this.inventory)
     this.inventory.visible = DEBUG.get()
 
-    this.actionBar = new ActionBarHud(app)
+    this.actionBar = new ActionBarHud(app, this)
     this.addChild(this.actionBar)
     
     screenSizeStore.subscribe(({ width, height }) => {

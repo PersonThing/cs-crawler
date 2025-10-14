@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
+import AbilityTooltip from './ability-tooltip.js'
 
 const ITEM_SIZE = 48
 const BORDER_COLOR_NORMAL = 0x666666
@@ -9,15 +10,22 @@ const FILL_COLOR_SELECTED = 0x004400
 const FILL_COLOR_LOCKED = 0x111111
 
 class AbilityGridItem extends Container {
-  constructor(ability, isUnlocked, isSelected) {
+  constructor(ability, isUnlocked, isSelected, tooltipContainer = null) {
     super()
     
     this.ability = ability
     this.isUnlocked = isUnlocked
     this.isSelected = isSelected
+    this.tooltipContainer = tooltipContainer // Parent container to add tooltip to
     
     this.eventMode = 'static'
     this.cursor = 'pointer'
+    
+    // Create tooltip instance if we have a container to add it to
+    if (this.tooltipContainer) {
+      this.tooltip = new AbilityTooltip()
+      this.tooltipContainer.addChild(this.tooltip)
+    }
     
     this.render()
     this.setupEvents()
@@ -101,12 +109,19 @@ class AbilityGridItem extends Container {
   }
   
   showTooltip() {
-    // TODO: Show tooltip with ability name and description
-    console.log('Show tooltip for ability:', this.ability.name, this.ability.description)
+    if (!this.tooltip || !this.ability) return
+    
+    // Get the position of this item relative to the tooltip container
+    let containerPos = this.tooltipContainer.toLocal(this.toGlobal({ x: 0, y: 0 }))
+    
+    // Show tooltip positioned relative to the container
+    this.tooltip.show(this.ability, containerPos.x, containerPos.y)
   }
   
   hideTooltip() {
-    // TODO: Hide tooltip
+    if (this.tooltip) {
+      this.tooltip.hide()
+    }
   }
   
   setSelected(selected) {
@@ -121,6 +136,14 @@ class AbilityGridItem extends Container {
       this.isUnlocked = unlocked
       this.render()
     }
+  }
+  
+  destroy() {
+    if (this.tooltip) {
+      this.tooltip.destroy()
+      this.tooltip = null
+    }
+    super.destroy()
   }
 }
 

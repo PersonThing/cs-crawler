@@ -67,7 +67,7 @@ class World extends Container {
     for (const groundItem of groundItems) {
       if (!this.groundItemsContainer.children.find(sprite => sprite.id === groundItem.item.id)) {
         this.renderItem(groundItem)
-        soundManager.play(Sounds.item.ItemDrop, { startTime: 0.1, endTime: 0.3, volume: 0.5 })
+        soundManager.play(Sounds.item.ItemDrop, { start: 0.1, end: 0.3, volume: 0.5 })
       }
     }
   }

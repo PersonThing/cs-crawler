@@ -96,7 +96,7 @@ class AbilitySelectionMenu extends Container {
       const isUnlocked = this.unlockedAbilities.includes(abilityKey)
       const isSelected = this.currentConfig.abilityId === abilityKey
       
-      const item = new AbilityGridItem(ability, isUnlocked, isSelected)
+      const item = new AbilityGridItem(ability, isUnlocked, isSelected, this)
       
       const col = index % GRID_COLS
       const row = Math.floor(index / GRID_COLS)
@@ -143,7 +143,7 @@ class AbilitySelectionMenu extends Container {
       const isUnlocked = this.unlockedModifiers.includes(modifierKey)
       const isSelected = this.currentConfig.modifiers.includes(modifierKey)
       
-      const item = new ModifierListItem(modifier, isUnlocked, isSelected, MODIFIER_WIDTH)
+  const item = new ModifierListItem(modifier, isUnlocked, isSelected, MODIFIER_WIDTH, this)
       item.y = index * 34  // Add 2px spacing between items
       
       item.on('toggle', () => this.onModifierToggle(modifierKey))
