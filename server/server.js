@@ -148,6 +148,7 @@ io.on('connection', async socket => {
     socket.emit('init', {
       level,
       player: player.serialize(),
+      groundItems: groundItems,
     })
   }
 
@@ -187,20 +188,15 @@ io.on('connection', async socket => {
   })
 
   // Handle player movement
-  socket.on('setTarget', (data) => {
+  socket.on('setTarget', (target) => {
     if (!player?.isConnected) {
       return
     }
-    
-    let target, inputSequence
-    target = data.target
-    inputSequence = data.inputSequence
-    
-    // Update the last processed input sequence
-    if (inputSequence && inputSequence > player.lastProcessedInputSequence) {
-      player.lastProcessedInputSequence = inputSequence
+
+    if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') {
+      return
     }
-    
+
     player.setTarget(target)
   })
 

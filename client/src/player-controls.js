@@ -4,6 +4,7 @@ import playerSpriteStore from './stores/player-sprite-store.js'
 import socket from './socket.js'
 import usernameStore from './stores/username-store.js'
 import clientPrediction from './client-prediction.js'
+import throttle from '#shared/utils/throttle.js'
 
 class PlayerControls {
   constructor(app, world, minimap, hud) {
@@ -26,15 +27,17 @@ class PlayerControls {
     })
 
     this.startListening()
+
+    // Throttled network send
+    this.throttledSendTarget = throttle(target => {
+      socket.emit('setTarget', target)
+    }, 50)
   }
   
-  // Helper method to stop movement with client prediction
   stopMovement() {
     if (!this.player) return
-    
     const currentPosition = { x: this.player.x, y: this.player.y }
-    clientPrediction.addInput(currentPosition)
-    this.player.setTarget(currentPosition)
+    this.throttledSendTarget(currentPosition)
   }
 
   startListening() {
@@ -152,6 +155,8 @@ class PlayerControls {
   }
 
   onMouseWheel(event) {
+    if (event.ctrlKey) return true; // don't disable zooming
+
     if (event.deltaY < 0) {
       this.minimap.zoomIn()
     } else {
@@ -166,7 +171,7 @@ class PlayerControls {
     const target = cursorPositionStore.get()
     if (this.isMouseDown) {
       // Use client prediction - movement happens at full framerate in tick()
-      clientPrediction.addInput(target)
+      this.throttledSendTarget(target)
       
       // Still set on local player for immediate visual feedback
       this.player.setTarget(target)
@@ -217,14 +222,11 @@ class PlayerControls {
       
       // Try to use slot 1 ability
       const abilityResult = this.hud.actionBar.useSlot1(target)
-      if (abilityResult === true) {
-        // Ability allows movement, set target
-        this.updateTargetPosition()
-      } else if (abilityResult === false) {
+      if (abilityResult === false) {
         // Ability stops movement, stop where we are
         this.stopMovement()
       } else {
-        // No ability in slot, normal movement
+        // Ability allows movement, or no ability in slot, keep moving
         this.updateTargetPosition()
       }
     }
@@ -252,8 +254,6 @@ class PlayerControls {
   }
 
   tick(time) {
-    clientPrediction.tick(time.deltaMS)
-    
     if (this.isRightMouseDown) {
       this.player.attackTarget = cursorPositionStore.get()
     } else if (this.isMouseDown) {

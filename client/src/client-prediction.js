@@ -1,35 +1,21 @@
-import socket from './socket.js'
-import throttle from '#shared/utils/throttle.js'
-import LivingEntityState from '#shared/state/living-entity-state.js'
 import * as PIXI from 'pixi.js'
 import { DEBUG } from '#shared/config/constants.js'
 
 class ClientPrediction {
   constructor() {
-    // Input tracking for local player only
-    this.localPlayerId = null
-    this.inputSequence = 0
-    this.pendingInputs = [] // Inputs sent but not yet acknowledged by server
-
     // State history for all players (Map of playerId -> array of snapshots)
-    this.stateHistories = new Map() // Per-player circular buffers of client state snapshots
-    this.lastServerTimestamp = null // Track last server timestamp for cleanup
-    this.maxHistorySize = 120 // ~2 seconds at 60fps
+    this.stateHistories = new Map() // Per-player buffers of client state snapshots
+    this.maxHistorySize = 60
 
-    // Reconciliation settings
-    this.reconciliationThresholdLocal = 2.0 // pixels for local player
-    this.reconciliationThresholdRemote = 5.0 // pixels for remote players
+    // Reconciliation needed if position off by more than this (in pixels)
+    this.reconciliationThreshold = 50.0
 
-    // Predicted entities - map of playerId to LivingEntityState (includes local player)
-    this.predictedEntities = new Map()
-    
     // Debug visualization using global DEBUG store
-    this.debugSprites = new Map() // playerId -> debug sprite (server position)
-    this.trailSprites = new Map() // playerId -> array of trail sprites (client history)
+    this.serverPositionSprites = new Map() // playerId -> debug sprite (server position)
+    this.clientStateTrailSprites = new Map() // playerId -> array of trail sprites (client history)
     this.debugContainer = null
-    this.app = null // Will be set when debug is initialized
     this.world = null // Will be set when debug is initialized
-    
+
     // Subscribe to DEBUG store changes
     this.unsubscribeDebug = DEBUG.subscribe(enabled => {
       if (enabled && !this.debugContainer && this.world) {
@@ -38,33 +24,156 @@ class ClientPrediction {
         this.destroyDebugContainer()
       }
     })
-    
-    // Pather instance (set when level loads)
-    this.pather = null
-    
+
     // Frame counter for periodic tasks
     this.frameCounter = 0
-
-    // Throttled network send
-    this.throttledSendInput = throttle(input => {
-      socket.emit('setTarget', input)
-    }, 50)
   }
 
-  // Set the pather (should be called when level is loaded)
-  setPather(pather) {
-    this.pather = pather
-    // Update pather for all existing predicted entities
-    for (const entity of this.predictedEntities.values()) {
-      entity.pather = pather
+  setPlayer(player) {
+    const playerId = player.playerId
+    this.updateServerSprite(playerId, player.state)
+  }
+
+  removePlayer(playerId) {
+    this.stateHistories.delete(playerId)
+    this.removeDebugSprites(playerId)
+  }
+
+  reconcileWithServer(entity, serverState, serverTimestamp) {
+    if (!entity || !serverState) return false
+    const playerId = entity.playerId
+
+    this.updateServerSprite(playerId, serverState)
+
+    // Look for any historical state that was close enough to the server state
+    // we only keep history for a limited number of frames, as long as one of those frames was close enough to the server state, we'll assume our predictions are ok
+    const nearestHistoricalState = this.findNearestHistoricalState(playerId, serverState)
+    let correctionNeeded = false
+    if (!nearestHistoricalState) {
+      // No historical states available, compare with current state
+      const dx = serverState.x - entity.x
+      const dy = serverState.y - entity.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      correctionNeeded = distance > this.reconciliationThreshold
+    } else {
+      // Check if the nearest historical state was within threshold
+      const dx = serverState.x - nearestHistoricalState.x
+      const dy = serverState.y - nearestHistoricalState.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      correctionNeeded = distance > this.reconciliationThreshold
+    }
+    
+    // Also check if target changed meaningfully
+    correctionNeeded = correctionNeeded || this.hasTargetChanged(entity, serverState.target)
+    
+    if (correctionNeeded) {
+      // Start by moving entity to wherever the server state says it was at serverTimestamp
+      entity.x = serverState.x
+      entity.y = serverState.y
+      entity.rotation = serverState.rotation
+      // should only setTarget if not local player, as local player is in charge of their own target
+      entity.setTarget(serverState.target)
+
+      // Then simulate passage of time to advance to where we should be now (since serverTimestamp will be older than current time)
+      const currentTimestamp = Date.now()
+      for (let t = serverTimestamp; t < currentTimestamp; t++) {
+        // tick movement in 1ms increments rather than 1 big jump
+        // this gives opportunity to switch path points
+        entity.moveTowardTarget(1)
+      }
+    }
+    
+    return correctionNeeded
+  }
+
+  // Check if target has meaningfully changed
+  hasTargetChanged(entity, newTarget) {
+    const currentTarget = entity.target
+
+    // Both null/undefined
+    if (!currentTarget && !newTarget) return false
+
+    // One is null, other is not
+    if (!currentTarget || !newTarget) return true
+
+    // Compare positions with small threshold
+    const threshold = 5 // pixels
+    return Math.abs(currentTarget.x - newTarget.x) > threshold || Math.abs(currentTarget.y - newTarget.y) > threshold
+  }
+
+  // Find nearest historical state that was within distance threshold from server state
+  findNearestHistoricalState(playerId, serverState) {
+    const history = this.stateHistories.get(playerId)
+    if (!history || history.length === 0) return null
+
+    const { x: serverX, y: serverY } = serverState
+    let closestState = null
+    let minDistance = Infinity
+
+    // Search through history for the state closest to the server position
+    for (const state of history) {
+      const dx = serverX - state.x
+      const dy = serverY - state.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+
+      if (distance < minDistance) {
+        minDistance = distance
+        closestState = state
+      }
+
+      // Early exit if we found a state within threshold - no correction needed
+      if (distance <= this.reconciliationThreshold) {
+        // we can also delete any states older than this one now
+        this.stateHistories.set(playerId, history.filter(s => s.timestamp > state.timestamp))
+        return state
+      }
+    }
+
+    // Return the closest state we found (might still be outside threshold)
+    return closestState
+  }
+
+  // Periodic update for client prediction
+  tick(deltaTime, players) {
+    this.frameCounter++
+
+    const timestamp = Date.now()
+
+    // Update all predicted entities
+    for (const entity of players) {
+      const playerId = entity.playerId
+      entity.moveTowardTarget(deltaTime)
+
+      // save a snapshot of current state for reconciliation
+      const snapshot = {
+        timestamp,
+        x: entity.x,
+        y: entity.y,
+        rotation: entity.rotation,
+        target: entity.target ? { ...entity.target } : null,
+      }
+
+      // Get or create history array for this player
+      if (!this.stateHistories.has(playerId)) {
+        this.stateHistories.set(playerId, [])
+      }
+
+      const history = this.stateHistories.get(playerId)
+      history.push(snapshot)
+
+      // Keep history size bounded
+      if (history.length > this.maxHistorySize) {
+        history.shift()
+      }
+
+      this.updateClientTrailSprites(playerId)
     }
   }
 
   // Initialize debug visualization (call from client.js when app is ready)
-  initDebug(app, world) {
-    this.app = app
+  initDebug(world) {
     this.world = world
-    
+
     // Create debug container if debug is currently enabled
     if (DEBUG.get()) {
       this.createDebugContainer()
@@ -74,481 +183,120 @@ class ClientPrediction {
   // Create debug container and sprites
   createDebugContainer() {
     if (this.debugContainer || !this.world) return
-    
+
     this.debugContainer = new PIXI.Container()
     this.debugContainer.zIndex = 1000 // Render on top
     this.world.addChild(this.debugContainer)
-    
-    console.log('Client Prediction Debug Enabled - Red dots=server positions, Blue trails=client prediction history')
-    
-    // Create debug sprites and trails for existing players
-    for (const [playerId, entity] of this.predictedEntities) {
-      this.createDebugSprite(playerId, { x: entity.x, y: entity.y })
-      this.updateTrailSprites(playerId)
-    }
   }
 
   // Destroy debug container and cleanup sprites
   destroyDebugContainer() {
     if (!this.debugContainer) return
-    
+
     // Clean up all debug sprites
-    for (const [playerId, debugSprite] of this.debugSprites) {
+    for (const [playerId, debugSprite] of this.serverPositionSprites) {
       debugSprite.destroy()
     }
-    this.debugSprites.clear()
-    
+    this.serverPositionSprites.clear()
+
     // Clean up all trail sprites
-    for (const [playerId, trailSprites] of this.trailSprites) {
+    for (const [playerId, trailSprites] of this.clientStateTrailSprites) {
       for (const sprite of trailSprites) {
         sprite.destroy()
       }
     }
-    this.trailSprites.clear()
-    
+    this.clientStateTrailSprites.clear()
+
     // Remove and destroy container
     this.world.removeChild(this.debugContainer)
     this.debugContainer.destroy()
     this.debugContainer = null
-    
+
     console.log('Client Prediction Debug Disabled')
   }
 
-  // Create debug sprite for a player
-  createDebugSprite(playerId, serverState) {
+  updateServerSprite(playerId, serverState) {
     if (!DEBUG.get() || !this.debugContainer || !serverState) return
-    
-    if (this.debugSprites.has(playerId)) return // Already exists
-    
-    // Create new debug sprite (red circle for server position)
-    const debugSprite = new PIXI.Graphics()
-    debugSprite.circle(0, 0, 10)
-    debugSprite.fill(0xff0000) // Red for server position
-    debugSprite.alpha = 0.4
-    debugSprite.x = serverState.x
-    debugSprite.y = serverState.y
-    
-    this.debugSprites.set(playerId, debugSprite)
-    this.debugContainer.addChild(debugSprite)
-  }
 
-  // Update debug sprite position
-  updateDebugSprite(playerId, serverState) {
-    if (!DEBUG.get() || !this.debugContainer || !serverState) return
-    
-    let debugSprite = this.debugSprites.get(playerId)
-    
-    if (!debugSprite) {
-      this.createDebugSprite(playerId, serverState)
-    } else {
-      // Update debug sprite position to server state
+    // Server state
+    let serverPositionSprite = this.serverPositionSprites.get(playerId)
+    if (!serverPositionSprite) {
+      // Create server position sprite (red circle)
+      if (this.serverPositionSprites.has(playerId)) return // Already exists
+      const debugSprite = new PIXI.Graphics()
+      debugSprite.circle(0, 0, 10)
+      debugSprite.fill(0xff0000)
+      debugSprite.alpha = 0.4
       debugSprite.x = serverState.x
       debugSprite.y = serverState.y
+      this.serverPositionSprites.set(playerId, debugSprite)
+      this.debugContainer.addChild(debugSprite)
+    } else {
+      // Update server position sprite
+      serverPositionSprite.x = serverState.x
+      serverPositionSprite.y = serverState.y
     }
   }
 
-  // Remove debug sprite for disconnected player
-  removeDebugSprite(playerId) {
-    const debugSprite = this.debugSprites.get(playerId)
-    if (debugSprite) {
-      if (this.debugContainer) {
-        this.debugContainer.removeChild(debugSprite)
-      }
-      debugSprite.destroy()
-      this.debugSprites.delete(playerId)
-    }
-  }
-
-  // Update trail sprites for a player's state history
-  updateTrailSprites(playerId) {
+  updateClientTrailSprites(playerId) {
     if (!DEBUG.get() || !this.debugContainer) return
-    
+
+    // Client state trail - blue dot for each saved state on the stack
     const history = this.stateHistories.get(playerId)
     if (!history) return
-    
-    // Get or create trail sprites array for this player
-    if (!this.trailSprites.has(playerId)) {
-      this.trailSprites.set(playerId, [])
+    if (!this.clientStateTrailSprites.has(playerId)) {
+      this.clientStateTrailSprites.set(playerId, [])
     }
-    
-    const trailSprites = this.trailSprites.get(playerId)
-    
+    const trailSprites = this.clientStateTrailSprites.get(playerId)
     // Remove excess sprites if history got smaller
     while (trailSprites.length > history.length) {
       const sprite = trailSprites.pop()
       this.debugContainer.removeChild(sprite)
       sprite.destroy()
     }
-    
     // Update existing sprites and create new ones as needed
     for (let i = 0; i < history.length; i++) {
       const state = history[i]
       let sprite = trailSprites[i]
-      
       if (!sprite) {
         // Create new trail sprite (small blue circle)
         sprite = new PIXI.Graphics()
         sprite.circle(0, 0, 4) // Smaller than debug sprite
         sprite.fill(0x0088ff) // Blue for client history
         sprite.alpha = 0.1 + (i / history.length) * 0.1 // Fade from old to recent
-        
+
         trailSprites.push(sprite)
         this.debugContainer.addChild(sprite)
       }
-      
       // Update position and alpha based on age
       sprite.x = state.x
       sprite.y = state.y
-      sprite.alpha = 0.1 + (i / history.length) * 0.1 // Recent states are more opaque
+      sprite.alpha = 0.2 + (i / history.length) * 0.05 // Recent states are more opaque
     }
   }
 
-  // Remove trail sprites for disconnected player
-  removeTrailSprites(playerId) {
-    const trailSprites = this.trailSprites.get(playerId)
-    if (trailSprites) {
-      for (const sprite of trailSprites) {
+  removeDebugSprites(playerId) {
+    const serverPositionSprite = this.serverPositionSprites.get(playerId)
+    if (serverPositionSprite) {
+      if (this.debugContainer) {
+        this.debugContainer.removeChild(serverPositionSprite)
+      }
+      serverPositionSprite.destroy()
+      this.serverPositionSprites.delete(playerId)
+    }
+
+    const clientStateTrailSprites = this.clientStateTrailSprites.get(playerId)
+    if (clientStateTrailSprites) {
+      for (const sprite of clientStateTrailSprites) {
         if (this.debugContainer) {
           this.debugContainer.removeChild(sprite)
         }
         sprite.destroy()
       }
-      this.trailSprites.delete(playerId)
+      this.clientStateTrailSprites.delete(playerId)
     }
   }
 
-  // Add or update a player for prediction (treats all players uniformly)
-  setPlayer(player, isLocalPlayer = false) {
-    const playerId = player.playerId || player.id
-    
-    // Create a client-side prediction entity using the actual LivingEntityState class
-    const predictedEntity = new LivingEntityState({
-      id: playerId + '_prediction',
-      label: (player.label || player.username) + '_prediction',
-      pather: this.pather,
-      x: player.x,
-      y: player.y,
-      color: player.color,
-      targetItem: null, // Don't predict item interactions
-      inventory: {}, // Empty object for inventory (not needed for movement prediction)
-    })
-
-    // Copy current movement state
-    predictedEntity.target = player.target ? { ...player.target } : null
-    predictedEntity.tempTarget = player.tempTarget ? { ...player.tempTarget } : null
-    predictedEntity.path = player.path ? [...player.path] : []
-    predictedEntity.rotation = player.rotation
-    predictedEntity.maxSpeed = player.maxSpeed
-
-    this.predictedEntities.set(playerId, predictedEntity)
-    
-    // Create debug sprite and trail if debug is enabled
-    this.createDebugSprite(playerId, { x: player.x, y: player.y })
-    this.updateTrailSprites(playerId)
-    
-    // Track local player ID for input handling
-    if (isLocalPlayer) {
-      this.localPlayerId = playerId
-    }
-  }
-
-  // Remove a player from prediction
-  removePlayer(playerId) {
-    this.predictedEntities.delete(playerId)
-    this.stateHistories.delete(playerId) // Clean up state history
-    this.removeDebugSprite(playerId) // Clean up debug sprite
-    this.removeTrailSprites(playerId) // Clean up trail sprites
-    if (this.localPlayerId === playerId) {
-      this.localPlayerId = null
-    }
-  }
-
-  // Add an input to be processed (for local player only)
-  addInput(target) {
-    if (!this.localPlayerId) return
-    
-    const localEntity = this.predictedEntities.get(this.localPlayerId)
-    if (!localEntity) return
-
-    this.inputSequence++
-
-    const input = {
-      target: { ...target },
-      inputSequence: this.inputSequence,
-      timestamp: Date.now(),
-    }
-
-    // Store input in pending list
-    this.pendingInputs.push(input)
-
-    // Apply input to local player's predicted entity
-    localEntity.setTarget(input.target)
-
-    // Save state snapshot after applying input
-    this.saveStateSnapshot()
-
-    // Send to server (throttled)
-    this.throttledSendInput({
-      target,
-      inputSequence: this.inputSequence,
-    })
-  }
-
-  // Save current state to history (for all players)
-  saveStateSnapshot() {
-    const timestamp = Date.now()
-    
-    for (const [playerId, entity] of this.predictedEntities) {
-      const snapshot = {
-        timestamp,
-        inputSequence: playerId === this.localPlayerId ? this.inputSequence : 0,
-        x: entity.x,
-        y: entity.y,
-        rotation: entity.rotation,
-        target: entity.target ? { ...entity.target } : null,
-        tempTarget: entity.tempTarget ? { ...entity.tempTarget } : null,
-        path: [...entity.path],
-      }
-
-      // Get or create history array for this player
-      if (!this.stateHistories.has(playerId)) {
-        this.stateHistories.set(playerId, [])
-      }
-      
-      const history = this.stateHistories.get(playerId)
-      history.push(snapshot)
-
-      // Keep history size bounded
-      if (history.length > this.maxHistorySize) {
-        history.shift()
-      }
-    }
-  }
-
-  // Unified reconciliation method for all players
-  reconcilePlayerWithServer(playerId, serverState, serverTimestamp) {
-    const predictedEntity = this.predictedEntities.get(playerId)
-    if (!predictedEntity || !serverState) return false
-
-    // Update debug sprite with server state
-    this.updateDebugSprite(playerId, serverState)
-
-    // Clean up old state history based on server timestamp
-    if (serverTimestamp) {
-      this.lastServerTimestamp = serverTimestamp
-      this.cleanupOldStates(serverTimestamp)
-    }
-
-    const { x, y, rotation, target, tempTarget, path, lastProcessedInputSequence } = serverState
-    const isLocalPlayer = playerId === this.localPlayerId
-    const threshold = isLocalPlayer ? this.reconciliationThresholdLocal : this.reconciliationThresholdRemote
-
-    // Handle input sequence acknowledgment for local player only
-    if (isLocalPlayer && lastProcessedInputSequence !== undefined) {
-      this.pendingInputs = this.pendingInputs.filter(input => input.inputSequence > lastProcessedInputSequence)
-    }
-
-    // Find reference state for comparison
-    let referenceState = predictedEntity // Default to current state
-    if (serverTimestamp) {
-      const historicalState = this.findStateAtTimestamp(playerId, serverTimestamp)
-      if (historicalState) {
-        referenceState = historicalState
-      }
-    }
-
-    // Calculate divergence
-    const dx = x - referenceState.x
-    const dy = y - referenceState.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
-
-    // Apply corrections if divergence is too large
-    if (distance > threshold) {
-      // Apply server position correction
-      predictedEntity.setPosition(x, y)
-      predictedEntity.rotation = rotation
-      
-      // Apply server movement state for both local and remote players
-      predictedEntity.target = target ? { ...target } : null
-      predictedEntity.tempTarget = tempTarget ? { ...tempTarget } : null
-      predictedEntity.path = path ? [...path] : []
-      
-      if (isLocalPlayer) {
-        // Local player: replay any remaining pending inputs on top of server state
-        for (const input of this.pendingInputs) {
-          predictedEntity.setTarget(input.target)
-        }
-      }
-    } else {
-      // No position correction needed - update movement state if it has meaningfully changed
-      // This allows continued client prediction between server updates for both local and remote players
-      const targetChanged = this.hasTargetChanged(predictedEntity, target)
-      const pathChanged = this.hasPathChanged(predictedEntity, path)
-      
-      if (targetChanged || pathChanged) {
-        predictedEntity.target = target ? { ...target } : null
-        predictedEntity.tempTarget = tempTarget ? { ...tempTarget } : null
-        predictedEntity.path = path ? [...path] : []
-        
-        if (isLocalPlayer) {
-          // Local player: replay any remaining pending inputs on top of updated server state
-          for (const input of this.pendingInputs) {
-            predictedEntity.setTarget(input.target)
-          }
-        }
-      }
-    }
-
-    return distance > threshold // Return whether correction was applied
-  }
-
-  // Check if target has meaningfully changed
-  hasTargetChanged(entity, newTarget) {
-    const currentTarget = entity.target
-    
-    // Both null/undefined
-    if (!currentTarget && !newTarget) return false
-    
-    // One is null, other is not
-    if (!currentTarget || !newTarget) return true
-    
-    // Compare positions with small threshold for floating point differences
-    const threshold = 0.1
-    return Math.abs(currentTarget.x - newTarget.x) > threshold || 
-           Math.abs(currentTarget.y - newTarget.y) > threshold
-  }
-
-  // Check if path has meaningfully changed
-  hasPathChanged(entity, newPath) {
-    const currentPath = entity.path || []
-    const serverPath = newPath || []
-    
-    // Different lengths
-    if (currentPath.length !== serverPath.length) return true
-    
-    // Compare each path point
-    const threshold = 0.1
-    for (let i = 0; i < currentPath.length; i++) {
-      const current = currentPath[i]
-      const server = serverPath[i]
-      
-      if (Math.abs(current.x - server.x) > threshold || 
-          Math.abs(current.y - server.y) > threshold) {
-        return true
-      }
-    }
-    
-    return false
-  }
-
-  // Find state snapshot closest to the given timestamp for a specific player
-  findStateAtTimestamp(playerId, targetTimestamp) {
-    const history = this.stateHistories.get(playerId)
-    if (!history || history.length === 0) return null
-
-    let closest = history[0]
-    let minDiff = Math.abs(closest.timestamp - targetTimestamp)
-
-    for (const state of history) {
-      const diff = Math.abs(state.timestamp - targetTimestamp)
-      if (diff < minDiff) {
-        minDiff = diff
-        closest = state
-      }
-    }
-
-    return closest
-  }
-
-  // Get the current predicted position (for local player - backward compatibility)
-  getPredictedState() {
-    if (!this.localPlayerId) return null
-    
-    const localEntity = this.predictedEntities.get(this.localPlayerId)
-    if (!localEntity) return null
-
-    return {
-      x: localEntity.x,
-      y: localEntity.y,
-      rotation: localEntity.rotation,
-      target: localEntity.target,
-      tempTarget: localEntity.tempTarget,
-      path: localEntity.path,
-    }
-  }
-
-  // Get predicted state for any player
-  getPredictedStateForPlayer(playerId) {
-    const entity = this.predictedEntities.get(playerId)
-    if (!entity) return null
-
-    return {
-      x: entity.x,
-      y: entity.y,
-      rotation: entity.rotation,
-      target: entity.target,
-      tempTarget: entity.tempTarget,
-      path: entity.path,
-    }
-  }
-
-  // Clean up states older than the last server update for all players
-  cleanupOldStates(serverTimestamp) {
-    if (!serverTimestamp) return
-
-    // Remove all states older than the server timestamp for all players
-    // Keep a small buffer (100ms) to handle slight timing differences
-    const bufferTime = 100
-    const cutoffTime = serverTimestamp - bufferTime
-    
-    let totalCleaned = 0
-    
-    for (const [playerId, history] of this.stateHistories) {
-      const filteredHistory = history.filter(state => state.timestamp >= cutoffTime)
-      
-      if (filteredHistory.length !== history.length) {
-        totalCleaned += history.length - filteredHistory.length
-        this.stateHistories.set(playerId, filteredHistory)
-      }
-    }
-  }
-
-  // Clean up very old pending inputs (fallback safety)
-  cleanupPendingInputs() {
-    const now = Date.now()
-    const maxAge = 5000 // 5 seconds - very conservative
-    
-    // Clean up very old pending inputs (shouldn't happen normally)
-    this.pendingInputs = this.pendingInputs.filter(input => now - input.timestamp < maxAge)
-  }
-
-  // Periodic update for client prediction
-  tick(deltaTime) {
-    this.frameCounter++
-    
-    // Update all predicted entities (local and remote players)
-    for (const [playerId, entity] of this.predictedEntities) {
-      // Continue movement if there's a target - use actual LivingEntityState method
-      entity.moveTowardTarget(deltaTime)
-    }
-
-    // Save snapshots for all players every frame (needed for reconciliation)
-    this.saveStateSnapshot()
-
-    // Update debug trail sprites every few frames
-    if (DEBUG.get() && this.frameCounter % 5 === 0) {
-      for (const playerId of this.predictedEntities.keys()) {
-        this.updateTrailSprites(playerId)
-      }
-    }
-
-    // Cleanup pending inputs every 10 seconds (600 frames at 60fps)
-    if (this.frameCounter % 600 === 0) {
-      this.cleanupPendingInputs()
-    }
-  }
-
-  // Cleanup resources and subscriptions
   destroy() {
     if (this.unsubscribeDebug) {
       this.unsubscribeDebug()

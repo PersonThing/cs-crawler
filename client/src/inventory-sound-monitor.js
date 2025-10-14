@@ -1,5 +1,6 @@
 import { v8_0_0 } from 'pixi.js'
 import soundManager from './sound-manager.js'
+import { Sounds } from '#shared/config/sounds.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
 
 class InventorySoundMonitor {
@@ -73,9 +74,9 @@ class InventorySoundMonitor {
 
     // Play appropriate sounds (don't play both at once)
     if (itemWasEquipped) {
-      soundManager.play('item-equip', { startTime: 0.15, endTime: 0.3, volume: 0.5 })
+      soundManager.play(Sounds.item.ItemEquip, { startTime: 0.15, endTime: 0.3, volume: 0.5 })
     } else if (itemWasPickedUp) {
-      soundManager.play('item-pickup', { startTime: 0.15, endTime: 0.3, volume: 0.5 })
+      soundManager.play(Sounds.item.ItemPickup, { startTime: 0.15, endTime: 0.3, volume: 0.5 })
     }
 
     // Update tracking variables

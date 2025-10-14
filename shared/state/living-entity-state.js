@@ -17,7 +17,6 @@ export default class LivingEntityState {
     this.isAttacking = false
     this.attackTarget = null
 
-    this.equipped = {}
     this.stats = {}
     this.path = []
     
@@ -34,7 +33,6 @@ export default class LivingEntityState {
       y: this.y,
       isAttacking: this.isAttacking,
       attackTarget: this.attackTarget,
-      equipped: this.equipped,
       target: this.target,
       rotation: this.rotation,
       color: this.color,
@@ -154,12 +152,6 @@ export default class LivingEntityState {
 
   setTargetItem(groundItem) {
     this.targetItem = groundItem
-  }
-
-  stopMoving() {
-    this.target = null
-    this.tempTarget = null
-    this.path = []
   }
 
   attack(targetPoint) {

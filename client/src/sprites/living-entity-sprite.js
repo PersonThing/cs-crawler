@@ -62,17 +62,16 @@ class LivingEntitySprite extends Container {
   updateFromState() {
     if (this.state == null) return
     if (this == null) return
+    try {
 
-    // Update position
-    this.x = this.state.x
-    this.y = this.state.y
-    this.target = this.state.target
-    this.tempTarget = this.state.tempTarget
-    this.spriteContainer.rotation = this.state.rotation
-    this.labelSprite.text = this.state.label
-
-    // Update equipped items
-    this.updateEquippedItems()
+      this.x = this.state.x
+      this.y = this.state.y
+      this.spriteContainer.rotation = this.state.rotation
+      this.labelSprite.text = `${this.state.label} (${this.state.path?.length})`
+      this.updateEquippedItems()
+    } catch (e) {
+      console.warn('Error updating LivingEntitySprite from state:', e)
+    }
   }
 
   updateEquippedItems() {
@@ -122,29 +121,6 @@ class LivingEntitySprite extends Container {
       this.spriteContainer.scale.set(originalScale)
     }, 100)
   }
-
-  // drawPathLine() {
-  //   this.clearPathLine()
-  //   if (!this.state.path || this.state.path.length === 0) return
-
-  //   this.pathLine = new Graphics()
-
-  //   this.pathLine.moveTo(this.state.x, this.state.y)
-  //   this.state.path.forEach(point => {
-  //     this.pathLine.lineTo(point.x, point.y)
-  //   })
-  //   this.pathLine.stroke({ color: this.color, width: 2, alpha: 0.5 })
-
-  //   this.world.addChild(this.pathLine)
-  // }
-
-  // clearPathLine() {
-  //   if (this.pathLine) {
-  //     this.world.removeChild(this.pathLine)
-  //     this.pathLine.destroy()
-  //     this.pathLine = null
-  //   }
-  // }
 }
 
 export default LivingEntitySprite

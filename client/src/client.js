@@ -28,11 +28,10 @@ const createPlayer = (serializedPlayerState, color, isLocalPlayer) => {
   const player = new PlayerSprite(playerState, Textures.player.base, world, pather, color)
   player.isLocalPlayer = isLocalPlayer
   playerSpriteStore.add(player)
-  clientPrediction.setPlayer(playerState, isLocalPlayer)
   return player
 }
 
-const init = async (levelConfig, localPlayerState) => {
+const init = async (levelConfig, localPlayerState, groundItems) => {
   // remove existing data if already initialized (reconnect)
   if (initialized) {
     console.log('re-initializing client, clearing existing data')
@@ -41,12 +40,7 @@ const init = async (levelConfig, localPlayerState) => {
     playerSpriteStore.set([])
   }
 
-  // Initialize sound manager
-  await soundManager.preloadSounds()
-
   pather = new Pather(levelConfig)
-
-  clientPrediction.setPather(pather)
 
   // create pixi.js app
   app = new Application()
@@ -59,9 +53,10 @@ const init = async (levelConfig, localPlayerState) => {
     socket.emit('setTargetItem', groundItem)
   })
   app.stage.addChild(world)
+  world.setGroundItems(groundItems)
 
   // Initialize debug visualization for client prediction
-  clientPrediction.initDebug(app, world)
+  clientPrediction.initDebug(world)
 
   // create local player
   createPlayer(localPlayerState, LOCAL_PLAYER_COLOR, true)
@@ -73,29 +68,22 @@ const init = async (levelConfig, localPlayerState) => {
   // Client-side game loop - server has authority, but client predicts and corrects
   // app.ticker.maxFPS = 120
   app.ticker.add(time => {
-    // apply last server state
-    if (lastServerState != null) {
-      applyServerState(lastServerState)
-      lastServerState = null
-    }
-
     world.tick(time)
     hud.tick(time)
-    
-    // update players from client prediction (which by now is reconciled with the latest server state)
-    const players = playerSpriteStore.get()
-    for (const player of players) {
-      const playerId = player.state.playerId
-      const predictedState = clientPrediction.getPredictedStateForPlayer(playerId)
-      if (predictedState) {
-        // Update player's state with predicted position
-        player.state.x = predictedState.x
-        player.state.y = predictedState.y
-        player.state.rotation = predictedState.rotation
 
-        // Update visual representation
-        player.updateFromState()
-      }
+    const playerSprites = playerSpriteStore.get()
+    const players = playerSprites.map(p => p.state)
+
+    // apply server state to player states
+    // this will also reconcile any client prediction errors
+    applyLastServerState(players)
+
+    // run client prediction for another frame
+    clientPrediction.tick(time.deltaMS, players)
+
+    // update rendered sprites from state
+    for (const sprite of playerSprites) {
+      sprite.updateFromState()
     }
   })
 
@@ -108,9 +96,9 @@ socket.on('requestLevel', () => {
 })
 
 // server will send the level and local player data when it's ready to initialize the client
-socket.on('init', async ({ level, player }) => {
-  await preloadTextures()
-  init(level, player)
+socket.on('init', async ({ level, player, groundItems }) => {
+  await Promise.all([soundManager.preloadSounds(), preloadTextures()])
+  init(level, player, groundItems)
 })
 
 socket.on('serverState', state => {
@@ -121,48 +109,44 @@ socket.on('serverState', state => {
 })
 
 let lastAppliedGroundItemSequence = null
-function applyServerState(serverState) {
-  // update ground items if the sequence changed and server sent them (server only sends every few ticks or when changed)
-  if (serverState.groundItemsSequence !== lastAppliedGroundItemSequence && serverState.groundItems != null) {
-    world.setGroundItems(serverState.groundItems)
-    lastAppliedGroundItemSequence = serverState.groundItemsSequence
-    console.log('applying ground items update from server, sequence:', lastAppliedGroundItemSequence, serverState.groundItems.length)
+
+function applyLastServerState(players) {
+  if (lastServerState == null) return;
+
+  // update groundItems if the sequence changed and payload was sent
+  if (lastServerState.groundItemsSequence !== lastAppliedGroundItemSequence && lastServerState.groundItems != null) {
+    world.setGroundItems(lastServerState.groundItems)
+    lastAppliedGroundItemSequence = lastServerState.groundItemsSequence
+    console.log('applying ground items update from server, sequence:', lastAppliedGroundItemSequence, lastServerState.groundItems.length)
   }
 
-  // update players
-  let players = playerSpriteStore.get()
-
   // add any new players that weren't in store
-  Object.entries(serverState.players).forEach(([playerId, playerState]) => {
-    if (!players.find(p => p.state.playerId === playerId)) {
+  for (const [playerId, playerState] of Object.entries(lastServerState.players)) {
+    if (!players.find(p => p.playerId === playerId)) {
       console.log('creating new player from server', players.length, playerState)
       createPlayer(playerState, OTHER_PLAYER_COLOR, false)
     }
-  })
+  }
 
-  players.forEach(p => {
-    const playerServerState = serverState.players[p.state.playerId]
-    if (playerServerState == null) {
+  // update or remove players as needed
+  for (const player of players) {
+    const pid = player.playerId
+    const serverPlayerState = lastServerState.players[pid]
+    if (serverPlayerState == null) {
       // remove disconnected player
-      console.log('removing disconnected player', p.state.playerId, p.state.username)
-      clientPrediction.removePlayer(p.state.playerId)
-      playerSpriteStore.remove(p.state.playerId)
+      console.log('removing disconnected player', pid, player.username)
+      clientPrediction.removePlayer(pid)
+      playerSpriteStore.remove(pid)
     } else {
-      // Handle client prediction update (unified method for all players)
-      if (serverState.serverTimestamp) {
-        // Unified reconciliation - automatically handles local vs remote differences
-        clientPrediction.reconcilePlayerWithServer(p.state.playerId, playerServerState, serverState.serverTimestamp)
-      }
+      // set non-position fields that server might have changed directly from server state
+      player.label = player.username = serverPlayerState.username
+      player.inventory.deserialize(serverPlayerState.inventory)
 
-      // Update non-position state from server (inventory, abilities, etc.) - same for all players
-      // Position is handled by updatePlayersFromPrediction() every frame
-      const currentPos = { x: p.state.x, y: p.state.y, rotation: p.state.rotation }
-      p.state.deserialize(playerServerState)
-      p.state.x = currentPos.x
-      p.state.y = currentPos.y
-      p.state.rotation = currentPos.rotation
+      // reconcile position with server state
+      clientPrediction.reconcileWithServer(player, serverPlayerState, lastServerState.serverTimestamp)
     }
-  }) // force trigger subscribers, since changes to object properties in array won't automatically do that
-  // TODO: how can we do that better?
-  playerSpriteStore.triggerSubscribers()
+  }
+
+  playerSpriteStore.triggerSubscribers() // force trigger player sprite store subscribers when server state is applied (for HUD updates)
+  lastServerState = null // clear lastServerState so we don't keep applying same state over and over
 }

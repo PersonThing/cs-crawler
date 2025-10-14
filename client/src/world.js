@@ -6,6 +6,7 @@ import PlayerSprite from './sprites/player-sprite.js'
 import Pather from '#shared/pather.js'
 import GroundItemSprite from './sprites/ground-item-sprite.js'
 import soundManager from './sound-manager.js'
+import { Sounds } from '#shared/config/sounds.js'
 
 const PARALLAX_SCALE = 1.1
 
@@ -66,7 +67,7 @@ class World extends Container {
     for (const groundItem of groundItems) {
       if (!this.groundItemsContainer.children.find(sprite => sprite.id === groundItem.item.id)) {
         this.renderItem(groundItem)
-        soundManager.play('item-drop', { startTime: 0.1, endTime: 0.3, volume: 0.5 })
+        soundManager.play(Sounds.item.ItemDrop, { startTime: 0.1, endTime: 0.3, volume: 0.5 })
       }
     }
   }

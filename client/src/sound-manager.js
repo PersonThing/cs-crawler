@@ -1,31 +1,46 @@
+import { Sounds } from '#shared/config/sounds.js'
+
 class SoundManager {
   constructor() {
-    this.sounds = {}
+    this.sounds = {} // Maps file paths to loaded audio elements
     this.volume = 0.5
     this.enabled = true
   }
 
-  async loadSound(name, path) {
+  // Helper function to flatten nested sound tree and collect all paths
+  _flattenSounds(obj, result = []) {
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === 'string') {
+        result.push(value)
+      } else if (typeof value === 'object') {
+        this._flattenSounds(value, result)
+      }
+    }
+    return result
+  }
+
+  async loadSound(path) {
     try {
       const audio = new Audio(path)
       audio.preload = 'auto'
       audio.volume = this.volume
-      this.sounds[name] = audio
+      this.sounds[path] = audio
       return audio
     } catch (error) {
-      console.warn(`Failed to load sound: ${name}`, error)
+      console.warn(`Failed to load sound: ${path}`, error)
       return null
     }
   }
 
-  play(name, options = {}) {
+  play(soundPath, options = {}) {
     const { volume = this.volume, startTime = 0, endTime = null, duration = null } = options
-    if (!this.enabled || !this.sounds[name]) {
+    if (!this.enabled || !this.sounds[soundPath]) {
+      console.warn(`Sound not found or not loaded: ${soundPath}`)
       return
     }
 
     try {
-      const audio = this.sounds[name].cloneNode()
+      const audio = this.sounds[soundPath].cloneNode()
       audio.volume = volume
       
       // Set start time
@@ -56,7 +71,7 @@ class SoundManager {
       })
       
       audio.play().catch(error => {
-        console.warn(`Failed to play sound: ${name}`, error)
+        console.warn(`Failed to play sound: ${soundPath}`, error)
         if (stopTimer) {
           clearTimeout(stopTimer)
         }
@@ -64,7 +79,7 @@ class SoundManager {
       
       return audio // Return audio element in case caller needs to control it
     } catch (error) {
-      console.warn(`Failed to play sound: ${name}`, error)
+      console.warn(`Failed to play sound: ${soundPath}`, error)
     }
   }
 
@@ -80,12 +95,10 @@ class SoundManager {
   }
 
   async preloadSounds() {
-    await Promise.all([
-      this.loadSound('item-pickup', 'assets/sounds/item-pickup.m4a'),
-      this.loadSound('item-equip', 'assets/sounds/item-equip.m4a'),
-      this.loadSound('item-drop', 'assets/sounds/item-drop.m4a'),
-      // Add more sounds here as needed
-    ])
+    const soundPaths = this._flattenSounds(Sounds)
+    const soundPromises = soundPaths.map(path => this.loadSound(path))
+    await Promise.all(soundPromises)
+    console.log(`Preloaded ${soundPaths.length} sounds`)
   }
 }
 

@@ -31,9 +31,6 @@ export default class PlayerState extends LivingEntityState {
       abilityId: null,
       modifiers: []
     }))
-    
-    // Client prediction fields
-    this.lastProcessedInputSequence = 0
   }
 
   serialize() {
@@ -43,7 +40,6 @@ export default class PlayerState extends LivingEntityState {
       socketId: this.socketId,
       username: this.username,
       actionBarConfig: this.actionBarConfig,
-      lastProcessedInputSequence: this.lastProcessedInputSequence,
     }
   }
 
@@ -51,10 +47,13 @@ export default class PlayerState extends LivingEntityState {
     super.deserialize(data)
     // Ensure actionBarConfig is properly initialized if missing from saved data
     if (!this.actionBarConfig) {
-      this.actionBarConfig = Array(6).fill(null).map(() => ({
-        abilityId: null,
-        modifiers: []
-      }))
+      this.setActionBarConfig(data.actionBarConfig)
+    }
+  }
+
+  setActionBarConfig(config) {
+    if (Array.isArray(config) && config.length === 6) {
+      this.actionBarConfig = config
     }
   }
 
