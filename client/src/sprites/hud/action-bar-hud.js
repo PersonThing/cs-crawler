@@ -313,7 +313,18 @@ class ActionBarHud extends Container {
     if (player?.state?.actionBarConfig) {
       // Load configuration from player state
       this.slotConfigs = [...player.state.actionBarConfig]
-      this.renderSlots() // Re-render slots with new config
+      // If slots already exist, just update their configs to preserve unlocked state visuals
+      if (this.slots.length === SLOT_COUNT) {
+        this.slotConfigs.forEach((cfg, i) => {
+          this.slots[i].updateConfig(cfg)
+        })
+      } else {
+        // Initial load
+        this.renderSlots()
+      }
+      // Re-apply unlocked state so icons don't appear locked after config-only change
+      const currentStats = player.state.stats || {}
+      this.updateUnlockedAbilities(currentStats)
     } else if (player?.state) {
       // Initialize default config if player has no saved config
       this.slotConfigs = Array(SLOT_COUNT).fill(null).map(() => ({
