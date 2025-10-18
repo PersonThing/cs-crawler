@@ -88,7 +88,7 @@ const Abilities = {
     id: 'Heal',
     name: 'Heal',
     description: 'Restore health to yourself or an ally.',
-    icon: Textures.inventory.item.gems.emerald, // Using emerald gem as heal icon placeholder
+    icon: Textures.particle.heal, // Using emerald gem as heal icon placeholder
     cooldown: 5000,
     onUse: (source, target, modifiers) => {
       // Heal the source player for 50 HP

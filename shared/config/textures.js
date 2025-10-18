@@ -225,6 +225,7 @@ export const Textures = {
     "cold": "/assets/textures/particle/cold.png",
     "fire1": "/assets/textures/particle/fire1.png",
     "fire2": "/assets/textures/particle/fire2.png",
+    "heal": "/assets/textures/particle/heal.png",
     "lightning": "/assets/textures/particle/lightning.png"
   },
   "player": {
