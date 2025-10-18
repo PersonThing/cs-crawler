@@ -86,7 +86,7 @@ export default class LivingEntityState {
 
   moveTowardTarget(deltaMS) {
     if (this.tempTarget == null && this.path.length) {
-      this.tempTarget = this.path.shift()
+      this.tempTarget = this.path.shift() || null
     }
 
     if (this.tempTarget == null) {
@@ -98,20 +98,29 @@ export default class LivingEntityState {
     // Update position based on target
     const dx = this.tempTarget.x - this.x
     const dy = this.tempTarget.y - this.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    if (distance > 1) {
-      // compute move distance based on max speed (in pixels per second) and delta time
-      const moveDistance = Math.min(distance, this.maxSpeed * (deltaMS / 1000))
+    const distanceToTarget = Math.sqrt(dx * dx + dy * dy)
+    const distanceToMoveThisFrame = this.maxSpeed * (deltaMS / 1000)
+
+    if (distanceToMoveThisFrame < distanceToTarget) {
       const angle = Math.atan2(dy, dx)
+      // compute move distance based on max speed (in pixels per second) and delta time
       this.setPosition(
-        this.x + Math.cos(angle) * moveDistance,
-        this.y + Math.sin(angle) * moveDistance
+        this.x + Math.cos(angle) * distanceToMoveThisFrame,
+        this.y + Math.sin(angle) * distanceToMoveThisFrame
       )
     } else {
-      // reached the temp target, target next point in path
-      // this.setPosition(this.tempTarget.x, this.tempTarget.y)
-      this.tempTarget = this.path.shift()
-      this.moveTowardTarget(deltaMS) // move toward the new target - otherwise it pauses at every point
+      // we've reached the target, snap to it
+      this.setPosition(this.tempTarget.x, this.tempTarget.y)
+
+      // use the remaining distance available to move toward the next point in the path, if there is one
+      this.tempTarget = this.path.shift() || null
+      if (this.tempTarget != null) {
+        // what % of the distance we should've gone this frame is left after reaching the last tempTarget?
+        const percentMovementLeft = 1 - (distanceToTarget / distanceToMoveThisFrame)
+
+        // move the remainder of the available distance toward the next target
+        this.moveTowardTarget(deltaMS * percentMovementLeft)
+      }
     }
   }
 
@@ -145,15 +154,15 @@ export default class LivingEntityState {
     ) {
       return
     }
-
+    
     // target is the same as current position
     if (target.x == this.x && target.y == this.y) {
       return
     }
-
+    
     this.target = target
     this.path = this.pather.findPath({ x: this.x, y: this.y }, target)
-    this.tempTarget = this.path.shift()
+    this.tempTarget = this.path.shift() || null
   }
 
   setTargetItem(groundItem) {
@@ -188,7 +197,7 @@ export default class LivingEntityState {
     this.computeStats()
     
     // Check if the ability is granted by equipment (ability-specific stats)
-    return this.stats[abilityId] && this.stats[abilityId] > 0
+    return this.stats[abilityId] != null && this.stats[abilityId] > 0
   }
 }
 

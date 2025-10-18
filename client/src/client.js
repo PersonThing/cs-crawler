@@ -4,7 +4,7 @@ import { initDevtools } from '@pixi/devtools'
 import { level1 } from '#shared/wfc-level-definitions.js'
 import { Textures } from '#shared/config/textures.js'
 import clientPrediction from './client-prediction.js'
-import generateLevel from '#shared/level-builder.js'
+import generateLevel from '#shared/level-builder-wfc.js'
 import Hud from './sprites/hud/hud.js'
 import Pather from '#shared/pather.js'
 import PlayerSprite from './sprites/player-sprite.js'
@@ -72,7 +72,10 @@ const init = async (levelConfig, localPlayerState, groundItems) => {
     hud.tick(time)
 
     const playerSprites = playerSpriteStore.get()
-    const players = playerSprites.map(p => p.state)
+    const players = playerSprites.map(p => {
+      p.state.isLocalPlayer = p.isLocalPlayer
+      return p.state
+    })
 
     // apply server state to player states
     // this will also reconcile any client prediction errors
@@ -112,7 +115,7 @@ socket.on('serverState', state => {
 let lastAppliedGroundItemSequence = null
 
 function applyLastServerState(players) {
-  if (lastServerState == null) return;
+  if (lastServerState == null) return
 
   // update groundItems if the sequence changed and payload was sent
   if (lastServerState.groundItemsSequence !== lastAppliedGroundItemSequence && lastServerState.groundItems != null) {

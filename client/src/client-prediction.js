@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js'
-import { DEBUG } from '#shared/config/constants.js'
+import { DEBUG, SERVER_CORRECTION_ENABLED } from '#shared/config/constants.js'
 
 class ClientPrediction {
   constructor() {
@@ -45,6 +45,14 @@ class ClientPrediction {
 
     this.updateServerSprite(playerId, serverState)
 
+    if (!SERVER_CORRECTION_ENABLED) {
+      if (!entity.isLocalPlayer) {
+        // at minimum, need to set target from server state for non-local players
+        entity.setTarget(serverState.target)
+      }
+      return false
+    }
+
     // Look for any historical state that was close enough to the server state
     // we only keep history for a limited number of frames, as long as one of those frames was close enough to the server state, we'll assume our predictions are ok
     const nearestHistoricalState = this.findNearestHistoricalState(playerId, serverState)
@@ -64,10 +72,9 @@ class ClientPrediction {
     }
     
     // Also check if target changed meaningfully
-    correctionNeeded = correctionNeeded || this.hasTargetChanged(entity, serverState.target)
+    correctionNeeded = correctionNeeded || (!entity.isLocalPlayer && this.hasTargetChanged(entity, serverState.target))
     
     if (correctionNeeded) {
-      console.log('applying correction', playerId, 'distance:', Math.sqrt((serverState.x - entity.x) ** 2 + (serverState.y - entity.y) ** 2))
       // Start by moving entity to wherever the server state says it was at serverTimestamp
       entity.x = serverState.x
       entity.y = serverState.y
@@ -77,11 +84,7 @@ class ClientPrediction {
 
       // Then simulate passage of time to advance to where we should be now (since serverTimestamp will be older than current time)
       const currentTimestamp = Date.now()
-      for (let t = serverTimestamp; t < currentTimestamp; t++) {
-        // tick movement in 1ms increments rather than 1 big jump
-        // this gives opportunity to switch path points
-        entity.moveTowardTarget(1)
-      }
+      entity.moveTowardTarget(currentTimestamp - serverTimestamp)
     }
     
     return correctionNeeded

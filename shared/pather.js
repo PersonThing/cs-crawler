@@ -63,7 +63,6 @@ class Pather {
   }
 
   findPath(from, to) {
-    console.log("finding path from", from, "to", to)
     const [fromX, fromY] = this.toGridCoordinates(from.x, from.y)
     const [toX, toY] = this.toGridCoordinates(to.x, to.y)
 
