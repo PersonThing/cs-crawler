@@ -67,7 +67,7 @@ const Abilities = {
     id: 'Lightning',
     name: 'Lightning Bolt',
     description: 'Strike enemies at range with an instant lightning bolt.',
-    icon: Textures.inventory.item.gems.topaz, // Using topaz gem as lightning icon placeholder
+    icon: Textures.particle.lightning, // Using topaz gem as lightning icon placeholder
     cooldown: 500,
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
