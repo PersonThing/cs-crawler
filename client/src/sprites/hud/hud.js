@@ -21,7 +21,7 @@ class Hud extends Container {
 
     this.character = new CharacterHud()
     this.addChild(this.character)
-    this.character.visible = DEBUG.get()
+    this.character.visible = false //DEBUG.get()
 
     this.players = new PlayersHud()
     this.addChild(this.players)
@@ -36,7 +36,7 @@ class Hud extends Container {
 
     this.inventory = new InventoryHud(app)
     this.addChild(this.inventory)
-    this.inventory.visible = DEBUG.get()
+    this.inventory.visible = false //DEBUG.get()
 
     this.actionBar = new ActionBarHud(app, this)
     this.addChild(this.actionBar)

@@ -3,7 +3,7 @@ import createPersistedStore from '../stores/create-persisted-store.js'
 const DEBUG = createPersistedStore('debug', true, value => typeof value === 'boolean')
 
 const CLIENT_FPS = 120
-const SERVER_FPS = 20
+const SERVER_FPS = 30
 const SERVER_CORRECTION_ENABLED = true
 
 const ART_SCALE = 1.5

@@ -6,7 +6,7 @@ import db from './db.js'
 import express from 'express'
 import GroundItem from '#shared/config/ground-item.js'
 import http from 'http'
-import Pather from '#shared/pather.js'
+import levelManager from './level-manager.js'
 import PlayerState from '#shared/state/player-state.js'
 
 const SERVER_TICK_RATE = 1000 / SERVER_FPS
@@ -30,10 +30,6 @@ const players = {} // player cache - also stored in db
 let groundItems = [] // ground item cache - not stored in db until picked up (game servers will be temporary state only)
 let groundItemsSequence = 0 // incremented each time ground items change, so clients can track changes
 let groundItemsChangedAt = null
-
-// level and pather set when first player connects and creates or loads a level
-let level = null
-let pather = null
 
 // Game loop
 let lastUpdate = Date.now()
@@ -92,7 +88,7 @@ function dropToGround(position, item) {
   groundItems.push(
     new GroundItem(
       item,
-      pather.getBestAvailableItemPosition(
+      levelManager.getPather().getBestAvailableItemPosition(
         {
           x: position.x,
           y: position.y,
@@ -121,7 +117,7 @@ io.on('connection', async socket => {
     console.log('Initializing player ' + username)
     if (player == null) {
       // not found in players cache, create a new player
-      player = new PlayerState({ playerId, pather, username })
+      player = new PlayerState({ playerId, pather: levelManager.getPather(), username })
       player.isConnected = true
 
       // exists in db?
@@ -138,7 +134,13 @@ io.on('connection', async socket => {
 
       // if player is at 0,0, reset to level start
       if (player.x === 0 && player.y === 0) {
-        player.setPosition(level.start.x, level.start.y)
+        player.setPosition(levelManager.getLevel().start.x, levelManager.getLevel().start.y)
+      }
+
+      // if player is in a non-walkable position, move them to level start
+      if (!levelManager.getPather().isWalkableAt(player.x, player.y)) {
+        console.log(`Player ${username} is in non-walkable position (${player.x}, ${player.y}), moving to start`)
+        player.setPosition(levelManager.getLevel().start.x, levelManager.getLevel().start.y)
       }
 
       // set to players cache
@@ -146,7 +148,7 @@ io.on('connection', async socket => {
     }
 
     socket.emit('init', {
-      level,
+      level: levelManager.getLevel(),
       player: player.serialize(),
       groundItems: groundItems,
     })
@@ -160,22 +162,19 @@ io.on('connection', async socket => {
   } else {
     // New player
     // if we have a level, we can init them right away
-    if (level != null) {
+    if (levelManager.hasLevel()) {
       await initThisPlayerAsync()
     } else {
       // otherwise, we have to request a level from client
-      // server.requestLevel -> client.generateLevel -> server.setLevel -> server.initThisPlayer
-      // level not created yet, wait for client to create it
-      socket.emit('requestLevel')
+      // Use the queue system to prevent race conditions
+      levelManager.requestLevelGeneration(playerId, socket, initThisPlayerAsync)
     }
   }
 
   // create a level, or ask the client to create it
   // ** uses client to do so since we need client-side canvas (for now)
   socket.on('setLevel', async levelConfig => {
-    level = levelConfig
-    pather = new Pather(level)
-    await initThisPlayerAsync()
+    await levelManager.onLevelGenerated(levelConfig, playerId)
   })
 
   socket.on('setUsername', username => {
@@ -351,6 +350,9 @@ io.on('connection', async socket => {
       // Mark player as disconnected but keep their data
       player.isConnected = false
     }
+
+    // Clean up level generation state
+    levelManager.onPlayerDisconnected(playerId)
 
     // save player to db if not null
     if (player != null) {

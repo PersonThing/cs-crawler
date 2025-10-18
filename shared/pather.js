@@ -111,6 +111,11 @@ class Pather {
     }
   }
 
+  isWalkableAt(x, y) {
+    const [gridX, gridY] = this.toGridCoordinates(x, y)
+    return this.grid.isWalkableAt(gridX, gridY)
+  }
+
   getBestAvailableItemPosition(position, currentGroundItems) {
     // TODO: make this better and respect obstacles
 
