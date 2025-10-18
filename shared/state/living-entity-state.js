@@ -1,7 +1,7 @@
 import ItemInventory from './item-inventory.js'
 import { BLOCK_SIZE } from '../config/constants.js'
 import InventoryStatCalculator from '../utils/inventory-stat-calculator.js'
-import { Abilities } from '#shared/config/abilities.js'
+import { Abilities } from '#shared/config/abilities/abilities.js'
 
 export default class LivingEntityState {
   constructor({ id, label, pather, color, targetItem, inventory, x = 0, y = 0 }) {
@@ -19,7 +19,7 @@ export default class LivingEntityState {
 
     this.stats = {}
     this.path = []
-    
+
     this.color = color
     this.targetItem = targetItem
     this.inventory = new ItemInventory(inventory)
@@ -70,10 +70,7 @@ export default class LivingEntityState {
       } else {
         const groundItem = groundItems[groundItemIndex]
         // is it close enough to pick up yet?
-        const distance = Math.hypot(
-          this.targetItem.position.x - this.x,
-          this.targetItem.position.y - this.y
-        )
+        const distance = Math.hypot(this.targetItem.position.x - this.x, this.targetItem.position.y - this.y)
         if (distance <= BLOCK_SIZE * 2 && this.inventory.pickup(groundItem.item)) {
           // successfully picked up - remove from the passed groundItems array
           groundItems.splice(groundItemIndex, 1)
@@ -92,7 +89,7 @@ export default class LivingEntityState {
     if (this.tempTarget == null) {
       return
     }
-    
+
     this.rotateToward(this.tempTarget)
 
     // Update position based on target
@@ -104,10 +101,7 @@ export default class LivingEntityState {
     if (distanceToMoveThisFrame < distanceToTarget) {
       const angle = Math.atan2(dy, dx)
       // compute move distance based on max speed (in pixels per second) and delta time
-      this.setPosition(
-        this.x + Math.cos(angle) * distanceToMoveThisFrame,
-        this.y + Math.sin(angle) * distanceToMoveThisFrame
-      )
+      this.setPosition(this.x + Math.cos(angle) * distanceToMoveThisFrame, this.y + Math.sin(angle) * distanceToMoveThisFrame)
     } else {
       // we've reached the target, snap to it
       this.setPosition(this.tempTarget.x, this.tempTarget.y)
@@ -116,7 +110,7 @@ export default class LivingEntityState {
       this.tempTarget = this.path.shift() || null
       if (this.tempTarget != null) {
         // what % of the distance we should've gone this frame is left after reaching the last tempTarget?
-        const percentMovementLeft = 1 - (distanceToTarget / distanceToMoveThisFrame)
+        const percentMovementLeft = 1 - distanceToTarget / distanceToMoveThisFrame
 
         // move the remainder of the available distance toward the next target
         this.moveTowardTarget(deltaMS * percentMovementLeft)
@@ -133,7 +127,7 @@ export default class LivingEntityState {
     // calculate angle to target
     const dx = target.x - this.x
     const dy = target.y - this.y
-    this.rotation = Math.atan2(dy, dx) + Math.PI/2 // add 90 degrees to account for sprite facing up by default
+    this.rotation = Math.atan2(dy, dx) + Math.PI / 2 // add 90 degrees to account for sprite facing up by default
   }
 
   setPosition(x, y) {
@@ -146,20 +140,22 @@ export default class LivingEntityState {
   }
 
   setTarget(target) {
-    if (
-      // target is null
-      target == null ||
-      // target hasn't changed
-      (this.target != null && target.x === this.target.x && target.y === this.target.y)
-    ) {
+    // target is null
+    if (target == null) {
+      this.target = null
       return
     }
-    
+
+    // target hasn't changed
+    if (this.target != null && target.x === this.target.x && target.y === this.target.y) {
+      return
+    }
+
     // target is the same as current position
     if (target.x == this.x && target.y == this.y) {
       return
     }
-    
+
     this.target = target
     this.path = this.pather.findPath({ x: this.x, y: this.y }, target)
     this.tempTarget = this.path.shift() || null
@@ -192,12 +188,11 @@ export default class LivingEntityState {
     if (abilityId === Abilities.BasicAttack.id) {
       return true
     }
-    
+
     // Make sure stats are up to date
     this.computeStats()
-    
+
     // Check if the ability is granted by equipment (ability-specific stats)
     return this.stats[abilityId] != null && this.stats[abilityId] > 0
   }
 }
-

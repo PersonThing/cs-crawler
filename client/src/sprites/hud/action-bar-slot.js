@@ -1,5 +1,5 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
-import { Abilities, AbilityModifiers } from '#shared/config/abilities.js'
+import { Abilities, AbilityModifiers } from '#shared/config/abilities/abilities.js'
 import AbilityTooltip from './ability-tooltip.js'
 
 const SLOT_SIZE = 48
@@ -21,6 +21,7 @@ class ActionBarSlot extends Container {
     
     this.eventMode = 'static'
     this.cursor = 'pointer'
+    this.sortableChildren = true // Enable z-index sorting
     
     // Create tooltip instance if we have a container to add it to
     if (this.tooltipContainer) {
@@ -30,7 +31,7 @@ class ActionBarSlot extends Container {
     
     this.renderBackground()
     this.renderContent()
-    console.log('action bar slot created')
+    this.renderCooldownOverlay()
     this.setupEvents()
   }
   
@@ -175,6 +176,48 @@ class ActionBarSlot extends Container {
     
     this.contentContainer.addChild(text)
   }
+
+  renderCooldownOverlay() {
+    if (this.cooldownOverlay) {
+      this.removeChild(this.cooldownOverlay)
+      this.cooldownOverlay.destroy()
+    }
+
+    this.cooldownOverlay = new Graphics()
+    this.cooldownOverlay.alpha = 0.7
+    this.cooldownOverlay.visible = false
+    this.cooldownOverlay.zIndex = 1000 // Make sure it's on top
+    
+    // Create a square mask to clip the circle to slot boundaries
+    const mask = new Graphics()
+    mask.rect(2, 2, SLOT_SIZE - 4, SLOT_SIZE - 4) // Account for 2px border
+    mask.fill(0xffffff)
+    this.cooldownOverlay.mask = mask
+    this.addChild(mask)
+    this.addChild(this.cooldownOverlay)
+
+    if (this.cooldownText) {
+      this.removeChild(this.cooldownText)
+      this.cooldownText.destroy()
+    }
+
+    this.cooldownText = new Text({
+      text: '',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 12,
+        fill: 0xffffff,
+        fontWeight: 'bold',
+      }
+    })
+    this.cooldownText.alpha = 0.5
+    this.cooldownText.anchor.set(0.5)
+    this.cooldownText.x = 8//SLOT_SIZE / 2
+    this.cooldownText.y = 8//SLOT_SIZE / 2
+    this.cooldownText.visible = false
+    this.cooldownText.zIndex = 1001 // Above overlay
+    this.addChild(this.cooldownText)
+  }
   
   setupEvents() {
     // Helper to stop all events from propagating
@@ -235,9 +278,10 @@ class ActionBarSlot extends Container {
   }
   
   updateConfig(newConfig) {
-    this.config = { ...newConfig }
+    this.config = newConfig
     this.renderBackground() // This should preserve highlight state via this.isHighlighted
     this.renderContent()
+    this.renderCooldownOverlay()
   }
   
   updateUnlockedState(unlockedAbilities, unlockedModifiers) {
@@ -253,10 +297,65 @@ class ActionBarSlot extends Container {
     this.unlockedModifiers = unlockedModifiers
     this.renderBackground()
     this.renderContent()
+    this.renderCooldownOverlay()
   }
   
-  tick() {
-    // TODO: Update cooldown display, etc.
+  tick(playerState) {
+    if (!this.config.abilityId || !playerState) {
+      this.cooldownOverlay.visible = false
+      this.cooldownText.visible = false
+      return
+    }
+
+    const ability = Abilities[this.config.abilityId]
+    if (!ability) {
+      this.cooldownOverlay.visible = false
+      this.cooldownText.visible = false
+      return
+    }
+
+    const cooldownRemaining = playerState.getAbilityCooldownRemaining ? 
+      playerState.getAbilityCooldownRemaining(this.config.abilityId) : 0
+
+    // Debug logging
+    if (this.config.abilityId === 'Fireball' && cooldownRemaining > 0) {
+      console.log(`Fireball cooldown: ${cooldownRemaining}ms remaining`)
+    }
+
+    if (cooldownRemaining > 0) {
+      // Show cooldown overlay
+      this.cooldownOverlay.visible = true
+      this.cooldownText.visible = true
+
+      // Update overlay graphics (radial fill based on remaining cooldown)
+      const totalCooldown = ability.cooldown
+      const progress = cooldownRemaining / totalCooldown
+      
+      this.cooldownOverlay.clear()
+      
+      // Draw remaining cooldown as a radial fill covering the whole square
+      if (progress > 0) {
+        const centerX = SLOT_SIZE / 2
+        const centerY = SLOT_SIZE / 2
+        const startAngle = -Math.PI / 2 // Start at top
+        const endAngle = startAngle + (2 * Math.PI * progress)
+        const radius = SLOT_SIZE // Large enough to cover the entire square
+
+        // Draw a large circle and let the square boundaries mask it
+        this.cooldownOverlay.moveTo(centerX, centerY)
+        this.cooldownOverlay.arc(centerX, centerY, radius, startAngle, endAngle)
+        this.cooldownOverlay.lineTo(centerX, centerY)
+        this.cooldownOverlay.fill(0x000000)
+      }
+
+      // Update cooldown text
+      const seconds = Math.ceil(cooldownRemaining / 1000)
+      this.cooldownText.text = seconds.toString()
+    } else {
+      // Hide cooldown overlay
+      this.cooldownOverlay.visible = false
+      this.cooldownText.visible = false
+    }
   }
   
   destroy() {

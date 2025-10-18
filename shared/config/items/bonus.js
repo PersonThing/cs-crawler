@@ -3,7 +3,7 @@ import ItemType from '../item-type.js'
 import ItemQuality from '../item-quality.js'
 import ItemAttributeType from '../item-attribute-type.js'
 import { Textures } from '#shared/config/textures.js'
-import { Abilities } from '../abilities.js'
+import { Abilities } from '../abilities/abilities.js'
 
 export const bonusItems = [
   // General bonus items

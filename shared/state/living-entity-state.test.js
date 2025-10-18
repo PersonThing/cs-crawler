@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import LivingEntityState from './living-entity-state.js'
 import ItemInventory from './item-inventory.js'
 import { BLOCK_SIZE } from '../config/constants.js'
-import { Abilities } from '#shared/config/abilities.js'
+import { Abilities } from '#shared/config/abilities/abilities.js'
 
 // Mock dependencies
 vi.mock('./item-inventory.js')

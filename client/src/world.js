@@ -7,6 +7,7 @@ import Pather from '#shared/pather.js'
 import GroundItemSprite from './sprites/ground-item-sprite.js'
 import soundManager from './sound-manager.js'
 import { Sounds } from '#shared/config/sounds.js'
+import { ART_SCALE } from '#shared/config/constants.js'
 
 const PARALLAX_SCALE = 1.1
 
@@ -22,6 +23,9 @@ class World extends Container {
 
     this.groundItemsContainer = new Container()
     this.addChild(this.groundItemsContainer)
+
+    this.projectilesContainer = new Container()
+    this.addChild(this.projectilesContainer)
 
     this.pather = new Pather(levelConfig)
 
@@ -69,6 +73,37 @@ class World extends Container {
         this.renderItem(groundItem)
         soundManager.play(Sounds.item.ItemDrop, { start: 0.1, end: 0.3, volume: 0.5 })
       }
+    }
+  }
+
+  setProjectiles(projectiles) {
+    // Remove any projectiles that are no longer active
+    for (const child of [...this.projectilesContainer.children]) {
+      const projectile = projectiles.find(p => p.id === child.projectileId)
+      if (!projectile) {
+        this.projectilesContainer.removeChild(child)
+        child.destroy()
+      }
+    }
+
+    // Add or update projectiles
+    for (const projectile of projectiles) {
+      let sprite = this.projectilesContainer.children.find(child => child.projectileId === projectile.id)
+      
+      if (!sprite) {
+        // Create new projectile sprite
+        sprite = Sprite.from(projectile.texture)
+        sprite.anchor.set(0.5)
+        sprite.scale.set(ART_SCALE)
+        sprite.projectileId = projectile.id
+        sprite.zIndex = 2 // Between ground items (1) and players (3)
+        this.projectilesContainer.addChild(sprite)
+      }
+      
+      // Update position and rotation
+      sprite.x = projectile.x
+      sprite.y = projectile.y
+      sprite.rotation = projectile.rotation
     }
   }
 

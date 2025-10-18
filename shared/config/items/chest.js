@@ -3,7 +3,7 @@ import ItemType from '../item-type.js'
 import ItemQuality from '../item-quality.js'
 import ItemAttributeType from '../item-attribute-type.js'
 import { Textures } from '#shared/config/textures.js'
-import { Abilities, AbilityModifiers } from '../abilities.js'
+import { Abilities, AbilityModifiers } from '../abilities/abilities.js'
 
 export const chestItems = [
   ...Object.keys(Textures.inventory.chest).map(

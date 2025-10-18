@@ -1,16 +1,12 @@
 // mocking out possible abilities and what they might look like
 // need helpers to get entities in range, apply damage, healing, etc
 
-import { Sounds } from './sounds.js'
-import { Textures } from './textures.js'
+import ItemAttributeType from '../item-attribute-type.js'
+import { Sounds } from '../sounds.js'
+import { Textures } from '../textures.js'
+import { createProjectile } from './ability-helpers.js'
+import DamageType from './damage-type.js'
 
-const DamageType = {
-  Physical: 'Physical',
-  Fire: 'Fire',
-  Cold: 'Cold',
-  Lightning: 'Lightning',
-  Poison: 'Poison',
-}
 const Abilities = {
   BasicAttack: {
     id: 'BasicAttack',
@@ -32,10 +28,16 @@ const Abilities = {
     icon: Textures.particle.blaze,
     sound: Sounds.abilities.Shoot,
     soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
-    cooldown: 1000,
+    cooldown: 250,
     onUse: (source, target, modifiers) => {
-      // projectile attack helper here to fire a projectile that then has its own tick handling
-      return false // Stop player movement, projectile doesn't require moving to target
+      createProjectile(source, target, {
+        speed: 800,
+        lifetime: 2000,
+        texture: Textures.particle.blaze,
+        damage: 25 + source.stats[ItemAttributeType.FireDamage] || 0,
+        damageType: DamageType.Fire,
+        radius: 40
+      })
     },
   },
 
@@ -43,11 +45,21 @@ const Abilities = {
     id: 'Frostbolt',
     name: 'Frostbolt',
     description: 'Launch a bolt of frost that slows enemies.',
-    icon: Textures.inventory.item.gems.sapphire, // Using sapphire gem as frost icon placeholder
-    cooldown: 1200,
+    icon: Textures.particle.cold, // Using sapphire gem as frost icon placeholder
+    cooldown: 250,
     onUse: (source, target, modifiers) => {
       // frost projectile attack helper - projectile that slows on hit
-      return false // Stop player movement, frost bolt is a projectile
+      createProjectile(source, target, {
+        speed: 600,
+        lifetime: 2000,
+        texture: Textures.particle.cold,
+        damage: 25 + source.stats[ItemAttributeType.ColdDamage] || 0,
+        damageType: DamageType.Cold,
+        radius: 40,
+        onHit: (projectile, hitEntity) => {
+          // TODO: apply slow effect to hitEntity that lasts 2 seconds ?
+        }
+      })
     },
   },
 
@@ -56,7 +68,7 @@ const Abilities = {
     name: 'Lightning Bolt',
     description: 'Strike enemies at range with an instant lightning bolt.',
     icon: Textures.inventory.item.gems.topaz, // Using topaz gem as lightning icon placeholder
-    cooldown: 800,
+    cooldown: 500,
     onUse: (source, target, modifiers) => {
       // lightning attack helper - instant projectile from source to target
       return false // Stop player movement, lightning is instant cast
@@ -71,7 +83,6 @@ const Abilities = {
     cooldown: 5000,
     onUse: (source, target, modifiers) => {
       // healing helper here to restore health to target entity
-      return true // Allow player to move to target
     },
   },
 }
@@ -123,4 +134,4 @@ const AbilityModifiers = {
   },
 }
 
-export { Abilities, AbilityModifiers, DamageType }
+export { Abilities, AbilityModifiers }

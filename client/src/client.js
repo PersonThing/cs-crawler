@@ -4,7 +4,7 @@ import { initDevtools } from '@pixi/devtools'
 import { level1 } from '#shared/wfc-level-definitions.js'
 import { Textures } from '#shared/config/textures.js'
 import clientPrediction from './client-prediction.js'
-import generateLevel from '#shared/level-builder-wfc.js'
+import generateLevel from '#shared/level-builder.js'
 import Hud from './sprites/hud/hud.js'
 import Pather from '#shared/pather.js'
 import PlayerSprite from './sprites/player-sprite.js'
@@ -124,6 +124,11 @@ function applyLastServerState(players) {
     console.log('applying ground items update from server, sequence:', lastAppliedGroundItemSequence, lastServerState.groundItems.length)
   }
 
+  // Update projectiles
+  if (lastServerState.projectiles) {
+    world.setProjectiles(lastServerState.projectiles)
+  }
+
   // add any new players that weren't in store
   for (const [playerId, playerState] of Object.entries(lastServerState.players)) {
     if (!players.find(p => p.playerId === playerId)) {
@@ -145,6 +150,7 @@ function applyLastServerState(players) {
       // set non-position fields that server might have changed directly from server state
       player.label = player.username = serverPlayerState.username
       player.setInventory(serverPlayerState.inventory) // has to deserialize and re-compute stats after setting
+      player.abilityCooldowns = serverPlayerState.abilityCooldowns || {}
 
       // reconcile position with server state
       clientPrediction.reconcileWithServer(player, serverPlayerState, lastServerState.serverTimestamp)

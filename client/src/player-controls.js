@@ -75,37 +75,11 @@ class PlayerControls {
       },
 
       // Action bar ability hotkeys
-      q: event => {
-        const target = cursorPositionStore.get()
-        const abilityResult = this.hud.actionBar.useSlot3(target)
-        if (abilityResult === false) {
-          // Stop movement if ability returns false
-          this.stopMovement()
-        }
-      },
-      w: event => {
-        const target = cursorPositionStore.get()
-        const abilityResult = this.hud.actionBar.useSlot4(target)
-        if (abilityResult === false) {
-          // Stop movement if ability returns false
-          this.stopMovement()
-        }
-      },
-      e: event => {
-        const target = cursorPositionStore.get()
-        const abilityResult = this.hud.actionBar.useSlot5(target)
-        if (abilityResult === false) {
-          // Stop movement if ability returns false
-          this.stopMovement()
-        }
-      },
+      q: event => this.hud.actionBar.useSlot3(cursorPositionStore.get()),
+      w: event => this.hud.actionBar.useSlot4(cursorPositionStore.get()),
+      e: event => this.hud.actionBar.useSlot5(cursorPositionStore.get()),
       r: event => {
-        const target = cursorPositionStore.get()
-        const abilityResult = this.hud.actionBar.useSlot6(target)
-        if (abilityResult === false) {
-          // Stop movement if ability returns false
-          this.stopMovement()
-        }
+        this.hud.actionBar.useSlot6(cursorPositionStore.get())
         if (event.ctrlKey) {
           return true
         }
@@ -199,14 +173,7 @@ class PlayerControls {
       this.isRightMouseDown = true
       
       // Try to use slot 2 ability (right-click)
-      const abilityResult = this.hud.actionBar.useSlot2(target)
-      if (abilityResult === true) {
-        // Ability allows movement, set target
-        this.updateTargetPosition()
-      } else if (abilityResult === false) {
-        // Ability stops movement, stop where we are
-        this.stopMovement()
-      }
+      this.updateTargetPosition()
       return
     }
 
@@ -221,14 +188,8 @@ class PlayerControls {
       this.isMouseDown = true
       
       // Try to use slot 1 ability
-      const abilityResult = this.hud.actionBar.useSlot1(target)
-      if (abilityResult === false) {
-        // Ability stops movement, stop where we are
-        this.stopMovement()
-      } else {
-        // Ability allows movement, or no ability in slot, keep moving
-        this.updateTargetPosition()
-      }
+      this.hud.actionBar.useSlot1(target)
+      this.updateTargetPosition()
     }
   }
 
@@ -255,7 +216,7 @@ class PlayerControls {
 
   tick(time) {
     if (this.isRightMouseDown) {
-      this.player.attackTarget = cursorPositionStore.get()
+      this.hud.actionBar.useSlot2(cursorPositionStore.get())
     } else if (this.isMouseDown) {
       this.updateTargetPosition()
     }

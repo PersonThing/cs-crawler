@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
 import { HUD_FILL_COLOR } from '#shared/config/constants.js'
-import { Abilities, AbilityModifiers } from '#shared/config/abilities.js'
+import { Abilities, AbilityModifiers } from '#shared/config/abilities/abilities.js'
 import playerSpriteStore from '../../stores/player-sprite-store.js'
 import ActionBarSlot from './action-bar-slot.js'
 import AbilitySelectionMenu from './ability-selection-menu.js'
@@ -151,7 +151,12 @@ class ActionBarHud extends Container {
       return null
     }
     
-    // TODO: Check cooldown, cost, etc.
+    // Check if ability is on cooldown
+    if (localPlayer?.state?.getAbilityCooldownRemaining && 
+        localPlayer.state.getAbilityCooldownRemaining(config.abilityId) > 0) {
+      console.log('Ability on cooldown:', ability.name)
+      return null
+    }
 
     // Use provided target or default to origin
     const targetPosition = target || { x: 0, y: 0 }
@@ -188,8 +193,7 @@ class ActionBarHud extends Container {
       soundManager.play(sound, soundOptions)
     }
     
-    // Return ability's movement behavior for client prediction
-    return ability.onUse ? ability.onUse(localPlayer?.state, targetPosition, activeModifiers) : null
+    return true
   }
 
   // Methods to use specific slots from external code
@@ -361,7 +365,9 @@ class ActionBarHud extends Container {
 
   tick() {
     // Update cooldowns, etc.
-    this.slots.forEach(slot => slot.tick())
+    const localPlayer = playerSpriteStore.getLocalPlayer()
+    const playerState = localPlayer?.state
+    this.slots.forEach(slot => slot.tick(playerState))
   }
 
   destroy() {

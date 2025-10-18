@@ -2,7 +2,7 @@ import { ItemQualityColors } from '#shared/config/item-quality.js'
 import { Sprite, Graphics, Text, Container } from 'pixi.js'
 import ItemSet from '#shared/config/items/sets.js'
 import InventoryStatCalculator from '#shared/utils/inventory-stat-calculator.js'
-import { Abilities, AbilityModifiers } from '#shared/config/abilities'
+import { Abilities, AbilityModifiers } from '#shared/config/abilities/abilities'
 
 const ATTRIBUTE_COLOR = 0xbbbbbb
 const ITEM_TYPE_COLOR = 0xffffff

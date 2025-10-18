@@ -1,4 +1,4 @@
-import { Abilities } from '#shared/config/abilities.js'
+import { Abilities } from '#shared/config/abilities/abilities.js'
 import { generateRandomItem } from '#shared/config/items.js'
 import { Server } from 'socket.io'
 import { SERVER_FPS } from '#shared/config/constants.js'
@@ -8,6 +8,7 @@ import GroundItem from '#shared/config/ground-item.js'
 import http from 'http'
 import levelManager from './level-manager.js'
 import PlayerState from '#shared/state/player-state.js'
+import { getActiveProjectiles, updateProjectiles } from '#shared/config/abilities/ability-helpers.js'
 
 const SERVER_TICK_RATE = 1000 / SERVER_FPS
 const PORT = process.env.PORT || 3000
@@ -54,9 +55,11 @@ function tick() {
 
       // if player inventory, username, or action bar config changed, save to db
       const actionBarConfigChanged = JSON.stringify(player.actionBarConfig) !== JSON.stringify(player.lastSavedActionBarConfig)
-      if (player.lastSavedInventorySequence !== serializedPlayer.inventory.sequence || 
-          player.username !== player.lastSavedUsername || 
-          actionBarConfigChanged) {
+      if (
+        player.lastSavedInventorySequence !== serializedPlayer.inventory.sequence ||
+        player.username !== player.lastSavedUsername ||
+        actionBarConfigChanged
+      ) {
         // intentionally not awaiting, we don't care if it fails, it'll try again on next tick
         db.savePlayerAsync(player)
         player.lastSavedActionBarConfig = JSON.parse(JSON.stringify(player.actionBarConfig)) // deep copy
@@ -64,10 +67,17 @@ function tick() {
     }
   }
 
+  // Update projectiles
+  updateProjectiles(
+    deltaMS,
+    Object.values(players).filter(p => p && p.isConnected)
+  )
+
   const state = {
     players: connectedPlayers,
     groundItemsSequence,
     serverTimestamp: now,
+    projectiles: getActiveProjectiles(),
   }
 
   // set groundItems in the state only if:
@@ -141,6 +151,7 @@ io.on('connection', async socket => {
       if (!levelManager.getPather().isWalkableAt(player.x, player.y)) {
         console.log(`Player ${username} is in non-walkable position (${player.x}, ${player.y}), moving to start`)
         player.setPosition(levelManager.getLevel().start.x, levelManager.getLevel().start.y)
+        player.setTarget(null)
       }
 
       // set to players cache
@@ -187,7 +198,7 @@ io.on('connection', async socket => {
   })
 
   // Handle player movement
-  socket.on('setTarget', (target) => {
+  socket.on('setTarget', target => {
     if (!player?.isConnected) {
       return
     }
@@ -218,7 +229,7 @@ io.on('connection', async socket => {
     player.inventory.clearCursor()
   })
 
-  socket.on('updateActionBarConfig', (actionBarConfig) => {
+  socket.on('updateActionBarConfig', actionBarConfig => {
     if (!player?.isConnected) {
       return
     }
@@ -229,27 +240,33 @@ io.on('connection', async socket => {
     if (!player?.isConnected) {
       return
     }
-    
+
     const ability = Abilities[abilityId]
     if (!ability) {
       console.log('Unknown ability:', abilityId)
       return
     }
-    
+
     // Validate that player has ability unlocked
     if (!player.hasAbilityUnlocked(abilityId)) {
       console.log(`Player ${player.label} attempted to use locked ability: ${ability.name}`)
       return
     }
-    
-    // TODO: Check cooldowns, mana costs, etc.
-    // TODO: Validate target position is reasonable
-    
-    console.log(`Player ${player.label} using ability: ${ability.name} at`, target, 'with modifiers:', modifiers)
-    
-    // Execute ability on server
+
+    // Check if ability is on cooldown
+    if (player.isAbilityOnCooldown(abilityId)) {
+      player.getAbilityCooldownRemaining(abilityId)
+      return
+    }
+
+    // Execute ability
     if (ability.onUse) {
       ability.onUse(player, target, modifiers)
+    }
+
+    // Set ability cooldown
+    if (ability.cooldown) {
+      player.setAbilityCooldown(abilityId, ability.cooldown)
     }
   })
 

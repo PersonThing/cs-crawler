@@ -1,4 +1,4 @@
-import { Abilities, AbilityModifiers } from '../abilities.js'
+import { Abilities, AbilityModifiers } from '../abilities/abilities.js'
 import ItemAttributeType from '../item-attribute-type.js'
 
 const ItemSet = {

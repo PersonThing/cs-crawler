@@ -1,6 +1,6 @@
 import { Graphics, Container, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
-import { Abilities, AbilityModifiers } from '#shared/config/abilities.js'
+import { Abilities, AbilityModifiers } from '#shared/config/abilities/abilities.js'
 import ItemAttributeType, {
   DefensiveAttributes,
   UtilityAttributes,

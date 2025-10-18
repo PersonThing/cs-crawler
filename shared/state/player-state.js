@@ -31,6 +31,7 @@ export default class PlayerState extends LivingEntityState {
       abilityId: null,
       modifiers: []
     }))
+    this.abilityCooldowns = {} // Track cooldowns by abilityId -> timestamp when cooldown expires
   }
 
   serialize() {
@@ -40,6 +41,7 @@ export default class PlayerState extends LivingEntityState {
       socketId: this.socketId,
       username: this.username,
       actionBarConfig: this.actionBarConfig,
+      abilityCooldowns: this.abilityCooldowns,
     }
   }
 
@@ -48,6 +50,12 @@ export default class PlayerState extends LivingEntityState {
     // Ensure actionBarConfig is properly initialized if missing from saved data
     if (!this.actionBarConfig) {
       this.setActionBarConfig(data.actionBarConfig)
+    }
+    // Ensure abilityCooldowns is properly initialized
+    if (data.abilityCooldowns) {
+      this.abilityCooldowns = data.abilityCooldowns
+    } else if (!this.abilityCooldowns) {
+      this.abilityCooldowns = {}
     }
   }
 
@@ -73,5 +81,24 @@ export default class PlayerState extends LivingEntityState {
     //     this.targetItem = null
     //   }
     // }
+  }
+
+  isAbilityOnCooldown(abilityId) {
+    const now = Date.now()
+    const cooldownExpiry = this.abilityCooldowns[abilityId]
+    return cooldownExpiry && cooldownExpiry > now
+  }
+
+  getAbilityCooldownRemaining(abilityId) {
+    const now = Date.now()
+    const cooldownExpiry = this.abilityCooldowns[abilityId]
+    if (!cooldownExpiry || cooldownExpiry <= now) {
+      return 0
+    }
+    return cooldownExpiry - now
+  }
+
+  setAbilityCooldown(abilityId, cooldownMS) {
+    this.abilityCooldowns[abilityId] = Date.now() + cooldownMS
   }
 }
