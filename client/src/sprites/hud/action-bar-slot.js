@@ -317,11 +317,6 @@ class ActionBarSlot extends Container {
     const cooldownRemaining = playerState.getAbilityCooldownRemaining ? 
       playerState.getAbilityCooldownRemaining(this.config.abilityId) : 0
 
-    // Debug logging
-    if (this.config.abilityId === 'Fireball' && cooldownRemaining > 0) {
-      console.log(`Fireball cooldown: ${cooldownRemaining}ms remaining`)
-    }
-
     if (cooldownRemaining > 0) {
       // Show cooldown overlay
       this.cooldownOverlay.visible = true

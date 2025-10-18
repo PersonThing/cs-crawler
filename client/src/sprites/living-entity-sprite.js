@@ -1,6 +1,7 @@
 import { Container, Sprite, Graphics, Text } from 'pixi.js'
 import { ART_SCALE } from '#shared/config/constants.js'
 import InventorySlot from '#shared/config/inventory-slot'
+import HealthBar from './health-bar.js'
 
 class LivingEntitySprite extends Container {
   constructor(state, texture, world, pather, color) {
@@ -49,6 +50,10 @@ class LivingEntitySprite extends Container {
     this.labelSprite.anchor.set(0.5, 2.5)
     this.addChild(this.labelSprite)
 
+    // Create health bar
+    this.healthBar = new HealthBar()
+    this.addChild(this.healthBar)
+
     // add a shadow below
     this.shadowSprite = Sprite.from(this.entityTexture)
     this.shadowSprite.anchor.set(0.5, 0.4)
@@ -69,6 +74,12 @@ class LivingEntitySprite extends Container {
       this.spriteContainer.rotation = this.state.rotation
       this.labelSprite.text = `${this.state.label} (${this.state.path?.length})`
       this.updateEquippedItems()
+      
+      // Update health bar
+      if (this.healthBar && this.state.currentHealth !== undefined && this.state.maxHealth !== undefined) {
+        this.healthBar.update(this.state.currentHealth, this.state.maxHealth)
+        this.healthBar.setPosition(0, 0) // Position relative to entity center
+      }
     } catch (e) {
       console.warn('Error updating LivingEntitySprite from state:', e)
     }

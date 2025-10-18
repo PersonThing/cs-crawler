@@ -34,7 +34,7 @@ const Abilities = {
         speed: 800,
         lifetime: 2000,
         texture: Textures.particle.blaze,
-        damage: 25 + source.stats[ItemAttributeType.FireDamage] || 0,
+        damage: 25 + (source.stats[ItemAttributeType.FireDamage] || 0),
         damageType: DamageType.Fire,
         radius: 40
       })
@@ -53,7 +53,7 @@ const Abilities = {
         speed: 600,
         lifetime: 2000,
         texture: Textures.particle.cold,
-        damage: 25 + source.stats[ItemAttributeType.ColdDamage] || 0,
+        damage: 25 + (source.stats[ItemAttributeType.ColdDamage] || 0),
         damageType: DamageType.Cold,
         radius: 40,
         onHit: (projectile, hitEntity) => {
@@ -70,8 +70,17 @@ const Abilities = {
     icon: Textures.inventory.item.gems.topaz, // Using topaz gem as lightning icon placeholder
     cooldown: 500,
     onUse: (source, target, modifiers) => {
-      // lightning attack helper - instant projectile from source to target
-      return false // Stop player movement, lightning is instant cast
+      createProjectile(source, target, {
+        speed: 2000,
+        lifetime: 2000,
+        texture: Textures.particle.lightning,
+        damage: 25 + (source.stats[ItemAttributeType.LightningDamage] || 0),
+        damageType: DamageType.Lightning,
+        radius: 40,
+        onHit: (projectile, hitEntity) => {
+          // TODO: apply slow effect to hitEntity that lasts 2 seconds ?
+        }
+      })
     },
   },
 
@@ -82,7 +91,10 @@ const Abilities = {
     icon: Textures.inventory.item.gems.emerald, // Using emerald gem as heal icon placeholder
     cooldown: 5000,
     onUse: (source, target, modifiers) => {
-      // healing helper here to restore health to target entity
+      // Heal the source player for 50 HP
+      source.heal(50)
+      console.log(`${source.label} healed for 50 HP (${source.currentHealth}/${source.maxHealth} HP)`)
+      return false // No movement required for heal
     },
   },
 }

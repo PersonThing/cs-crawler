@@ -102,8 +102,13 @@ function updateProjectiles(deltaMS, players = []) {
         // Hit detected
         projectile.active = false // TODO: if pierce enabled and projectile has it, change this logic
 
-        // Apply damage (TODO: implement actual damage system)
-        console.log(`Projectile hit ${player.label} for ${projectile.damage} ${projectile.damageType} damage`)
+        // Apply damage
+        const isDead = player.takeDamage(projectile.damage)
+        console.log(`Projectile hit ${player.label} for ${projectile.damage} ${projectile.damageType} damage (${player.currentHealth}/${player.maxHealth} HP remaining)`)
+        
+        if (isDead) {
+          console.log(`${player.label} has been defeated!`)
+        }
 
         if (projectile.onHit) {
           projectile.onHit(projectile, player)

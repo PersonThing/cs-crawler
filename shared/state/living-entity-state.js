@@ -17,6 +17,10 @@ export default class LivingEntityState {
     this.isAttacking = false
     this.attackTarget = null
 
+    // Health system
+    this.maxHealth = 100
+    this.currentHealth = 100
+
     this.stats = {}
     this.path = []
 
@@ -38,6 +42,8 @@ export default class LivingEntityState {
       color: this.color,
       targetItem: this.targetItem,
       inventory: this.inventory.serialize(),
+      maxHealth: this.maxHealth,
+      currentHealth: this.currentHealth,
     }
   }
 
@@ -181,6 +187,24 @@ export default class LivingEntityState {
     }
     this.stats = InventoryStatCalculator.calculateStats(this.inventory.equipped)
     this.computedEquippedSequence = this.inventory.equippedSequence
+  }
+
+  // Health management methods
+  takeDamage(amount) {
+    this.currentHealth = Math.max(0, this.currentHealth - amount)
+    return this.currentHealth <= 0 // Return true if entity died
+  }
+
+  heal(amount) {
+    this.currentHealth = Math.min(this.maxHealth, this.currentHealth + amount)
+  }
+
+  isAlive() {
+    return this.currentHealth > 0
+  }
+
+  getHealthPercentage() {
+    return this.maxHealth > 0 ? this.currentHealth / this.maxHealth : 0
   }
 
   hasAbilityUnlocked(abilityId) {
