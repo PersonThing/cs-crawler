@@ -1,15 +1,15 @@
+import { Abilities } from '#shared/config/abilities.js'
 import { generateRandomItem } from '#shared/config/items.js'
 import { Server } from 'socket.io'
+import { SERVER_FPS } from '#shared/config/constants.js'
+import db from './db.js'
 import express from 'express'
+import GroundItem from '#shared/config/ground-item.js'
 import http from 'http'
 import Pather from '#shared/pather.js'
 import PlayerState from '#shared/state/player-state.js'
-import GroundItem from '#shared/config/ground-item.js'
-import { Abilities } from '#shared/config/abilities.js'
-import db from './db.js'
 
-const FPS = 20 // server runs slower, client runs at higher framerate and reconciles with server
-const SERVER_TICK_RATE = 1000 / FPS
+const SERVER_TICK_RATE = 1000 / SERVER_FPS
 const PORT = process.env.PORT || 3000
 
 const app = express()

@@ -67,6 +67,7 @@ class ClientPrediction {
     correctionNeeded = correctionNeeded || this.hasTargetChanged(entity, serverState.target)
     
     if (correctionNeeded) {
+      console.log('applying correction', playerId, 'distance:', Math.sqrt((serverState.x - entity.x) ** 2 + (serverState.y - entity.y) ** 2))
       // Start by moving entity to wherever the server state says it was at serverTimestamp
       entity.x = serverState.x
       entity.y = serverState.y

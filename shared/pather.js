@@ -10,28 +10,49 @@ class Pather {
     this.blockSize = BLOCK_SIZE * ART_SCALE
     this.smoothPathing = true
 
+    // get tile size from first tile in grid
+    const firstTile = this.level.tileGrid[0]?.[0]
+    if (!firstTile) {
+      throw new Error('Level has no tiles in tileGrid')
+    }
     // compute grid width and height
     // each tile is 10x10 blocks
     // grid height computed from this.level.tileGrid.length
     // grid width computed from the longest row in this.level.tileGrid
-    const height = this.level.tileGrid.length * 10
-    const width = this.level.tileGrid.reduce((max, row) => Math.max(max, row.length), 0) * 10
+    const tileWidth = firstTile.blockGrid[0].length
+    const tileHeight = firstTile.blockGrid.length
+
+    const height = this.level.tileGrid.length * tileHeight
+    const width = this.level.tileGrid.reduce((max, row) => Math.max(max, row.length), 0) * tileWidth
     this.grid = new Grid(width, height)
 
-    // loop tiles and set walkable blocks
-    this.level.tileGrid.forEach((tileRow, tileY) => {
-      tileRow.forEach((tile, tileX) => {
+    // loop tiles
+    for (let tileY = 0; tileY < this.level.tileGrid.length; tileY++) {
+      for (let tileX = 0; tileX < this.level.tileGrid[tileY].length; tileX++) {
+        const tile = this.level.tileGrid[tileY][tileX]
         if (!tile) {
-          return
+          continue
         }
-        tile.blockGrid.forEach((blockRow, blockY) => {
-          blockRow.forEach((block, blockX) => {
-            this.grid.setWalkableAt(tileX * 10 + blockX, tileY * 10 + blockY, block.canWalk)
-            this.grid.setVisibleAt(tileX * 10 + blockX, tileY * 10 + blockY, block.canSeeThrough)
-          })
-        })
-      })
-    })
+
+        // loop blocks in tile and set walkable/visible
+        for (let blockY = 0; blockY < tile.blockGrid.length; blockY++) {
+          for (let blockX = 0; blockX < tile.blockGrid[blockY].length; blockX++) {
+            const block = tile.blockGrid[blockY][blockX]
+            this.grid.setWalkableAt(tileX * tileWidth + blockX, tileY * tileHeight + blockY, block.canWalk)
+            this.grid.setVisibleAt(tileX * tileWidth + blockX, tileY * tileHeight + blockY, block.canSeeThrough)
+          }
+        }
+      }
+    }
+
+    // render a xo grid in console, x=not walkable, o=walkable
+    // for (let y = 0; y < this.grid.height; y++) {
+    //   let row = ''
+    //   for (let x = 0; x < this.grid.width; x++) {
+    //     row += this.grid.isWalkableAt(x, y) ? 'o' : 'x'
+    //   }
+    //   console.log(row)
+    // }
 
     this.finder = new AStarFinder({
       allowDiaganol: true,
@@ -42,6 +63,7 @@ class Pather {
   }
 
   findPath(from, to) {
+    console.log("finding path from", from, "to", to)
     const [fromX, fromY] = this.toGridCoordinates(from.x, from.y)
     const [toX, toY] = this.toGridCoordinates(to.x, to.y)
 

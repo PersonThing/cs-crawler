@@ -209,7 +209,7 @@ class InventoryHud extends Container {
       let color = item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
       // if cursor item is set and can go in this slot, highlight it green
       if (this.content?.cursor != null) {
-        color = this.inventory.isItemValidForSlot(this.content.cursor, inventorySlot.name) ? 0x00ff00 : DEFAULT_SLOT_COLOR
+        color = this.inventory.isItemValidForSlot(this.content.cursor, inventorySlot.name) ? 0xddff00 : DEFAULT_SLOT_COLOR
       }
       this.drawItemBg(color, coords)
 

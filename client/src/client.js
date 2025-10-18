@@ -1,19 +1,19 @@
-import { initDevtools } from '@pixi/devtools'
 import { Application } from 'pixi.js'
-import { LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '#shared/config/constants.js'
+import { CLIENT_FPS, LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '#shared/config/constants.js'
+import { initDevtools } from '@pixi/devtools'
+import { level1 } from '#shared/wfc-level-definitions.js'
 import { Textures } from '#shared/config/textures.js'
+import clientPrediction from './client-prediction.js'
 import generateLevel from '#shared/level-builder.js'
-// import generateLevel from '#shared/level-builder-wfc.js'
 import Hud from './sprites/hud/hud.js'
+import Pather from '#shared/pather.js'
 import PlayerSprite from './sprites/player-sprite.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
+import PlayerState from '#shared/state/player-state.js'
 import preloadTextures from './preload-textures.js'
 import socket from './socket.js'
 import soundManager from './sound-manager.js'
 import World from './world.js'
-import Pather from '#shared/pather.js'
-import PlayerState from '#shared/state/player-state.js'
-import clientPrediction from './client-prediction.js'
 
 let world = null
 let app = null
@@ -66,7 +66,7 @@ const init = async (levelConfig, localPlayerState, groundItems) => {
   app.stage.addChild(hud)
 
   // Client-side game loop - server has authority, but client predicts and corrects
-  // app.ticker.maxFPS = 120
+  app.ticker.maxFPS = CLIENT_FPS
   app.ticker.add(time => {
     world.tick(time)
     hud.tick(time)
@@ -91,8 +91,9 @@ const init = async (levelConfig, localPlayerState, groundItems) => {
 }
 
 // server may request level if it's the first player to connect (only client can create levels for now)
-socket.on('requestLevel', () => {
-  socket.emit('setLevel', generateLevel())
+socket.on('requestLevel', async () => {
+  const level = await generateLevel(level1)
+  socket.emit('setLevel', level)
 })
 
 // server will send the level and local player data when it's ready to initialize the client
@@ -144,6 +145,9 @@ function applyLastServerState(players) {
 
       // reconcile position with server state
       clientPrediction.reconcileWithServer(player, serverPlayerState, lastServerState.serverTimestamp)
+
+      // just update player directly from server
+      // player.deserialize(serverPlayerState)
     }
   }
 

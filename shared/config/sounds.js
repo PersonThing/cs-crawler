@@ -10,7 +10,8 @@ export const Sounds = {
   },
   "item": {
     "ItemDrop": "/assets/sounds/item/ItemDrop.m4a",
-    "ItemEquip": "/assets/sounds/item/ItemEquip.m4a",
+    "ItemEquip": "/assets/sounds/item/ItemEquip.mp3",
     "ItemPickup": "/assets/sounds/item/ItemPickup.m4a"
-  }
+  },
+  "Stepping": "/assets/sounds/Stepping.mp3"
 }

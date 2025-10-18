@@ -11,7 +11,12 @@ class LevelSprite extends Container {
     super()
     this.level = JSON.parse(JSON.stringify(level))
     this.blockSize = BLOCK_SIZE * ART_SCALE
-    this.tileSize = this.blockSize * 10
+    // get tileSize from first tile in level
+    const firstTile = this.level.tileGrid[0]?.[0]
+    if (!firstTile) {
+      throw new Error('Level has no tiles in tileGrid')
+    }
+    this.tileSize = this.blockSize * firstTile.blockGrid.length
     this.isMinimap = isMinimap
     this.isParallax = isParallax
     this.tileContainer = new Container()

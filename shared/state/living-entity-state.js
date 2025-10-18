@@ -109,8 +109,9 @@ export default class LivingEntityState {
       )
     } else {
       // reached the temp target, target next point in path
-      this.setPosition(this.tempTarget.x, this.tempTarget.y)
+      // this.setPosition(this.tempTarget.x, this.tempTarget.y)
       this.tempTarget = this.path.shift()
+      this.moveTowardTarget(deltaMS) // move toward the new target - otherwise it pauses at every point
     }
   }
 
