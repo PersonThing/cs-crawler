@@ -174,7 +174,7 @@ describe('LivingEntityState', () => {
       
       // Target to the left (west)
       entity.rotateToward({ x: -100, y: 0 })
-      expect(entity.rotation).toBeCloseTo(-Math.PI / 2) // -90 degrees
+      expect(entity.rotation).toBeCloseTo(Math.PI * 1.5) // 270 degrees (or -90)
     })
 
     it('should not change rotation for null target', () => {

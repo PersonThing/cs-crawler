@@ -133,7 +133,7 @@ export default class LivingEntityState {
     // calculate angle to target
     const dx = target.x - this.x
     const dy = target.y - this.y
-    this.rotation = Math.atan2(dy, dx) + (90 * Math.PI) / 180 // add 90 degrees to account for sprite facing up by default
+    this.rotation = Math.atan2(dy, dx) + Math.PI/2 // add 90 degrees to account for sprite facing up by default
   }
 
   setPosition(x, y) {
