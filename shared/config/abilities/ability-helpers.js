@@ -262,24 +262,12 @@ function updateTurrets(deltaMS, players = []) {
     })
 
     if (validTargets.length > 0) {
-      // Target the closest enemy unless using heal ability
-      if (turret.abilityId !== 'Heal') {
+      // Target the closest enemy
       const target = validTargets.reduce((closest, player) => {
         const distance = Math.hypot(player.x - turret.x, player.y - turret.y)
         const closestDistance = Math.hypot(closest.x - turret.x, closest.y - turret.y)
         return distance < closestDistance ? player : closest
-      
-      })}
-      else {
-        // When healing, target the owner if in range and not at 100% health
-        const owner = players.find(p => p.id === turret.ownerId)
-        if (owner) {
-          const distance = Math.hypot(owner.x - turret.x, owner.y - turret.y)
-          if (distance <= turret.range && owner.currentHealth < owner.maxHealth) {
-            target.heal(20)
-          }
-        }
-      }
+      })
 
       // Update turret rotation to face the target
       const dx = target.x - turret.x
