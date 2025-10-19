@@ -15,7 +15,6 @@ class LivingEntitySprite extends Container {
 
     this.sprite = null
     this.healthBar = null
-    this.labelText = null
     this.attachedItems = {}
     this.pathLine = null
 
@@ -33,25 +32,9 @@ class LivingEntitySprite extends Container {
     this.spriteContainer.addChild(this.sprite)
     this.addChild(this.spriteContainer)
 
-    // Create label
-    this.labelSprite = new Text({
-      text: this.state.label,
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 12,
-        fill: this.color,
-        align: 'center',
-        dropShadow: true,
-        dropShadowDistance: 1,
-        dropShadowBlur: 1,
-        dropShadowAlpha: 1,
-      },
-    })
-    this.labelSprite.anchor.set(0.5, 2.5)
-    this.addChild(this.labelSprite)
-
     // Create health bar
     this.healthBar = new HealthBar()
+    this.healthBar.setPosition(0, 0) // Position relative to entity center
     this.addChild(this.healthBar)
 
     // add a shadow below
@@ -68,17 +51,14 @@ class LivingEntitySprite extends Container {
     if (this.state == null) return
     if (this == null) return
     try {
-
       this.x = this.state.x
       this.y = this.state.y
       this.spriteContainer.rotation = this.state.rotation
-      this.labelSprite.text = `${this.state.label} (${this.state.path?.length})`
       this.updateEquippedItems()
-      
+
       // Update health bar
       if (this.healthBar && this.state.currentHealth !== undefined && this.state.maxHealth !== undefined) {
-        this.healthBar.update(this.state.currentHealth, this.state.maxHealth)
-        this.healthBar.setPosition(0, 0) // Position relative to entity center
+        this.healthBar.update(this.state.label, this.state.currentHealth, this.state.maxHealth)
       }
     } catch (e) {
       console.warn('Error updating LivingEntitySprite from state:', e)
@@ -90,7 +70,7 @@ class LivingEntitySprite extends Container {
     if (this.renderedInventorySequence === this.state.inventory.sequence) {
       return
     }
-    
+
     // Remove old attached items
     Object.values(this.attachedItems).forEach(item => {
       this.spriteContainer.removeChild(item)
