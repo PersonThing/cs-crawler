@@ -16,6 +16,8 @@ class PlayerControls {
     this.isMouseDown = false
     this.isRightMouseDown = false
     this.isShiftKeyDown = false
+    this.screenCursorX = 0
+    this.screenCursorY = 0
 
     this.player = playerSpriteStore.getLocalPlayer().state
     clientPrediction.setPlayer(this.player)
@@ -130,7 +132,7 @@ class PlayerControls {
     this.keyUpHandlers = {
       shift: event => {
         this.isShiftKeyDown = false
-      }
+      },
     }
   }
 
@@ -161,7 +163,15 @@ class PlayerControls {
     return false
   }
 
-  // only pass new position to server at most every 50ms (20 times per second)
+  updateCursorWorldPosition() {
+    // Convert screen coordinates to world coordinates
+    cursorPositionStore.set({
+      x: Math.round(this.screenCursorX - this.world.x),
+      y: Math.round(this.screenCursorY - this.world.y),
+    })
+  }
+
+  // update target position based on mouse position in world, and send to server in a throttled manner
   updateTargetPosition() {
     if (this.isShiftKeyDown) {
       // don't update target position if shift is held down - it stops movement
@@ -177,11 +187,7 @@ class PlayerControls {
         return
       }
 
-      // Use client prediction - movement happens at full framerate in tick()
       this.throttledSendTarget(target)
-
-      // Still set on local player for immediate visual feedback
-      this.player.setTarget(target)
     }
   }
 
@@ -234,10 +240,11 @@ class PlayerControls {
 
   onMouseMove(event) {
     const rect = this.app.canvas.getBoundingClientRect()
-    cursorPositionStore.set({
-      x: Math.round(event.clientX - rect.left - this.world.x),
-      y: Math.round(event.clientY - rect.top - this.world.y),
-    })
+    this.screenCursorX = event.clientX - rect.left
+    this.screenCursorY = event.clientY - rect.top
+    
+    // Update world coordinates immediately
+    this.updateCursorWorldPosition()
 
     if (!this.player || !this.isMouseDown) return
 
@@ -254,6 +261,9 @@ class PlayerControls {
   }
 
   tick(time) {
+    // Always update cursor world position to account for world movement
+    this.updateCursorWorldPosition()
+    
     if (this.isShiftKeyDown && this.player.target != null) {
       this.stopMovement()
     }
@@ -263,11 +273,12 @@ class PlayerControls {
       this.updateTargetPosition()
     } else if (this.isMouseDown) {
       if (this.isShiftKeyDown) {
-        // only use slot1 if holding shift
+        // holding shift, use slot 1 ability @ mouse cursor
         this.hud.actionBar.useSlot1(cursorPositionStore.get())
+      } else {
+        // not holding shift, move to mouse cursor
+        this.updateTargetPosition()
       }
-      // if shift is held, don't update target position
-      this.updateTargetPosition()
     }
   }
 
