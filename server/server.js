@@ -360,6 +360,7 @@ io.on('connection', async socket => {
     console.log('resetting inventory for player', player.username)
 
     player.inventory.bags = []
+    player.inventory.updateSequence()
   })
 
   // temp: generate random item on ground at player position
