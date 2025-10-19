@@ -146,19 +146,17 @@ export default class LivingEntityState {
   }
 
   setTarget(target) {
-    // target is null
-    if (target == null) {
+    // target is null or same as current position, clear target and path
+    if (target == null || (target.x == this.x && target.y == this.y)) {
+      console.log('clearing target for', this.username)
       this.target = null
+      this.tempTarget = null
+      this.path = []
       return
     }
 
-    // target hasn't changed
+    // target hasn't changed, leave it along
     if (this.target != null && target.x === this.target.x && target.y === this.target.y) {
-      return
-    }
-
-    // target is the same as current position
-    if (target.x == this.x && target.y == this.y) {
       return
     }
 

@@ -2,6 +2,7 @@ import { Container, Sprite, Graphics, Text } from 'pixi.js'
 import { ART_SCALE, BLOCK_SIZE, DEBUG } from '#shared/config/constants.js'
 import { Textures } from '#shared/config/textures.js'
 import playerSpriteStore from '../stores/player-sprite-store.js'
+import explorationState from '../exploration-state.js'
 
 const partialRevealDistance = 400
 const fullRevealDistance = 200
@@ -179,27 +180,21 @@ class LevelSprite extends Container {
   }
 
   updateBlockVisibility(localPlayer, tile) {
-    // return
+    // Update exploration state based on player position
+    explorationState.updateExploration(localPlayer.x, localPlayer.y, fullRevealDistance, partialRevealDistance)
+
+    // Update block visibility based on exploration state
     tile.blockGrid.forEach(blockRow => {
       blockRow
         .filter(b => b.sprite != null)
         .forEach(block => {
-          const dx = tile.container.x + block.sprite.x - localPlayer.x
-          const dy = tile.container.y + block.sprite.y - localPlayer.y
-
-          // block.alpha = 1
-          // block.sprite.alpha = 1
-          // return
-
-          // if block.sprite is within 200px of the player, set it to discovered
-          const distance = Math.sqrt(dx * dx + dy * dy)
-          if (distance < fullRevealDistance) {
-            block.alpha = 1
-            block.sprite.alpha = 1
-          } else if (distance < partialRevealDistance && block.sprite.alpha < 1) {
-            block.alpha = 0.5
-            block.sprite.alpha = 0.5
-          }
+          const worldX = tile.container.x + block.sprite.x
+          const worldY = tile.container.y + block.sprite.y
+          
+          // Get alpha from exploration state instead of calculating distance
+          const alpha = explorationState.getAlphaForPosition(worldX, worldY)
+          block.alpha = alpha
+          block.sprite.alpha = alpha
         })
     })
   }

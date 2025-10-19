@@ -3,7 +3,7 @@ import { Abilities, AbilityModifiers } from '#shared/config/abilities/abilities.
 import AbilityTooltip from './ability-tooltip.js'
 
 const SLOT_SIZE = 48
-const KEY_LABELS = ['LClick', 'RClick', 'Q', 'W', 'E', 'R']
+const KEY_LABELS = ['Shift\nLClick', 'RClick', 'Q', 'W', 'E', 'R']
 const BORDER_COLOR = 0x666666
 const BORDER_COLOR_LOCKED = 0x444444
 const FILL_COLOR = 0x222222
@@ -167,11 +167,12 @@ class ActionBarSlot extends Container {
         fontFamily: 'Arial',
         fontSize: 10,
         fill: 0x999999,
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        textAlign: 'right',
       }
     })
     
-    text.x = SLOT_SIZE - text.width - 2
+    text.x = 2//SLOT_SIZE - text.width - 2
     text.y = SLOT_SIZE - text.height - 2
     
     this.contentContainer.addChild(text)
@@ -205,15 +206,21 @@ class ActionBarSlot extends Container {
       text: '',
       style: {
         fontFamily: 'Arial',
-        fontSize: 12,
+        fontSize: 20,
         fill: 0xffffff,
         fontWeight: 'bold',
+        dropShadow: {
+          color: 0x000000,
+          blur: 2,
+          alpha: 0.8,
+          distance: 0
+        }
       }
     })
-    this.cooldownText.alpha = 0.5
+    this.cooldownText.alpha = 1
     this.cooldownText.anchor.set(0.5)
-    this.cooldownText.x = 8//SLOT_SIZE / 2
-    this.cooldownText.y = 8//SLOT_SIZE / 2
+    this.cooldownText.x = SLOT_SIZE / 2
+    this.cooldownText.y = SLOT_SIZE / 2
     this.cooldownText.visible = false
     this.cooldownText.zIndex = 1001 // Above overlay
     this.addChild(this.cooldownText)
