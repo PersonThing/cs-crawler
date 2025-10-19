@@ -13,16 +13,20 @@ const textureMap = {
   4: Textures.object.mushroom,
   5: Textures.particle.fire1,
   6: Textures.particle.fire2,
+  7: Textures.tiles.grass,
+  8: Textures.tiles.dirt,
+  9: Textures.tiles.sprouts,
 }
 
 const generateLevel = async () => {
   const level = new Level()
 
+  const notWalkableTiles = [1,2]
   const t = (config) => {
     const tile = new Tile(config.label)
     config.grid.forEach((row, y) => {
       row.forEach((n, x) => {
-        const isWalkable = n === 3 || n.length
+        const isWalkable = !notWalkableTiles.includes(n)
         const textures = n.length ? n.map(t => textureMap[t]) : [textureMap[n]]
         tile.setBlock(
           new Block({
