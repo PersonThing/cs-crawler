@@ -72,7 +72,7 @@ const Abilities = {
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
         speed: 2000,
-        lifetime: 2000,
+        lifetime: 500,
         texture: Textures.particle.lightning,
         damage: 25 + (source.stats[ItemAttributeType.LightningDamage] || 0),
         damageType: DamageType.Lightning,
