@@ -14,10 +14,10 @@ const Abilities = {
     description: 'A basic attack dealing physical damage.',
     icon: Textures.inventory.one_handed.sword, // for basic attack, this would change depending on equipped item
     cooldown: 250,
+    color: 0xffffff,
     onUse: (source, target, modifiers) => {
       // melee attack helper here to do damage in a cone, or immediately where cursor is, etc
       // need helpers to get entities in range, apply damage, healing, etc
-      return true // Allow player to move to target
     },
   },
 
@@ -29,6 +29,7 @@ const Abilities = {
     sound: Sounds.abilities.Shoot,
     soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
     cooldown: 250,
+    color: 0x880000, // used for tinting turrets or pets
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
         speed: 800,
@@ -47,6 +48,7 @@ const Abilities = {
     description: 'Launch a bolt of frost that slows enemies.',
     icon: Textures.particle.cold, // Using sapphire gem as frost icon placeholder
     cooldown: 250,
+    color: 0x000088, // used for tinting turrets or pets
     onUse: (source, target, modifiers) => {
       // frost projectile attack helper - projectile that slows on hit
       createProjectile(source, target, {
@@ -69,6 +71,7 @@ const Abilities = {
     description: 'Strike enemies at range with an instant lightning bolt.',
     icon: Textures.particle.lightning, // Using topaz gem as lightning icon placeholder
     cooldown: 500,
+    color: 0x888800, // used for tinting turrets or pets
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
         speed: 2000,

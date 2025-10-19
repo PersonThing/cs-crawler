@@ -49,6 +49,7 @@ function createProjectile(source, target, { speed, lifetime, texture, damage, da
   const projectile = {
     id: `projectile_${++projectileIdCounter}`,
     sourceId: source.id,
+    sourceOwnerId: source.ownerId || null,
     x: source.x,
     y: source.y,
     targetX: target.x,
@@ -70,10 +71,85 @@ function createProjectile(source, target, { speed, lifetime, texture, damage, da
   return projectile
 }
 
+// Helper function to update all projectiles
+function updateProjectiles(deltaMS, players = []) {
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const projectile = projectiles[i]
+
+    if (!projectile.active) {
+      projectiles.splice(i, 1)
+      continue
+    }
+
+    const now = Date.now()
+    const age = now - projectile.createdAt
+
+    // Check if projectile has expired
+    if (age >= projectile.lifetime) {
+      projectile.active = false
+      if (projectile.onHit) {
+        projectile.onHit(projectile, null) // null target means expired
+      }
+      projectiles.splice(i, 1)
+      continue
+    }
+
+    // Move projectile
+    const deltaSeconds = deltaMS / 1000
+    projectile.x += projectile.velocityX * deltaSeconds
+    projectile.y += projectile.velocityY * deltaSeconds
+
+    // Check for collisions with players (excluding source)
+    for (const player of players) {
+      if (player.id === projectile.sourceId || player.id === projectile.sourceOwnerId || !player.isConnected) continue
+
+      const distance = Math.hypot(player.x - projectile.x, player.y - projectile.y)
+      if (distance <= projectile.radius) {
+        // Hit detected
+        projectile.active = false // TODO: if pierce enabled and projectile has it, change this logic
+
+        // Apply damage
+        const isDead = player.takeDamage(projectile.damage)
+        console.log(`Projectile hit ${player.label} for ${projectile.damage} ${projectile.damageType} damage (${player.currentHealth}/${player.maxHealth} HP remaining)`)
+        
+        if (isDead) {
+          console.log(`${player.label} has been defeated!`)
+        }
+
+        if (projectile.onHit) {
+          projectile.onHit(projectile, player)
+        }
+
+        projectiles.splice(i, 1)
+        break
+      }
+    }
+  }
+}
+
+// Helper function to get all active projectiles (for sending to clients)
+function getActiveProjectiles() {
+  return projectiles
+    .filter(p => p.active)
+    .map(p => ({
+      id: p.id,
+      x: p.x,
+      y: p.y,
+      texture: p.texture,
+      rotation: Math.atan2(p.velocityY, p.velocityX) - (Math.PI / 2),
+    }))
+}
+
 // Helper function to create turrets
 function createTurret(source, position, abilityId, abilityData, modifiers = []) {
-  const maxTurrets = (source.stats && source.stats[ItemAttributeType.MaxTurrets]) || 2
-  
+  // Required params
+  if (!source) {
+    throw new Error('createTurret requires source')
+  }
+
+  const plusMaxTurrets = source.stats && source.stats[ItemAttributeType.MaxTurrets] ? source.stats[ItemAttributeType.MaxTurrets] : 0
+  const maxTurrets = 1 + plusMaxTurrets // everyone can spawn at least 1 turret, items can increase this
+
   // Remove oldest turret if at max capacity
   const ownerTurrets = turrets.filter(t => t.ownerId === source.id && t.active)
   if (ownerTurrets.length >= maxTurrets) {
@@ -85,19 +161,21 @@ function createTurret(source, position, abilityId, abilityData, modifiers = []) 
   const turret = {
     id: `turret_${++turretIdCounter}`,
     ownerId: source.id,
+    getStats: () => source.stats,
     x: position.x,
     y: position.y,
     rotation: 0, // Initial rotation
     abilityId,
     abilityData,
     modifiers: modifiers.filter(m => m !== 'Turret'), // Remove Turret modifier to prevent recursion
-    range: 500, // Turret detection range
+    range: 300, // Turret detection range
     lastCastTime: 0,
     cooldown: abilityData.cooldown * 2 || 1000, // double ability base cooldown, they should shoot slower than normal ability
     createdAt: Date.now(),
     lifetime: 10000, // Turret lasts for 10 seconds by default
     active: true,
     texture: Textures.abilities.turret0, // Placeholder turret texture
+    color: abilityData.color || 0xffffff, // Use ability color for tinting
   }
 
   turrets.push(turret)
@@ -156,10 +234,11 @@ function updateTurrets(deltaMS, players = []) {
       // Cast the ability from the turret
       const turretAsSource = {
         id: turret.id,
+        ownerId: turret.ownerId,
         x: turret.x,
         y: turret.y,
         label: `Turret(${turret.ownerId})`,
-        stats: {} // Turrets don't have stats for now
+        stats: turret.getStats() || {},
       }
 
       if (turret.abilityData.onUse) {
@@ -183,6 +262,8 @@ function getActiveTurrets() {
       rotation: t.rotation,
       texture: t.texture,
       abilityId: t.abilityId,
+      color: t.color,
+      range: t.range,
     }))
 }
 
@@ -193,75 +274,6 @@ function getTurretCount(playerId, abilityId = null) {
     t.ownerId === playerId && 
     (abilityId === null || t.abilityId === abilityId)
   ).length
-}
-
-// Helper function to update all projectiles
-function updateProjectiles(deltaMS, players = []) {
-  for (let i = projectiles.length - 1; i >= 0; i--) {
-    const projectile = projectiles[i]
-
-    if (!projectile.active) {
-      projectiles.splice(i, 1)
-      continue
-    }
-
-    const now = Date.now()
-    const age = now - projectile.createdAt
-
-    // Check if projectile has expired
-    if (age >= projectile.lifetime) {
-      projectile.active = false
-      if (projectile.onHit) {
-        projectile.onHit(projectile, null) // null target means expired
-      }
-      projectiles.splice(i, 1)
-      continue
-    }
-
-    // Move projectile
-    const deltaSeconds = deltaMS / 1000
-    projectile.x += projectile.velocityX * deltaSeconds
-    projectile.y += projectile.velocityY * deltaSeconds
-
-    // Check for collisions with players (excluding source)
-    for (const player of players) {
-      if (player.id === projectile.sourceId || !player.isConnected) continue
-
-      const distance = Math.hypot(player.x - projectile.x, player.y - projectile.y)
-      if (distance <= projectile.radius) {
-        // Hit detected
-        projectile.active = false // TODO: if pierce enabled and projectile has it, change this logic
-
-        // Apply damage
-        const isDead = player.takeDamage(projectile.damage)
-        console.log(`Projectile hit ${player.label} for ${projectile.damage} ${projectile.damageType} damage (${player.currentHealth}/${player.maxHealth} HP remaining)`)
-        
-        if (isDead) {
-          console.log(`${player.label} has been defeated!`)
-        }
-
-        if (projectile.onHit) {
-          projectile.onHit(projectile, player)
-        }
-
-        projectiles.splice(i, 1)
-        break
-      }
-    }
-  }
-}
-
-// Helper function to get all active projectiles (for sending to clients)
-function getActiveProjectiles() {
-  return projectiles
-    .filter(p => p.active)
-    .map(p => ({
-      id: p.id,
-      x: p.x,
-      y: p.y,
-      texture: p.texture,
-      rotation: Math.atan2(p.velocityY, p.velocityX) - (Math.PI / 2),
-    }))
 }
 
 export {

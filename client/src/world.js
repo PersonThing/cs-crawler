@@ -5,9 +5,11 @@ import screenSizeStore from './stores/screen-size-store.js'
 import PlayerSprite from './sprites/player-sprite.js'
 import Pather from '#shared/pather.js'
 import GroundItemSprite from './sprites/ground-item-sprite.js'
+import TurretSprite from './sprites/turret-sprite.js'
+import ProjectileSprite from './sprites/projectile-sprite.js'
 import soundManager from './sound-manager.js'
 import { Sounds } from '#shared/config/sounds.js'
-import { ART_SCALE } from '#shared/config/constants.js'
+import { ART_SCALE, DEBUG } from '#shared/config/constants.js'
 
 const PARALLAX_SCALE = 1.1
 
@@ -82,7 +84,7 @@ class World extends Container {
   setProjectiles(projectiles) {
     // Remove any projectiles that are no longer active
     for (const child of [...this.projectilesContainer.children]) {
-      const projectile = projectiles.find(p => p.id === child.projectileId)
+      const projectile = projectiles.find(p => p.id === child.state?.id)
       if (!projectile) {
         this.projectilesContainer.removeChild(child)
         child.destroy()
@@ -91,29 +93,24 @@ class World extends Container {
 
     // Add or update projectiles
     for (const projectile of projectiles) {
-      let sprite = this.projectilesContainer.children.find(child => child.projectileId === projectile.id)
-      
-      if (!sprite) {
-        // Create new projectile sprite
-        sprite = Sprite.from(projectile.texture)
-        sprite.anchor.set(0.5)
-        sprite.scale.set(ART_SCALE)
-        sprite.projectileId = projectile.id
-        sprite.zIndex = 2 // Between ground items (1) and players (3)
-        this.projectilesContainer.addChild(sprite)
+      let projectileSprite = this.projectilesContainer.children.find(child => child.state?.id === projectile.id)
+
+      if (!projectileSprite) {
+        // Create new projectile sprite using ProjectileSprite class
+        projectileSprite = new ProjectileSprite(projectile)
+        this.projectilesContainer.addChild(projectileSprite)
+      } else {
+        // Update existing projectile sprite
+        projectileSprite.state = projectile
+        projectileSprite.updateFromState()
       }
-      
-      // Update position and rotation
-      sprite.x = projectile.x
-      sprite.y = projectile.y
-      sprite.rotation = projectile.rotation
     }
   }
 
   setTurrets(turrets) {
     // Remove any turrets that are no longer active
     for (const child of [...this.turretsContainer.children]) {
-      const turret = turrets.find(t => t.id === child.turretId)
+      const turret = turrets.find(t => t.id === child.state?.id)
       if (!turret) {
         this.turretsContainer.removeChild(child)
         child.destroy()
@@ -122,22 +119,17 @@ class World extends Container {
 
     // Add or update turrets
     for (const turret of turrets) {
-      let sprite = this.turretsContainer.children.find(child => child.turretId === turret.id)
-      
-      if (!sprite) {
-        // Create new turret sprite
-        sprite = Sprite.from(turret.texture)
-        sprite.anchor.set(0.5)
-        sprite.scale.set(ART_SCALE)
-        sprite.turretId = turret.id
-        sprite.zIndex = 2.5 // Between projectiles (2) and players (3)
-        this.turretsContainer.addChild(sprite)
+      let turretSprite = this.turretsContainer.children.find(child => child.state?.id === turret.id)
+
+      if (!turretSprite) {
+        // Create new turret sprite using TurretSprite class
+        turretSprite = new TurretSprite(turret)
+        this.turretsContainer.addChild(turretSprite)
+      } else {
+        // Update existing turret sprite
+        turretSprite.state = turret
+        turretSprite.updateFromState()
       }
-      
-      // Update position and rotation
-      sprite.x = turret.x
-      sprite.y = turret.y
-      sprite.rotation = turret.rotation
     }
   }
 
