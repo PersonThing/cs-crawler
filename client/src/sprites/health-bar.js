@@ -54,7 +54,7 @@ class HealthBar extends Container {
     this.healthPercentage = maxHealth > 0 ? currentHealth / maxHealth : 0
     
     // Show health bar if not at full health
-    this.visible = this.healthPercentage < 1.0
+    this.visible = true//this.healthPercentage < 1.0
     
     if (this.visible) {
       this.updateBar()
@@ -69,7 +69,7 @@ class HealthBar extends Container {
     
     // Determine color based on health percentage
     let color = 0x00ff00 // Green for high health
-    if (this.healthPercentage < 0.5) {
+    if (this.healthPercentage < 0.6) {
       color = 0xffff00 // Yellow for medium health
     }
     if (this.healthPercentage < 0.25) {

@@ -73,6 +73,14 @@ function tick() {
     Object.values(players).filter(p => p && p.isConnected)
   )
 
+  // if player died, move respawn them at start
+  for (const playerId in players) {
+    const player = players[playerId]
+    if (player.isConnected && player.currentHealth <= 0) {
+      respawnPlayerAtStart(player)
+    }
+  }
+
   const state = {
     players: connectedPlayers,
     groundItemsSequence,
@@ -113,6 +121,13 @@ function dropToGround(position, item) {
 function groundItemsChanged() {
   groundItemsSequence++
   groundItemsChangedAt = Date.now()
+}
+
+function respawnPlayerAtStart(player) {
+  player.currentHealth = player.maxHealth
+  player.setPosition(levelManager.getLevel().start.x, levelManager.getLevel().start.y)
+  player.setTarget(null)
+  console.log(`Player ${player.username} respawned at start`)
 }
 
 // handle socket communication with players
@@ -156,6 +171,10 @@ io.on('connection', async socket => {
 
       // set to players cache
       players[playerId] = player
+    }
+
+    if (player.currentHealth === 0) {
+      respawnPlayerAtStart(player)
     }
 
     socket.emit('init', {
@@ -329,7 +348,7 @@ io.on('connection', async socket => {
     if (!player?.isConnected) {
       return
     }
-    while (player.inventory.pickup(generateRandomItem())) {}
+    while (player.inventory.pickup(generateRandomItem())) { }
   })
 
   // temp: empty player inventory
@@ -337,6 +356,8 @@ io.on('connection', async socket => {
     if (!player?.isConnected) {
       return
     }
+
+    console.log('resetting inventory for player', player.username)
 
     player.inventory.bags = []
   })

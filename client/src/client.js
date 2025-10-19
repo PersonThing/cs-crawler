@@ -151,6 +151,8 @@ function applyLastServerState(players) {
       player.label = player.username = serverPlayerState.username
       player.setInventory(serverPlayerState.inventory) // has to deserialize and re-compute stats after setting
       player.abilityCooldowns = serverPlayerState.abilityCooldowns || {}
+      player.currentHealth = serverPlayerState.currentHealth
+      player.maxHealth = serverPlayerState.maxHealth
 
       // reconcile position with server state
       clientPrediction.reconcileWithServer(player, serverPlayerState, lastServerState.serverTimestamp)

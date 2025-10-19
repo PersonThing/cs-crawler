@@ -41,7 +41,7 @@ class PlayersHud extends Container {
       text.y = y
       this.bg.addChild(text)
       const text2 = new Text({
-        text: `health bar here`,
+        text: `HP: ${player.state.currentHealth} / ${player.state.maxHealth}`,
         style: {
           fontSize: 12,
           fill: 0x888888,
