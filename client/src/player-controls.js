@@ -109,6 +109,9 @@ class PlayerControls {
       g: event => {
         socket.emit('generateGroundItemsAtPlayer')
       },
+      f5: event => {
+        socket.emit('debugTeleport', cursorPositionStore.get())
+      },
       // Debug exploration state
       f3: event => {
         explorationState.reset()

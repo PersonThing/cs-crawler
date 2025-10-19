@@ -29,7 +29,7 @@ const Abilities = {
     sound: Sounds.abilities.Shoot,
     soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
     cooldown: 250,
-    color: 0x880000, // used for tinting turrets or pets
+    color: 0xcc0000, // used for tinting turrets or pets
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
         speed: 800,
@@ -48,7 +48,7 @@ const Abilities = {
     description: 'Launch a bolt of frost that slows enemies.',
     icon: Textures.particle.cold, // Using sapphire gem as frost icon placeholder
     cooldown: 250,
-    color: 0x000088, // used for tinting turrets or pets
+    color: 0x0000ee, // used for tinting turrets or pets
     onUse: (source, target, modifiers) => {
       // frost projectile attack helper - projectile that slows on hit
       createProjectile(source, target, {
@@ -71,7 +71,7 @@ const Abilities = {
     description: 'Strike enemies at range with an instant lightning bolt.',
     icon: Textures.particle.lightning, // Using topaz gem as lightning icon placeholder
     cooldown: 500,
-    color: 0x888800, // used for tinting turrets or pets
+    color: 0xcccc00, // used for tinting turrets or pets
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
         speed: 2000,

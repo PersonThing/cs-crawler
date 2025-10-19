@@ -4,7 +4,9 @@
 
 export const Textures = {
   "abilities": {
-    "turret0": "/assets/textures/abilities/turret0.png"
+    "turret0": "/assets/textures/abilities/turret0.png",
+    "turret1": "/assets/textures/abilities/turret1.png",
+    "weird_cat": "/assets/textures/abilities/weird_cat.png"
   },
   "entity": {
     "hostile": {
