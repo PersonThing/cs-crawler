@@ -97,7 +97,7 @@ function createTurret(source, position, abilityId, abilityData, modifiers = []) 
     createdAt: Date.now(),
     lifetime: 10000, // Turret lasts for 10 seconds by default
     active: true,
-    texture: Textures.abilities.turret0, // Placeholder turret texture
+    texture: Textures.abilities.turret1, // Placeholder turret texture
   }
 
   turrets.push(turret)
