@@ -16,6 +16,8 @@ const textureMap = {
   7: Textures.tiles.grass,
   8: Textures.tiles.dirt,
   9: Textures.tiles.sprouts,
+  10: Textures.object.bush,
+  11: Textures.tiles.water,
 }
 
 const generateLevel = async () => {
