@@ -32,6 +32,7 @@ export default class PlayerState extends LivingEntityState {
       modifiers: []
     }))
     this.abilityCooldowns = {} // Track cooldowns by abilityId -> timestamp when cooldown expires
+    this.turretCounts = {} // Track active turret counts by abilityId
   }
 
   serialize() {
@@ -42,6 +43,7 @@ export default class PlayerState extends LivingEntityState {
       username: this.username,
       actionBarConfig: this.actionBarConfig,
       abilityCooldowns: this.abilityCooldowns,
+      turretCounts: this.turretCounts,
     }
   }
 
@@ -56,6 +58,12 @@ export default class PlayerState extends LivingEntityState {
       this.abilityCooldowns = data.abilityCooldowns
     } else if (!this.abilityCooldowns) {
       this.abilityCooldowns = {}
+    }
+    // Ensure turretCounts is properly initialized
+    if (data.turretCounts) {
+      this.turretCounts = data.turretCounts
+    } else if (!this.turretCounts) {
+      this.turretCounts = {}
     }
   }
 
@@ -100,5 +108,19 @@ export default class PlayerState extends LivingEntityState {
 
   setAbilityCooldown(abilityId, cooldownMS) {
     this.abilityCooldowns[abilityId] = Date.now() + cooldownMS
+  }
+
+  updateTurretCount(abilityId, count) {
+    this.turretCounts[abilityId] = count
+  }
+
+  getTurretCount(abilityId) {
+    return this.turretCounts[abilityId] || 0
+  }
+
+  hasAbilityUnlocked(abilityId) {
+    // For now, all abilities are unlocked
+    // This can be expanded later with a proper unlock system
+    return true
   }
 }

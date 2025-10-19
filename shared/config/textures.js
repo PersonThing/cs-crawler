@@ -45,7 +45,6 @@ export const Textures = {
       }
     }
   },
-  "healthfull": "/assets/textures/healthfull.png",
   "icons": {
     "cs_logo": "/assets/textures/icons/cs_logo.png",
     "dungeon": "/assets/textures/icons/dungeon.png"

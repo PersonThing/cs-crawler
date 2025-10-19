@@ -27,6 +27,9 @@ class World extends Container {
     this.projectilesContainer = new Container()
     this.addChild(this.projectilesContainer)
 
+    this.turretsContainer = new Container()
+    this.addChild(this.turretsContainer)
+
     this.pather = new Pather(levelConfig)
 
     // add another level sprite slightly scaled up for parallax effect
@@ -104,6 +107,36 @@ class World extends Container {
       sprite.x = projectile.x
       sprite.y = projectile.y
       sprite.rotation = projectile.rotation
+    }
+  }
+
+  setTurrets(turrets) {
+    // Remove any turrets that are no longer active
+    for (const child of [...this.turretsContainer.children]) {
+      const turret = turrets.find(t => t.id === child.turretId)
+      if (!turret) {
+        this.turretsContainer.removeChild(child)
+        child.destroy()
+      }
+    }
+
+    // Add or update turrets
+    for (const turret of turrets) {
+      let sprite = this.turretsContainer.children.find(child => child.turretId === turret.id)
+      
+      if (!sprite) {
+        // Create new turret sprite
+        sprite = Sprite.from(turret.texture)
+        sprite.anchor.set(0.5)
+        sprite.scale.set(ART_SCALE)
+        sprite.turretId = turret.id
+        sprite.zIndex = 2.5 // Between projectiles (2) and players (3)
+        this.turretsContainer.addChild(sprite)
+      }
+      
+      // Update position
+      sprite.x = turret.x
+      sprite.y = turret.y
     }
   }
 

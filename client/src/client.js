@@ -129,6 +129,11 @@ function applyLastServerState(players) {
     world.setProjectiles(lastServerState.projectiles)
   }
 
+  // Update turrets
+  if (lastServerState.turrets) {
+    world.setTurrets(lastServerState.turrets)
+  }
+
   // add any new players that weren't in store
   for (const [playerId, playerState] of Object.entries(lastServerState.players)) {
     if (!players.find(p => p.playerId === playerId)) {

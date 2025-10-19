@@ -4,7 +4,7 @@
 import ItemAttributeType from '../item-attribute-type.js'
 import { Sounds } from '../sounds.js'
 import { Textures } from '../textures.js'
-import { createProjectile } from './ability-helpers.js'
+import { createProjectile, createTurret } from './ability-helpers.js'
 import DamageType from './damage-type.js'
 
 const Abilities = {
@@ -99,6 +99,25 @@ const Abilities = {
   },
 }
 
+// Helper function to use an ability with modifiers
+function useAbility(abilityId, source, target, modifiers = []) {
+  const ability = Abilities[abilityId]
+  if (!ability) {
+    console.warn(`Unknown ability: ${abilityId}`)
+    return false
+  }
+
+  // Check if the ability should be cast as a turret
+  if (modifiers.includes('Turret')) {
+    // Create a turret that will cast this ability
+    createTurret(source, target, abilityId, ability, modifiers)
+    return false // No movement required when placing a turret
+  }
+
+  // For other modifiers or normal casting, use the ability directly
+  return ability.onUse(source, target, modifiers)
+}
+
 // Ability Modifiers
 // when assigning an ability to an action bar, you will be able to assign modifiers to the ability (for now, just allow assigning up to 2 modifiers)
 // these modifiers will change how the ability is used, e.g. cast on cooldown, cast on hit, summon a turret to use the ability, etc
@@ -146,4 +165,4 @@ const AbilityModifiers = {
   },
 }
 
-export { Abilities, AbilityModifiers }
+export { Abilities, AbilityModifiers, useAbility }

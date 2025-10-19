@@ -224,6 +224,34 @@ class ActionBarSlot extends Container {
     this.cooldownText.visible = false
     this.cooldownText.zIndex = 1001 // Above overlay
     this.addChild(this.cooldownText)
+
+    // Create turret count text
+    if (this.turretCountText) {
+      this.removeChild(this.turretCountText)
+      this.turretCountText.destroy()
+    }
+
+    this.turretCountText = new Text({
+      text: '',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 12,
+        fill: 0x00ff00,
+        fontWeight: 'bold',
+        dropShadow: {
+          color: 0x000000,
+          blur: 2,
+          alpha: 0.8,
+          distance: 1
+        }
+      }
+    })
+    this.turretCountText.anchor.set(1, 0) // Top-right anchor
+    this.turretCountText.x = SLOT_SIZE - 2
+    this.turretCountText.y = 2
+    this.turretCountText.visible = false
+    this.turretCountText.zIndex = 1002 // Above everything
+    this.addChild(this.turretCountText)
   }
   
   setupEvents() {
@@ -357,6 +385,20 @@ class ActionBarSlot extends Container {
       // Hide cooldown overlay
       this.cooldownOverlay.visible = false
       this.cooldownText.visible = false
+    }
+
+    // Show turret count if this ability has the Turret modifier
+    const hasTurretModifier = this.config.modifiers && this.config.modifiers.includes('Turret')
+    if (hasTurretModifier && playerState.turretCounts) {
+      const turretCount = playerState.turretCounts[this.config.abilityId] || 0
+      if (turretCount > 0) {
+        this.turretCountText.text = turretCount.toString()
+        this.turretCountText.visible = true
+      } else {
+        this.turretCountText.visible = false
+      }
+    } else {
+      this.turretCountText.visible = false
     }
   }
   

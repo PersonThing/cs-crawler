@@ -1,9 +1,14 @@
 import { Textures } from '../textures.js'
 import DamageType from './damage-type.js'
+import ItemAttributeType from '../item-attribute-type.js'
 
 // Global projectiles array - managed by server
 let projectiles = []
 let projectileIdCounter = 0
+
+// Global turrets array - managed by server
+let turrets = []
+let turretIdCounter = 0
 
 // Helper function to create projectiles
 function createProjectile(source, target, { speed, lifetime, texture, damage, damageType, radius = null, onHit = null }) {
@@ -63,6 +68,124 @@ function createProjectile(source, target, { speed, lifetime, texture, damage, da
 
   projectiles.push(projectile)
   return projectile
+}
+
+// Helper function to create turrets
+function createTurret(source, position, abilityId, abilityData, modifiers = []) {
+  const maxTurrets = (source.stats && source.stats[ItemAttributeType.MaxTurrets]) || 2
+  
+  // Remove oldest turret if at max capacity
+  const ownerTurrets = turrets.filter(t => t.ownerId === source.id && t.active)
+  if (ownerTurrets.length >= maxTurrets) {
+    const oldestTurret = ownerTurrets.sort((a, b) => a.createdAt - b.createdAt)[0]
+    oldestTurret.active = false
+    console.log(`Removed oldest turret (${oldestTurret.id}) to make room for new one`)
+  }
+
+  const turret = {
+    id: `turret_${++turretIdCounter}`,
+    ownerId: source.id,
+    x: position.x,
+    y: position.y,
+    abilityId,
+    abilityData,
+    modifiers: modifiers.filter(m => m !== 'Turret'), // Remove Turret modifier to prevent recursion
+    range: 500, // Turret detection range
+    lastCastTime: 0,
+    cooldown: abilityData.cooldown * 2 || 1000, // double ability base cooldown, they should shoot slower than normal ability
+    createdAt: Date.now(),
+    lifetime: 10000, // Turret lasts for 10 seconds by default
+    active: true,
+    texture: Textures.entity.hostile.zombie.zombie, // Placeholder turret texture
+  }
+
+  turrets.push(turret)
+  console.log(`Created turret ${turret.id} for ${source.label} at (${position.x}, ${position.y})`)
+  return turret
+}
+
+// Helper function to update all turrets
+function updateTurrets(deltaMS, players = []) {
+  const now = Date.now()
+  
+  for (let i = turrets.length - 1; i >= 0; i--) {
+    const turret = turrets[i]
+
+    if (!turret.active) {
+      turrets.splice(i, 1)
+      continue
+    }
+
+    // Check if turret has expired
+    const age = now - turret.createdAt
+    if (age >= turret.lifetime) {
+      turret.active = false
+      console.log(`Turret ${turret.id} expired after ${age}ms`)
+      turrets.splice(i, 1)
+      continue
+    }
+
+    // Check if turret can cast (cooldown)
+    const timeSinceLastCast = now - turret.lastCastTime
+    if (timeSinceLastCast < turret.cooldown) {
+      continue
+    }
+
+    // Find valid targets in range (enemies of the turret owner)
+    const validTargets = players.filter(player => {
+      if (!player.isConnected || player.id === turret.ownerId) return false
+      
+      const distance = Math.hypot(player.x - turret.x, player.y - turret.y)
+      return distance <= turret.range
+    })
+
+    if (validTargets.length > 0) {
+      // Target the closest enemy
+      const target = validTargets.reduce((closest, player) => {
+        const distance = Math.hypot(player.x - turret.x, player.y - turret.y)
+        const closestDistance = Math.hypot(closest.x - turret.x, closest.y - turret.y)
+        return distance < closestDistance ? player : closest
+      })
+
+      // Cast the ability from the turret
+      const turretAsSource = {
+        id: turret.id,
+        x: turret.x,
+        y: turret.y,
+        label: `Turret(${turret.ownerId})`,
+        stats: {} // Turrets don't have stats for now
+      }
+
+      if (turret.abilityData.onUse) {
+        turret.abilityData.onUse(turretAsSource, target, turret.modifiers)
+        turret.lastCastTime = now
+        console.log(`Turret ${turret.id} cast ${turret.abilityId} at ${target.label}`)
+      }
+    }
+  }
+}
+
+// Helper function to get all active turrets (for sending to clients)
+function getActiveTurrets() {
+  return turrets
+    .filter(t => t.active)
+    .map(t => ({
+      id: t.id,
+      ownerId: t.ownerId,
+      x: t.x,
+      y: t.y,
+      texture: t.texture,
+      abilityId: t.abilityId,
+    }))
+}
+
+// Helper function to get turret count for a specific player and ability
+function getTurretCount(playerId, abilityId = null) {
+  return turrets.filter(t => 
+    t.active && 
+    t.ownerId === playerId && 
+    (abilityId === null || t.abilityId === abilityId)
+  ).length
 }
 
 // Helper function to update all projectiles
@@ -138,4 +261,8 @@ export {
   updateProjectiles,
   getActiveProjectiles,
   createProjectile,
+  updateTurrets,
+  getActiveTurrets,
+  createTurret,
+  getTurretCount,
 }
