@@ -33,8 +33,8 @@ class TurretSprite extends Container {
       this.rangeIndicator.circle(0, 0, this.state.range)
       this.rangeIndicator.stroke({
         width: 2,
-        color: 0xffffff,
-        alpha: 0.1
+        color: this.state.color || 0xffffff,
+        alpha: 0.6,
       })
       this.rangeIndicator.stroke({ color: 0xffffff, width: 2, alpha: 0.3 })
       this.addChild(this.rangeIndicator)

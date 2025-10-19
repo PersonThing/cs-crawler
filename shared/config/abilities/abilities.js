@@ -93,6 +93,7 @@ const Abilities = {
     description: 'Restore health to yourself or an ally.',
     icon: Textures.particle.heal, // Using emerald gem as heal icon placeholder
     cooldown: 5000,
+    color: 0x00cc00, // used for tinting turrets or pets
     onUse: (source, target, modifiers) => {
       // Heal the source player for 50 HP
       source.heal(50)
