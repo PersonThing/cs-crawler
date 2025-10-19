@@ -134,9 +134,10 @@ class World extends Container {
         this.turretsContainer.addChild(sprite)
       }
       
-      // Update position
+      // Update position and rotation
       sprite.x = turret.x
       sprite.y = turret.y
+      sprite.rotation = turret.rotation
     }
   }
 

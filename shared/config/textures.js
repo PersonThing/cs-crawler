@@ -3,6 +3,9 @@
 // Do not make changes here, they'll be blown away by the background watcher anyway
 
 export const Textures = {
+  "abilities": {
+    "turret0": "/assets/textures/abilities/turret0.png"
+  },
   "entity": {
     "hostile": {
       "burning_skeleton": {

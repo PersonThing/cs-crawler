@@ -87,6 +87,7 @@ function createTurret(source, position, abilityId, abilityData, modifiers = []) 
     ownerId: source.id,
     x: position.x,
     y: position.y,
+    rotation: 0, // Initial rotation
     abilityId,
     abilityData,
     modifiers: modifiers.filter(m => m !== 'Turret'), // Remove Turret modifier to prevent recursion
@@ -96,7 +97,7 @@ function createTurret(source, position, abilityId, abilityData, modifiers = []) 
     createdAt: Date.now(),
     lifetime: 10000, // Turret lasts for 10 seconds by default
     active: true,
-    texture: Textures.entity.hostile.zombie.zombie, // Placeholder turret texture
+    texture: Textures.abilities.turret0, // Placeholder turret texture
   }
 
   turrets.push(turret)
@@ -147,6 +148,11 @@ function updateTurrets(deltaMS, players = []) {
         return distance < closestDistance ? player : closest
       })
 
+      // Update turret rotation to face the target
+      const dx = target.x - turret.x
+      const dy = target.y - turret.y
+      turret.rotation = Math.atan2(dy, dx) + (Math.PI / 2) // -90 degrees to align with sprite orientation
+
       // Cast the ability from the turret
       const turretAsSource = {
         id: turret.id,
@@ -174,6 +180,7 @@ function getActiveTurrets() {
       ownerId: t.ownerId,
       x: t.x,
       y: t.y,
+      rotation: t.rotation,
       texture: t.texture,
       abilityId: t.abilityId,
     }))
