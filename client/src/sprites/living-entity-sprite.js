@@ -58,7 +58,7 @@ class LivingEntitySprite extends Container {
 
       // Update health bar
       if (this.healthBar && this.state.currentHealth !== undefined && this.state.maxHealth !== undefined) {
-        this.healthBar.update(this.state.label, this.state.currentHealth, this.state.maxHealth)
+        this.healthBar.update(this.state.isLocalPlayer, this.state.label, this.state.currentHealth, this.state.maxHealth)
       }
     } catch (e) {
       console.warn('Error updating LivingEntitySprite from state:', e)

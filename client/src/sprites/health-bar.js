@@ -1,4 +1,6 @@
 import { Container, Graphics, Text } from 'pixi.js'
+import { renderHealthBar, createHealthBarGraphics } from '../utils/health-bar-renderer.js'
+import { LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '#shared/config/constants'
 
 const HEALTH_BAR_WIDTH = 90
 const HEALTH_BAR_HEIGHT = 8
@@ -29,7 +31,7 @@ class HealthBar extends Container {
   }
 
   createForeground() {
-    this.foreground = new Graphics()
+    this.foreground = createHealthBarGraphics()
     this.addChild(this.foreground)
   }
 
@@ -39,7 +41,7 @@ class HealthBar extends Container {
       style: {
         fontFamily: 'Arial',
         fontSize: 10,
-        fill: 0xffffff,
+        fill: this.isLocalPlayer ? LOCAL_PLAYER_COLOR : OTHER_PLAYER_COLOR,
         dropShadow: true,
         dropShadowDistance: 0,
         dropShadowBlur: 2,
@@ -52,7 +54,8 @@ class HealthBar extends Container {
     this.addChild(this.healthText)
   }
 
-  update(label, currentHealth, maxHealth) {
+  update(isLocalPlayer, label, currentHealth, maxHealth) {
+    this.isLocalPlayer = isLocalPlayer
     this.label = label
     this.currentHealth = currentHealth
     this.maxHealth = maxHealth
@@ -68,25 +71,19 @@ class HealthBar extends Container {
   }
 
   updateBar() {
-    this.foreground.clear()
-
-    const barWidth = HEALTH_BAR_WIDTH * this.healthPercentage
-
-    // Determine color based on health percentage
-    let color = 0x008800 // Green for high health
-    if (this.healthPercentage < 0.6) {
-      color = 0x999900 // Yellow for medium health
-    }
-    if (this.healthPercentage < 0.3) {
-      color = 0x990000 // Red for low health
-    }
-
-    this.foreground.rect(0, 0, barWidth, HEALTH_BAR_HEIGHT)
-    this.foreground.fill(color)
+    renderHealthBar(
+      this.foreground,
+      this.currentHealth,
+      this.maxHealth,
+      HEALTH_BAR_WIDTH,
+      HEALTH_BAR_HEIGHT,
+      false // Don't render background since we have a separate background graphics
+    )
   }
 
   updateText() {
     this.healthText.text = `${this.label} ${this.currentHealth}/${this.maxHealth}`
+    this.healthText.style.fill = this.isLocalPlayer ? LOCAL_PLAYER_COLOR : OTHER_PLAYER_COLOR
   }
 
   setPosition(x, y) {

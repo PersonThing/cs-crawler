@@ -1,8 +1,7 @@
 import { Graphics, Container, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR, HUD_PLAYERS_WIDTH, LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '#shared/config/constants.js'
-
+import { renderHealthBar, createHealthBarGraphics } from '../../utils/health-bar-renderer.js'
 import playerSpriteStore from '../../stores/player-sprite-store.js'
-
 
 class PlayersHud extends Container {
   constructor() {
@@ -29,29 +28,50 @@ class PlayersHud extends Container {
     let y = 10
     for (const playerId in players) {
       const player = players[playerId]
+
+      // Health bar visualization
+      const healthBarWidth = 120
+      const healthBarHeight = 15
+      const healthBar = createHealthBarGraphics()
+      renderHealthBar(
+        healthBar,
+        player.state.currentHealth,
+        player.state.maxHealth,
+        healthBarWidth,
+        healthBarHeight,
+        true // Show background
+      )
+      healthBar.x = 10
+      healthBar.y = y
+      this.bg.addChild(healthBar)
+
+      // Player name and ID
       const text = new Text({
         text: `${player.state.username} | ${player.state.playerId.replace('player-', '')}`,
         style: {
-          fontSize: 14,
+          fontSize: 12,
           fontWeight: 'bold',
           fill: player.isLocalPlayer ? LOCAL_PLAYER_COLOR : OTHER_PLAYER_COLOR,
         },
       })
       text.x = 10
-      text.y = y
+      text.y = y + healthBarHeight + 2
       this.bg.addChild(text)
-      const text2 = new Text({
-        text: `HP: ${player.state.currentHealth} / ${player.state.maxHealth}`,
+
+      // Health text
+      const healthText = new Text({
+        text: `${player.state.currentHealth} / ${player.state.maxHealth}`,
         style: {
           fontSize: 12,
-          fill: 0x888888,
+          fill: 0xffffff,
         },
       })
-      text2.x = 10
-      text2.y = y + 15
-      this.bg.addChild(text2)
+      healthText.x = 12
+      healthText.y = y
+      this.bg.addChild(healthText)
+
       y += 50
-    }        
+    }
   }
 }
 
