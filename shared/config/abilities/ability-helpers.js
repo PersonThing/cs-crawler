@@ -72,7 +72,10 @@ function createProjectile(source, target, { speed, lifetime, texture, damage, da
 }
 
 // Helper function to update all projectiles
-function updateProjectiles(deltaMS, players = []) {
+// deltaMS: milliseconds since last update
+// players: array of player objects to test hits against
+// pather (optional): instance of Pather to test collisions with the level (isWalkableAt)
+function updateProjectiles(deltaMS, players = [], pather = null) {
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const projectile = projectiles[i]
 
@@ -94,10 +97,50 @@ function updateProjectiles(deltaMS, players = []) {
       continue
     }
 
-    // Move projectile
+    // Move projectile, but first check collisions along the path to avoid tunneling
     const deltaSeconds = deltaMS / 1000
-    projectile.x += projectile.velocityX * deltaSeconds
-    projectile.y += projectile.velocityY * deltaSeconds
+    const oldX = projectile.x
+    const oldY = projectile.y
+    const newX = oldX + projectile.velocityX * deltaSeconds
+    const newY = oldY + projectile.velocityY * deltaSeconds
+
+    // If we have a pather, sample along the segment between old and new positions
+    let blockedByWall = false
+    if (pather) {
+      const dx = newX - oldX
+      const dy = newY - oldY
+      const travelDist = Math.hypot(dx, dy)
+      // choose step size half of a block to reduce chance of tunneling
+      const stepSize = Math.max(1, Math.floor(pather.blockSize / 2))
+      const steps = Math.max(1, Math.ceil(travelDist / stepSize))
+      for (let s = 1; s <= steps; s++) {
+        const t = s / steps
+        const sampleX = oldX + dx * t
+        const sampleY = oldY + dy * t
+        if (!pather.isWalkableAt(sampleX, sampleY)) {
+          blockedByWall = true
+          break
+        }
+      }
+    }
+
+    if (blockedByWall) {
+      // projectile hit a wall
+      projectile.active = false
+      if (projectile.onHit) {
+        try {
+          projectile.onHit(projectile, null) // null target indicates wall/hit by environment
+        } catch (err) {
+          console.error('Error in projectile onHit handler:', err)
+        }
+      }
+      projectiles.splice(i, 1)
+      continue
+    }
+
+    // Not blocked: commit new position
+    projectile.x = newX
+    projectile.y = newY
 
     // Check for collisions with players (excluding source)
     for (const player of players) {
@@ -219,12 +262,24 @@ function updateTurrets(deltaMS, players = []) {
     })
 
     if (validTargets.length > 0) {
-      // Target the closest enemy
+      // Target the closest enemy unless using heal ability
+      if (turret.abilityId !== 'Heal') {
       const target = validTargets.reduce((closest, player) => {
         const distance = Math.hypot(player.x - turret.x, player.y - turret.y)
         const closestDistance = Math.hypot(closest.x - turret.x, closest.y - turret.y)
         return distance < closestDistance ? player : closest
-      })
+      
+      })}
+      else {
+        // When healing, target the owner if in range and not at 100% health
+        const owner = players.find(p => p.id === turret.ownerId)
+        if (owner) {
+          const distance = Math.hypot(owner.x - turret.x, owner.y - turret.y)
+          if (distance <= turret.range && owner.currentHealth < owner.maxHealth) {
+            target.heal(20)
+          }
+        }
+      }
 
       // Update turret rotation to face the target
       const dx = target.x - turret.x

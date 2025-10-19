@@ -70,7 +70,8 @@ function tick() {
   // Update projectiles
   updateProjectiles(
     deltaMS,
-    Object.values(players).filter(p => p && p.isConnected)
+    Object.values(players).filter(p => p && p.isConnected),
+    levelManager.getPather()
   )
 
   // Update turrets
@@ -411,7 +412,7 @@ io.on('connection', async socket => {
       console.log(`Cannot teleport player ${player.username} to non-walkable position (${position.x}, ${position.y})`)
       return
     }
-    
+
     player.setPosition(position.x, position.y)
     player.setTarget(null)
     console.log(`Player ${player.username} teleported to (${position.x}, ${position.y})`)
