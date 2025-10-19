@@ -401,6 +401,22 @@ io.on('connection', async socket => {
     console.log('cleared ground items, # items:', groundItems.length)
   })
 
+  //temp: debug teleport
+  socket.on('debugTeleport', position => {
+    if (!player?.isConnected) {
+      return
+    }
+    
+    if (!levelManager.getPather().isWalkableAt(position.x, position.y)) {
+      console.log(`Cannot teleport player ${player.username} to non-walkable position (${position.x}, ${position.y})`)
+      return
+    }
+    
+    player.setPosition(position.x, position.y)
+    player.setTarget(null)
+    console.log(`Player ${player.username} teleported to (${position.x}, ${position.y})`)
+  })
+
   // Remove player on disconnect
   socket.on('disconnect', () => {
     console.log('Player disconnected: ' + playerId, socket.id)
