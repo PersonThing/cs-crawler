@@ -92,6 +92,8 @@ describe('LivingEntityState', () => {
         target: { x: 30, y: 40 },
         rotation: Math.PI / 2,
         color: '#FF0000',
+        currentHealth: 100,
+        maxHealth: 100,
         targetItem: { item: { id: 'test-item' } },
         inventory: mockInventoryData
       })
