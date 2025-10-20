@@ -2,6 +2,7 @@ import Inventory from './inventory.js'
 import { BLOCK_SIZE } from '../config/constants.js'
 import InventoryStatCalculator from '../utils/inventory-stat-calculator.js'
 import { Abilities } from '#shared/config/abilities/abilities.js'
+import ItemAttribute from '#shared/config/item-attribute.js'
 
 export default class EntityState {
   constructor({ id, label, pather, color, targetItem, inventory, x = 0, y = 0 }) {
@@ -196,6 +197,15 @@ export default class EntityState {
     }
     this.stats = InventoryStatCalculator.calculateStats(this.inventory.equipped)
     this.computedEquippedSequence = this.inventory.equippedSequence
+
+    // Update maxHealth based on stats
+    const healthFromStats = this.stats[ItemAttribute.Health] || 0
+    const newMaxHealth = 100 + healthFromStats
+    if (newMaxHealth !== this.maxHealth) {
+      this.maxHealth = newMaxHealth
+      // Adjust current health proportionally to new max health
+      this.currentHealth = Math.min(this.currentHealth, this.maxHealth)
+    }
   }
 
   // Health management methods

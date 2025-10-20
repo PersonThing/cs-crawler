@@ -13,7 +13,7 @@ const Abilities = {
     name: 'Basic Attack',
     description: 'A basic attack dealing physical damage.',
     icon: Textures.inventory.one_handed.sword, // for basic attack, this would change depending on equipped item
-    cooldown: 250,
+    cooldown: source => source.isTurret ? 500 : 250,
     color: 0xffffff,
     onUse: (source, target, modifiers) => {
       // melee attack helper here to do damage in a cone, or immediately where cursor is, etc
@@ -28,7 +28,7 @@ const Abilities = {
     icon: Textures.particle.blaze,
     sound: Sounds.abilities.Shoot,
     soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
-    cooldown: 250,
+    cooldown: source => source.isTurret ? 500 : 250,
     color: 0xcc0000,
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
@@ -50,7 +50,7 @@ const Abilities = {
     name: 'Frostbolt',
     description: 'Launch a bolt of frost that slows enemies.',
     icon: Textures.particle.cold,
-    cooldown: 250,
+    cooldown: source => source.isTurret ? 500 : 250,
     color: 0x0000ee,
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
@@ -72,7 +72,7 @@ const Abilities = {
     name: 'Lightning Bolt',
     description: 'Strike enemies at range with an instant lightning bolt.',
     icon: Textures.particle.lightning,
-    cooldown: 500,
+    cooldown: source => source.isTurret ? 500 : 250,
     color: 0xcccc00,
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
@@ -94,16 +94,22 @@ const Abilities = {
     name: 'Heal',
     description: 'Restore health to yourself or an ally.',
     icon: Textures.particle.heal,
-    cooldown: 5000,
+    cooldown: source => source.isTurret ? 100 : 3000,
     color: 0x00cc00,
     targetAllies: true,
     onUse: (source, target, modifiers) => {
+
+      let healAmount = 50 + (source.stats[ItemAttribute.HealingPower] || 0)
+      if (source.isTurret) {
+        healAmount *= 0.2 // turrets heal much faster, but only 20% of normal amount
+      }
+
       if (target != null && typeof target.heal === 'function') {
-        target.heal(50)
-        console.log(`${target.label} healed for 50 HP (${target.currentHealth}/${target.maxHealth} HP)`)
+        target.heal(healAmount)
+        console.log(`${target.label} healed for ${healAmount} HP (${target.currentHealth}/${target.maxHealth} HP)`)
       } else if (source != null && typeof source.heal === 'function') {
-        source.heal(50)
-        console.log(`${source.label} healed for 50 HP (${source.currentHealth}/${source.maxHealth} HP)`)
+        source.heal(healAmount)
+        console.log(`${source.label} healed for ${healAmount} HP (${source.currentHealth}/${source.maxHealth} HP)`)
       }
       // todo: show heal effect animation on target?
     },
@@ -115,12 +121,14 @@ function useAbility(abilityId, source, target, modifiers = []) {
   const ability = Abilities[abilityId]
   if (!ability) {
     console.warn(`Unknown ability: ${abilityId}`)
+    return
   }
 
   // Check if the ability should be cast as a turret
   if (modifiers.includes('Turret')) {
     // Create a turret that will cast this ability
     createTurret(source, target, abilityId, ability, modifiers)
+    return
   }
 
   // For other modifiers or normal casting, use the ability directly

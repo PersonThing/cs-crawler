@@ -23,7 +23,7 @@ class TurretState {
     this.modifiers = modifiers.filter(m => m !== 'Turret') // Remove Turret modifier to prevent recursion
     this.range = TURRET_DETECTION_RANGE // Turret detection range
     this.lastCastTime = 0
-    this.cooldown = abilityData.cooldown * 2 || 1000 // double ability base cooldown, they should shoot slower than normal ability
+    this.cooldown = abilityData.cooldown({ isTurret: true })
     this.createdAt = Date.now()
     this.lifetime = TURRET_LIFETIME
     this.active = true
@@ -55,17 +55,20 @@ class TurretState {
 
     // Find valid targets in range (enemies of the turret owner, unless targeting allies)
     const validTargets = players.filter(player => {
-      const isValid = this.targetAllies 
-        ? (player.id !== this.ownerId) // todo: allies = owner only for now
-        : (player.id === this.ownerId) // todo: enemies = other players only for now
+      const isValid = 
+        player.currentHealth > 0 && // must be alive
+        this.targetAllies
+          ? player.id === this.ownerId && player.currentHealth < player.maxHealth // todo: allies = owner only for now, skip anyone at full health
+          : player.id !== this.ownerId // todo: enemies = other players only for now
+
       if (!player.isConnected || !isValid) return false
-      
+
       const distance = Math.hypot(player.x - this.x, player.y - this.y)
       return distance <= this.range
     })
 
     if (validTargets.length > 0) {
-      // Target the closest enemy
+      // Get closest valid target
       const target = validTargets.reduce((closest, player) => {
         const distance = Math.hypot(player.x - this.x, player.y - this.y)
         const closestDistance = Math.hypot(closest.x - this.x, closest.y - this.y)
@@ -75,7 +78,7 @@ class TurretState {
       // Update turret rotation to face the target
       const dx = target.x - this.x
       const dy = target.y - this.y
-      this.rotation = Math.atan2(dy, dx) + (Math.PI / 2) // -90 degrees to align with sprite orientation
+      this.rotation = Math.atan2(dy, dx) + Math.PI / 2 // -90 degrees to align with sprite orientation
 
       // Cast the ability from the turret
       const turretAsSource = {
@@ -85,6 +88,7 @@ class TurretState {
         y: this.y,
         label: `Turret(${this.ownerId})`,
         stats: this.getStats() || {},
+        isTurret: true,
       }
 
       if (this.abilityData.onUse) {

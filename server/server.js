@@ -304,7 +304,7 @@ io.on('connection', async socket => {
 
     // Set ability cooldown
     if (ability.cooldown) {
-      player.setAbilityCooldown(abilityId, ability.cooldown)
+      player.setAbilityCooldown(abilityId, ability.cooldown(player))
     }
   })
 

@@ -85,6 +85,7 @@ export const bonusItems = [
     inventoryTexture: Textures.inventory.item.gems.emerald,
     attributes: {
       [ItemAttribute.Health]: 50,
+      [ItemAttribute.HealingPower]: 10,
     },
     abilities: [Abilities.Heal.id],
     abilityModifiers: [],
