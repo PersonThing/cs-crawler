@@ -26,6 +26,7 @@ export default class EntityState {
 
     this.abilityCooldowns = {} // Track cooldowns by abilityId -> timestamp when cooldown expires
     this.turretCounts = {} // Track active turret counts by abilityId
+    this.petCounts = {} // Track active pet counts by abilityId
 
     this.inventory = new Inventory(inventory, () => this.computeStats())
   }
@@ -264,5 +265,13 @@ export default class EntityState {
 
   getTurretCount(abilityId) {
     return this.turretCounts[abilityId] || 0
+  }
+
+  updatePetCount(abilityId, count) {
+    this.petCounts[abilityId] = count
+  }
+
+  getPetCount(abilityId) {
+    return this.petCounts[abilityId] || 0
   }
 }

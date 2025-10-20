@@ -1,10 +1,9 @@
-// mocking out possible abilities and what they might look like
-// need helpers to get entities in range, apply damage, healing, etc
+// TODO: need to work on logic here for pets who drop turrets
 
 import ItemAttribute from '../item-attribute.js'
 import { Sounds } from '../sounds.js'
 import { Textures } from '../textures.js'
-import { createProjectile, createTurret } from './ability-helpers.js'
+import { createProjectile, createTurret, createPet } from './ability-helpers.js'
 import DamageType from './damage-type.js'
 
 const Abilities = {
@@ -13,7 +12,7 @@ const Abilities = {
     name: 'Basic Attack',
     description: 'A basic attack dealing physical damage.',
     icon: Textures.inventory.one_handed.sword, // for basic attack, this would change depending on equipped item
-    cooldown: source => source.isTurret ? 500 : 250,
+    cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
     color: 0xffffff,
     onUse: (source, target, modifiers) => {
       // melee attack helper here to do damage in a cone, or immediately where cursor is, etc
@@ -28,7 +27,7 @@ const Abilities = {
     icon: Textures.particle.blaze,
     sound: Sounds.abilities.Shoot,
     soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
-    cooldown: source => source.isTurret ? 500 : 250,
+    cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
     color: 0xcc0000,
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
@@ -40,7 +39,7 @@ const Abilities = {
         radius: 40,
         onHit: (projectile, hitEntity) => {
           // TODO: leave burning effect? tint red? don't know
-        }
+        },
       })
     },
   },
@@ -50,7 +49,7 @@ const Abilities = {
     name: 'Frostbolt',
     description: 'Launch a bolt of frost that slows enemies.',
     icon: Textures.particle.cold,
-    cooldown: source => source.isTurret ? 500 : 250,
+    cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
     color: 0x0000ee,
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
@@ -62,7 +61,7 @@ const Abilities = {
         radius: 40,
         onHit: (projectile, hitEntity) => {
           // TODO: apply slow effect? tint blue?
-        }
+        },
       })
     },
   },
@@ -72,7 +71,7 @@ const Abilities = {
     name: 'Lightning Bolt',
     description: 'Strike enemies at range with an instant lightning bolt.',
     icon: Textures.particle.lightning,
-    cooldown: source => source.isTurret ? 500 : 250,
+    cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
     color: 0xcccc00,
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
@@ -84,7 +83,7 @@ const Abilities = {
         radius: 40,
         onHit: (projectile, hitEntity) => {
           // TODO: apply stun effect? tint yellow?
-        }
+        },
       })
     },
   },
@@ -94,11 +93,16 @@ const Abilities = {
     name: 'Heal',
     description: 'Restore health to yourself or an ally.',
     icon: Textures.particle.heal,
-    cooldown: (source, modifiers) => source.isTurret ? 100 : modifiers.includes(AbilityModifiers.Turret.id) ? 250 : 3000,
+    cooldown: (source, modifiers) => {
+      return source.isTurret || source.isPet
+        ? 250 // turrets and pets cast faster
+        : modifiers.includes(AbilityModifiers.Turret.id) || modifiers.includes(AbilityModifiers.Pet.id)
+          ? 250 // this ability will be placing a turret or pet, so let them cast it quickly, no need for big cd
+          : 3000
+    },
     color: 0x00cc00,
     targetAllies: true,
     onUse: (source, target, modifiers) => {
-
       let healAmount = 50 + (source.stats[ItemAttribute.HealingPower] || 0)
       if (source.isTurret) {
         healAmount *= 0.2 // turrets heal much faster, but only 20% of normal amount
@@ -121,6 +125,14 @@ function useAbility(abilityId, source, target, modifiers = []) {
   const ability = Abilities[abilityId]
   if (!ability) {
     console.warn(`Unknown ability: ${abilityId}`)
+    return
+  }
+
+  // Check if the ability should be cast as a pet
+  if (modifiers.includes(AbilityModifiers.Pet.id)) {
+    // Create a pet that will cast this ability
+    console.log('creating pet for ability', source.id, abilityId, modifiers)
+    createPet(source, target, abilityId, ability, modifiers)
     return
   }
 

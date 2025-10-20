@@ -225,13 +225,13 @@ class ActionBarSlot extends Container {
     this.cooldownText.zIndex = 1001 // Above overlay
     this.addChild(this.cooldownText)
 
-    // Create turret count text
-    if (this.turretCountText) {
-      this.removeChild(this.turretCountText)
-      this.turretCountText.destroy()
+    // Create entity count text (for turrets/pets)
+    if (this.entityCountText) {
+      this.removeChild(this.entityCountText)
+      this.entityCountText.destroy()
     }
 
-    this.turretCountText = new Text({
+    this.entityCountText = new Text({
       text: '',
       style: {
         fontFamily: 'Arial',
@@ -246,12 +246,12 @@ class ActionBarSlot extends Container {
         }
       }
     })
-    this.turretCountText.anchor.set(1, 0) // Top-right anchor
-    this.turretCountText.x = SLOT_SIZE - 2
-    this.turretCountText.y = 2
-    this.turretCountText.visible = false
-    this.turretCountText.zIndex = 1002 // Above everything
-    this.addChild(this.turretCountText)
+    this.entityCountText.anchor.set(1, 0) // Top-right anchor
+    this.entityCountText.x = SLOT_SIZE - 2
+    this.entityCountText.y = 2
+    this.entityCountText.visible = false
+    this.entityCountText.zIndex = 1002 // Above everything
+    this.addChild(this.entityCountText)
   }
   
   setupEvents() {
@@ -387,18 +387,29 @@ class ActionBarSlot extends Container {
       this.cooldownText.visible = false
     }
 
-    // Show turret count if this ability has the Turret modifier
-    const hasTurretModifier = this.config.modifiers && this.config.modifiers.includes('Turret')
-    if (hasTurretModifier && playerState.turretCounts) {
-      const turretCount = playerState.turretCounts[this.config.abilityId] || 0
-      if (turretCount > 0) {
-        this.turretCountText.text = turretCount.toString()
-        this.turretCountText.visible = true
+    // Show entity count if this ability has Turret or Pet modifier
+    const hasTurretModifier = this.config.modifiers && this.config.modifiers.includes(AbilityModifiers.Turret.id)
+    const hasPetModifier = this.config.modifiers && this.config.modifiers.includes(AbilityModifiers.Pet.id)
+    
+    if ((hasTurretModifier || hasPetModifier) && playerState) {
+      let entityCount = 0
+      
+      if (hasTurretModifier && playerState.turretCounts) {
+        entityCount += playerState.turretCounts[this.config.abilityId] || 0
+      }
+      
+      if (hasPetModifier && playerState.petCounts) {
+        entityCount += playerState.petCounts[this.config.abilityId] || 0
+      }
+      
+      if (entityCount > 0) {
+        this.entityCountText.text = entityCount.toString()
+        this.entityCountText.visible = true
       } else {
-        this.turretCountText.visible = false
+        this.entityCountText.visible = false
       }
     } else {
-      this.turretCountText.visible = false
+      this.entityCountText.visible = false
     }
   }
   

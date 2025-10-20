@@ -1,10 +1,11 @@
+import { AbilityModifiers } from '#shared/config/abilities/abilities.js'
 import ItemAttribute from '../config/item-attribute.js'
 import { Textures } from '../config/textures.js'
 
 const TURRET_LIFETIME = 30000
 const TURRET_DETECTION_RANGE = 300
 
-class TurretState {
+export default class TurretState {
   constructor(id, source, position, abilityId, abilityData, modifiers = []) {
     // Required params validation
     if (!source) {
@@ -20,7 +21,7 @@ class TurretState {
     this.rotation = 0 // Initial rotation
     this.abilityId = abilityId
     this.abilityData = abilityData
-    this.modifiers = modifiers.filter(m => m !== 'Turret') // Remove Turret modifier to prevent recursion
+    this.modifiers = modifiers.filter(m => m !== AbilityModifiers.Turret.id) // Remove Turret modifier to prevent recursion
     this.range = TURRET_DETECTION_RANGE // Turret detection range
     this.lastCastTime = 0
     this.cooldown = abilityData.cooldown({ isTurret: true }, this.modifiers)
@@ -55,7 +56,7 @@ class TurretState {
 
     // Find valid targets in range (enemies of the turret owner, unless targeting allies)
     const validTargets = players.filter(player => {
-      const isValid = 
+      const isValid =
         player.currentHealth > 0 && // must be alive
         this.targetAllies
           ? player.id === this.ownerId && player.currentHealth < player.maxHealth // todo: allies = owner only for now, skip anyone at full health
@@ -120,5 +121,3 @@ class TurretState {
     return 1 + plusMaxTurrets // everyone can spawn at least 1 turret, items can increase this
   }
 }
-
-export default TurretState

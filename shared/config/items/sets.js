@@ -1,4 +1,4 @@
-import { Abilities, AbilityModifiers } from '../abilities/abilities.js'
+import { AbilityModifiers } from '../abilities/abilities.js'
 import ItemAttribute from '../item-attribute.js'
 
 const ItemSet = {
@@ -18,7 +18,7 @@ const ItemSet = {
           [ItemAttribute.Health]: 100,
           [ItemAttribute.LifePerHit]: 50,
         },
-        abilities: [Abilities.Fireball.id],
+        abilities: ['Fireball'],
         abilityModifiers: []
       },
       // 3 items
@@ -28,7 +28,7 @@ const ItemSet = {
           [ItemAttribute.MaxAbilityModifiers]: 2,
         },
         abilities: [],
-        abilityModifiers: [AbilityModifiers.Pet.id]
+        abilityModifiers: ['Pet']
       },
     ],
   },

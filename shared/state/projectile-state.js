@@ -1,4 +1,4 @@
-class ProjectileState {
+export default class ProjectileState {
   constructor(id, source, target, { speed, lifetime, texture, damage, damageType, radius = null, onHit = null }) {
     // Validate required options
     if (speed === undefined) {
@@ -127,8 +127,10 @@ class ProjectileState {
 
         // Apply damage
         const isDead = player.takeDamage(this.damage)
-        console.log(`Projectile hit ${player.label} for ${this.damage} ${this.damageType} damage (${player.currentHealth}/${player.maxHealth} HP remaining)`)
-        
+        console.log(
+          `Projectile hit ${player.label} for ${this.damage} ${this.damageType} damage (${player.currentHealth}/${player.maxHealth} HP remaining)`
+        )
+
         if (isDead) {
           console.log(`${player.label} has been defeated!`)
         }
@@ -150,9 +152,7 @@ class ProjectileState {
       x: this.x,
       y: this.y,
       texture: this.texture,
-      rotation: Math.atan2(this.velocityY, this.velocityX) - (Math.PI / 2),
+      rotation: Math.atan2(this.velocityY, this.velocityX) - Math.PI / 2,
     }
   }
 }
-
-export default ProjectileState

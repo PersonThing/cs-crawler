@@ -1,5 +1,6 @@
-import { Abilities, useAbility } from '#shared/config/abilities/abilities.js'
+import { Abilities, AbilityModifiers, useAbility } from '#shared/config/abilities/abilities.js'
 import { generateRandomItem } from '#shared/config/items.js'
+import { getActiveProjectiles, updateProjectiles, getActiveTurrets, updateTurrets, getTurretCount, getActivePets, updatePets, getPetCount } from '#shared/config/abilities/ability-helpers.js'
 import { Server } from 'socket.io'
 import { SERVER_FPS } from '#shared/config/constants.js'
 import db from './db.js'
@@ -8,7 +9,6 @@ import GroundItem from '#shared/config/ground-item.js'
 import http from 'http'
 import levelManager from './level-manager.js'
 import PlayerState from '#shared/state/player-state.js'
-import { getActiveProjectiles, updateProjectiles, getActiveTurrets, updateTurrets, getTurretCount } from '#shared/config/abilities/ability-helpers.js'
 
 const SERVER_TICK_RATE = 1000 / SERVER_FPS
 const PORT = process.env.PORT || 3000
@@ -80,15 +80,29 @@ function tick() {
     Object.values(players).filter(p => p && p.isConnected)
   )
 
-  // Update turret counts for all players
+  // Update pets
+  updatePets(
+    deltaMS,
+    Object.values(players).filter(p => p && p.isConnected),
+    levelManager.getPather()
+  )
+
+  // Update turret and pet counts for all players
   for (const playerId in players) {
     const player = players[playerId]
     if (player.isConnected) {
       // Update turret counts for each ability
       for (const slotConfig of player.actionBarConfig) {
-        if (slotConfig.abilityId && slotConfig.modifiers.includes('Turret')) {
+        if (slotConfig.abilityId && slotConfig.modifiers.includes(AbilityModifiers.Turret.id)) {
           const count = getTurretCount(playerId, slotConfig.abilityId)
           player.updateTurretCount(slotConfig.abilityId, count)
+        }
+      }
+      // Update pet counts for each ability
+      for (const slotConfig of player.actionBarConfig) {
+        if (slotConfig.abilityId && slotConfig.modifiers.includes(AbilityModifiers.Pet.id)) {
+          const count = getPetCount(playerId, slotConfig.abilityId)
+          player.updatePetCount(slotConfig.abilityId, count)
         }
       }
     }
@@ -108,6 +122,7 @@ function tick() {
     serverTimestamp: now,
     projectiles: getActiveProjectiles(),
     turrets: getActiveTurrets(),
+    pets: getActivePets(),
   }
 
   // set groundItems in the state only if:

@@ -3,7 +3,6 @@ import ItemType from '../item-type.js'
 import ItemQuality from '../item-quality.js'
 import ItemAttribute from '../item-attribute.js'
 import { Textures } from '#shared/config/textures.js'
-import { Abilities } from '../abilities/abilities.js'
 
 export const bonusItems = [
   // General bonus items
@@ -47,7 +46,7 @@ export const bonusItems = [
     attributes: {
       [ItemAttribute.FireDamage]: 25,
     },
-    abilities: [Abilities.Fireball.id],
+    abilities: ['Fireball'],
     abilityModifiers: [],
   }),
 
@@ -60,7 +59,7 @@ export const bonusItems = [
     attributes: {
       [ItemAttribute.ColdDamage]: 25,
     },
-    abilities: [Abilities.Frostbolt.id],
+    abilities: ['Frostbolt'],
     abilityModifiers: [],
   }),
 
@@ -73,7 +72,7 @@ export const bonusItems = [
     attributes: {
       [ItemAttribute.LightningDamage]: 25,
     },
-    abilities: [Abilities.Lightning.id],
+    abilities: ['Lightning'],
     abilityModifiers: [],
   }),
 
@@ -87,7 +86,7 @@ export const bonusItems = [
       [ItemAttribute.Health]: 50,
       [ItemAttribute.HealingPower]: 10,
     },
-    abilities: [Abilities.Heal.id],
+    abilities: ['Heal'],
     abilityModifiers: [],
   }),
 ]

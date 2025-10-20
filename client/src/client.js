@@ -134,6 +134,11 @@ function applyLastServerState(players) {
     world.setTurrets(lastServerState.turrets)
   }
 
+  // Update pets
+  if (lastServerState.pets) {
+    world.setPets(lastServerState.pets)
+  }
+
   // add any new players that weren't in store
   for (const [playerId, playerState] of Object.entries(lastServerState.players)) {
     if (!players.find(p => p.playerId === playerId)) {

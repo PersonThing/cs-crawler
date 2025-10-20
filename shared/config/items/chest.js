@@ -3,7 +3,7 @@ import ItemType from '../item-type.js'
 import ItemQuality from '../item-quality.js'
 import ItemAttribute from '../item-attribute.js'
 import { Textures } from '#shared/config/textures.js'
-import { Abilities, AbilityModifiers } from '../abilities/abilities.js'
+import { AbilityModifiers } from '../abilities/abilities.js'
 
 export const chestItems = [
   ...Object.keys(Textures.inventory.chest).map(
@@ -43,7 +43,7 @@ export const chestItems = [
       [ItemAttribute.ExtraProjectiles]: 5,
       [ItemAttribute.MaxTurrets]: 5,
     },
-    abilities: [Abilities.Fireball.id],
+    abilities: ['Fireball'],
     abilityModifiers: [AbilityModifiers.Turret.id],
   }),
 
@@ -57,7 +57,7 @@ export const chestItems = [
       [ItemAttribute.Defense]: 15,
       [ItemAttribute.MaxPets]: 3,
     },
-    abilities: [Abilities.Fireball.id],
+    abilities: ['Fireball'],
     abilityModifiers: [AbilityModifiers.Pet.id, AbilityModifiers.CastOnCooldown.id],
   }),
 ]

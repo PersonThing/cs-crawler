@@ -6,6 +6,7 @@ import PlayerSprite from './sprites/player-sprite.js'
 import Pather from '#shared/pather.js'
 import GroundItemSprite from './sprites/ground-item-sprite.js'
 import TurretSprite from './sprites/turret-sprite.js'
+import PetSprite from './sprites/pet-sprite.js'
 import ProjectileSprite from './sprites/projectile-sprite.js'
 import soundManager from './sound-manager.js'
 import { Sounds } from '#shared/config/sounds.js'
@@ -31,6 +32,9 @@ class World extends Container {
 
     this.turretsContainer = new Container()
     this.addChild(this.turretsContainer)
+
+    this.petsContainer = new Container()
+    this.addChild(this.petsContainer)
 
     this.pather = new Pather(levelConfig)
 
@@ -129,6 +133,32 @@ class World extends Container {
         // Update existing turret sprite
         turretSprite.state = turret
         turretSprite.updateFromState()
+      }
+    }
+  }
+
+  setPets(pets) {
+    // Remove any pets that are no longer active
+    for (const child of [...this.petsContainer.children]) {
+      const pet = pets.find(p => p.id === child.state?.id)
+      if (!pet) {
+        this.petsContainer.removeChild(child)
+        child.destroy()
+      }
+    }
+
+    // Add or update pets
+    for (const pet of pets) {
+      let petSprite = this.petsContainer.children.find(child => child.state?.id === pet.id)
+
+      if (!petSprite) {
+        // Create new pet sprite using PetSprite class
+        petSprite = new PetSprite(pet)
+        this.petsContainer.addChild(petSprite)
+      } else {
+        // Update existing pet sprite
+        petSprite.state = pet
+        petSprite.updateFromState()
       }
     }
   }
