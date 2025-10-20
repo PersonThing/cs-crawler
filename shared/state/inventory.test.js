@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { generateItemId } from '#shared/config/items'
 import InventorySlot from '#shared/config/inventory-slot.js'
-import ItemInventory from '#shared/state/item-inventory.js'
+import Inventory from '#shared/state/inventory.js'
 import ItemType from '#shared/config/item-type.js'
 import { BAG_SLOTS } from '#shared/config/constants'
 
@@ -13,9 +13,9 @@ const oneA = makeItem(ItemType.OneHandWeapon)
 const oneB = makeItem(ItemType.OneHandWeapon)
 const two = makeItem(ItemType.TwoHandWeapon)
 
-describe('ItemInventory', () => {
+describe('Inventory', () => {
   // inventory used by all tests - only instantiating for intellisense, gets reset in beforeEach()
-  let inv = new ItemInventory()
+  let inv = new Inventory()
 
   const fillBags = () => {
     for (let i = 0; i < BAG_SLOTS; i++) {
@@ -39,7 +39,7 @@ describe('ItemInventory', () => {
   }
 
   beforeEach(() => {
-    inv = new ItemInventory()
+    inv = new Inventory()
   })
 
   it('starts empty', () => {
@@ -118,7 +118,7 @@ describe('ItemInventory', () => {
     const slot = inv.getValidSlotNamesForItem(item)[0]
     inv.tryEquip(item, slot)
     const snap = inv.serialize()
-    const inv2 = new ItemInventory()
+    const inv2 = new Inventory()
     inv2.deserialize(snap)
     expect(inv2.equipped[slot].itemType.name).toBe(item.itemType.name)
   })
@@ -394,5 +394,21 @@ describe('ItemInventory', () => {
 
     inv.clearBagSlot(0)
     expect(inv.equippedSequence).toBe(afterEquipSequence)
+  })
+
+  it('calls onSequenceUpdated callback when sequence changes', () => {
+    let callbacks = 0
+    const invWithCallback = new Inventory({}, () => {
+      callbacks++
+    })
+
+    // equip to trigger callback
+    const item = makeItem()
+    const slot = invWithCallback.getValidSlotNamesForItem(item)[0]
+    invWithCallback.tryEquip(item, slot)
+    expect(callbacks).toBe(1)
+
+    invWithCallback.setBagSlot(0, makeItem())
+    expect(callbacks).toBe(2)
   })
 })

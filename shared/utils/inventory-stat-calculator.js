@@ -1,4 +1,4 @@
-import ItemAttributeType from '#shared/config/item-attribute-type.js'
+import ItemAttribute from '#shared/config/item-attribute.js'
 import ItemSet from '#shared/config/items/sets.js'
 
 /**

@@ -1,5 +1,5 @@
 import { Abilities, AbilityModifiers } from '../abilities/abilities.js'
-import ItemAttributeType from '../item-attribute-type.js'
+import ItemAttribute from '../item-attribute.js'
 
 const ItemSet = {
   Eebeeb: {
@@ -15,8 +15,8 @@ const ItemSet = {
       // 2 items
       {
         attributes: {
-          [ItemAttributeType.Health]: 100,
-          [ItemAttributeType.LifePerHit]: 50,
+          [ItemAttribute.Health]: 100,
+          [ItemAttribute.LifePerHit]: 50,
         },
         abilities: [Abilities.Fireball.id],
         abilityModifiers: []
@@ -24,8 +24,8 @@ const ItemSet = {
       // 3 items
       {
         attributes: {
-          [ItemAttributeType.MaxPets]: 2, // you can have 2 more pets out at a time
-          [ItemAttributeType.MaxAbilityModifiers]: 2,
+          [ItemAttribute.MaxPets]: 2, // you can have 2 more pets out at a time
+          [ItemAttribute.MaxAbilityModifiers]: 2,
         },
         abilities: [],
         abilityModifiers: [AbilityModifiers.Pet.id]

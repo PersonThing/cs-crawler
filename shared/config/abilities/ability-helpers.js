@@ -1,6 +1,6 @@
 import { Textures } from '../textures.js'
 import DamageType from './damage-type.js'
-import ItemAttributeType from '../item-attribute-type.js'
+import ItemAttribute from '../item-attribute.js'
 
 // Global projectiles array - managed by server
 let projectiles = []
@@ -190,7 +190,7 @@ function createTurret(source, position, abilityId, abilityData, modifiers = []) 
     throw new Error('createTurret requires source')
   }
 
-  const plusMaxTurrets = source.stats && source.stats[ItemAttributeType.MaxTurrets] ? source.stats[ItemAttributeType.MaxTurrets] : 0
+  const plusMaxTurrets = source.stats && source.stats[ItemAttribute.MaxTurrets] ? source.stats[ItemAttribute.MaxTurrets] : 0
   const maxTurrets = 1 + plusMaxTurrets // everyone can spawn at least 1 turret, items can increase this
 
   // Remove oldest turret if at max capacity
@@ -202,9 +202,9 @@ function createTurret(source, position, abilityId, abilityData, modifiers = []) 
   }
 
   const turret = {
-    id: `turret_${++turretIdCounter}`,
+    id: `turret_${source.username}_${++turretIdCounter}`,
     ownerId: source.id,
-    getStats: () => source.stats,
+    getStats: () => source.stats, // make it check source stats dynamically in case player changes items - so existing turrets should use updated stats
     x: position.x,
     y: position.y,
     rotation: 0, // Initial rotation

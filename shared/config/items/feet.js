@@ -1,7 +1,7 @@
 import Item from '../item.js'
 import ItemType from '../item-type.js'
 import ItemQuality from '../item-quality.js'
-import ItemAttributeType from '../item-attribute-type.js'
+import ItemAttribute from '../item-attribute.js'
 import { Textures } from '#shared/config/textures.js'
 import ItemSet from './sets.js'
 
@@ -14,8 +14,8 @@ export const feetItems = [
         itemQuality: ItemQuality.Normal,
         inventoryTexture: Textures.inventory.feet[textureKey],
         attributes: {
-          [ItemAttributeType.Defense]: 5,
-          [ItemAttributeType.MovementSpeedPercent]: 20,
+          [ItemAttribute.Defense]: 5,
+          [ItemAttribute.MovementSpeedPercent]: 20,
         },
       })
   ),
@@ -28,8 +28,8 @@ export const feetItems = [
     setId: ItemSet.Eebeeb.id,
     inventoryTexture: Textures.inventory.feet.platedboots,
     attributes: {
-      [ItemAttributeType.Defense]: 25,
-      [ItemAttributeType.MovementSpeedPercent]: 50,
+      [ItemAttribute.Defense]: 25,
+      [ItemAttribute.MovementSpeedPercent]: 50,
     },
   }),
 ]

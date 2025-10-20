@@ -3,7 +3,7 @@ import { ART_SCALE } from '#shared/config/constants.js'
 import InventorySlot from '#shared/config/inventory-slot'
 import HealthBar from './health-bar.js'
 
-class LivingEntitySprite extends Container {
+class EntitySprite extends Container {
   constructor(state, texture, world, pather, color) {
     super()
 
@@ -61,7 +61,7 @@ class LivingEntitySprite extends Container {
         this.healthBar.update(this.state.isLocalPlayer, this.state.label, this.state.currentHealth, this.state.maxHealth)
       }
     } catch (e) {
-      console.warn('Error updating LivingEntitySprite from state:', e)
+      console.warn('Error updating EntitySprite from state:', e)
     }
   }
 
@@ -114,4 +114,4 @@ class LivingEntitySprite extends Container {
   }
 }
 
-export default LivingEntitySprite
+export default EntitySprite

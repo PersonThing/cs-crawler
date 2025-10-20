@@ -1,7 +1,7 @@
 import Item from '../item.js'
 import ItemType from '../item-type.js'
 import ItemQuality from '../item-quality.js'
-import ItemAttributeType from '../item-attribute-type.js'
+import ItemAttribute from '../item-attribute.js'
 import { Textures } from '#shared/config/textures.js'
 import { Abilities } from '../abilities/abilities.js'
 
@@ -17,8 +17,8 @@ export const bonusItems = [
           itemQuality: ItemQuality.Normal,
           inventoryTexture: Textures.inventory.item[textureKey],
           attributes: {
-            [ItemAttributeType.Defense]: 1,
-            [ItemAttributeType.PhysicalDamage]: 1,
+            [ItemAttribute.Defense]: 1,
+            [ItemAttribute.PhysicalDamage]: 1,
           },
         })
     ),
@@ -32,8 +32,8 @@ export const bonusItems = [
         itemQuality: ItemQuality.Normal,
         inventoryTexture: Textures.inventory.item.gems[textureKey],
         attributes: {
-          [ItemAttributeType.Defense]: 1,
-          [ItemAttributeType.PhysicalDamage]: 1,
+          [ItemAttribute.Defense]: 1,
+          [ItemAttribute.PhysicalDamage]: 1,
         },
       })
   ),
@@ -45,7 +45,7 @@ export const bonusItems = [
     itemQuality: ItemQuality.Rare,
     inventoryTexture: Textures.inventory.item.gems.ruby,
     attributes: {
-      [ItemAttributeType.FireDamage]: 25,
+      [ItemAttribute.FireDamage]: 25,
     },
     abilities: [Abilities.Fireball.id],
     abilityModifiers: [],
@@ -58,7 +58,7 @@ export const bonusItems = [
     itemQuality: ItemQuality.Rare,
     inventoryTexture: Textures.inventory.item.gems.sapphire,
     attributes: {
-      [ItemAttributeType.ColdDamage]: 25,
+      [ItemAttribute.ColdDamage]: 25,
     },
     abilities: [Abilities.Frostbolt.id],
     abilityModifiers: [],
@@ -71,7 +71,7 @@ export const bonusItems = [
     itemQuality: ItemQuality.Rare,
     inventoryTexture: Textures.inventory.item.gems.topaz,
     attributes: {
-      [ItemAttributeType.LightningDamage]: 25,
+      [ItemAttribute.LightningDamage]: 25,
     },
     abilities: [Abilities.Lightning.id],
     abilityModifiers: [],
@@ -84,7 +84,7 @@ export const bonusItems = [
     itemQuality: ItemQuality.Rare,
     inventoryTexture: Textures.inventory.item.gems.emerald,
     attributes: {
-      [ItemAttributeType.Health]: 50,
+      [ItemAttribute.Health]: 50,
     },
     abilities: [Abilities.Heal.id],
     abilityModifiers: [],

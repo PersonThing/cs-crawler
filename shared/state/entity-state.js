@@ -1,9 +1,9 @@
-import ItemInventory from './item-inventory.js'
+import Inventory from './inventory.js'
 import { BLOCK_SIZE } from '../config/constants.js'
 import InventoryStatCalculator from '../utils/inventory-stat-calculator.js'
 import { Abilities } from '#shared/config/abilities/abilities.js'
 
-export default class LivingEntityState {
+export default class EntityState {
   constructor({ id, label, pather, color, targetItem, inventory, x = 0, y = 0 }) {
     this.pather = pather
 
@@ -16,17 +16,17 @@ export default class LivingEntityState {
     this.target = null
     this.isAttacking = false
     this.attackTarget = null
-
-    // Health system
     this.maxHealth = 100
     this.currentHealth = 100
-
     this.stats = {}
     this.path = []
-
     this.color = color
     this.targetItem = targetItem
-    this.inventory = new ItemInventory(inventory)
+
+    this.abilityCooldowns = {} // Track cooldowns by abilityId -> timestamp when cooldown expires
+    this.turretCounts = {} // Track active turret counts by abilityId
+
+    this.inventory = new Inventory(inventory, () => this.computeStats())
   }
 
   serialize() {
@@ -44,6 +44,8 @@ export default class LivingEntityState {
       inventory: this.inventory.serialize(),
       maxHealth: this.maxHealth,
       currentHealth: this.currentHealth,
+      abilityCooldowns: this.abilityCooldowns,
+      turretCounts: this.turretCounts,
     }
   }
 
@@ -54,13 +56,23 @@ export default class LivingEntityState {
       this.inventory.deserialize(data.inventory)
       delete data.inventory
     }
+    // Ensure abilityCooldowns is properly initialized
+    if (data.abilityCooldowns) {
+      this.abilityCooldowns = data.abilityCooldowns
+    } else if (!this.abilityCooldowns) {
+      this.abilityCooldowns = {}
+    }
+    // Ensure turretCounts is properly initialized
+    if (data.turretCounts) {
+      this.turretCounts = data.turretCounts
+    } else if (!this.turretCounts) {
+      this.turretCounts = {}
+    }
     Object.assign(this, data)
-    this.computeStats()
   }
 
   setInventory(inventory) {
     this.inventory.deserialize(inventory)
-    this.computeStats()
   }
 
   tick(time, groundItems) {
@@ -148,7 +160,6 @@ export default class LivingEntityState {
   setTarget(target) {
     // target is null or same as current position, clear target and path
     if (target == null || (target.x == this.x && target.y == this.y)) {
-      console.log('clearing target for', this.username)
       this.target = null
       this.tempTarget = null
       this.path = []
@@ -216,5 +227,32 @@ export default class LivingEntityState {
 
     // Check if the ability is granted by equipment (ability-specific stats)
     return this.stats[abilityId] != null && this.stats[abilityId] > 0
+  }
+
+  isAbilityOnCooldown(abilityId) {
+    const now = Date.now()
+    const cooldownExpiry = this.abilityCooldowns[abilityId]
+    return cooldownExpiry && cooldownExpiry > now
+  }
+
+  getAbilityCooldownRemaining(abilityId) {
+    const now = Date.now()
+    const cooldownExpiry = this.abilityCooldowns[abilityId]
+    if (!cooldownExpiry || cooldownExpiry <= now) {
+      return 0
+    }
+    return cooldownExpiry - now
+  }
+
+  setAbilityCooldown(abilityId, cooldownMS) {
+    this.abilityCooldowns[abilityId] = Date.now() + cooldownMS
+  }
+
+  updateTurretCount(abilityId, count) {
+    this.turretCounts[abilityId] = count
+  }
+
+  getTurretCount(abilityId) {
+    return this.turretCounts[abilityId] || 0
   }
 }

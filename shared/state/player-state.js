@@ -1,6 +1,6 @@
-import LivingEntityState from './living-entity-state.js'
+import EntityState from './entity-state.js'
 
-export default class PlayerState extends LivingEntityState {
+export default class PlayerState extends EntityState {
   constructor({
     playerId,
     socketId,
@@ -31,8 +31,6 @@ export default class PlayerState extends LivingEntityState {
       abilityId: null,
       modifiers: []
     }))
-    this.abilityCooldowns = {} // Track cooldowns by abilityId -> timestamp when cooldown expires
-    this.turretCounts = {} // Track active turret counts by abilityId
   }
 
   serialize() {
@@ -42,8 +40,6 @@ export default class PlayerState extends LivingEntityState {
       socketId: this.socketId,
       username: this.username,
       actionBarConfig: this.actionBarConfig,
-      abilityCooldowns: this.abilityCooldowns,
-      turretCounts: this.turretCounts,
     }
   }
 
@@ -52,18 +48,6 @@ export default class PlayerState extends LivingEntityState {
     // Ensure actionBarConfig is properly initialized if missing from saved data
     if (!this.actionBarConfig) {
       this.setActionBarConfig(data.actionBarConfig)
-    }
-    // Ensure abilityCooldowns is properly initialized
-    if (data.abilityCooldowns) {
-      this.abilityCooldowns = data.abilityCooldowns
-    } else if (!this.abilityCooldowns) {
-      this.abilityCooldowns = {}
-    }
-    // Ensure turretCounts is properly initialized
-    if (data.turretCounts) {
-      this.turretCounts = data.turretCounts
-    } else if (!this.turretCounts) {
-      this.turretCounts = {}
     }
   }
 
@@ -89,38 +73,5 @@ export default class PlayerState extends LivingEntityState {
     //     this.targetItem = null
     //   }
     // }
-  }
-
-  isAbilityOnCooldown(abilityId) {
-    const now = Date.now()
-    const cooldownExpiry = this.abilityCooldowns[abilityId]
-    return cooldownExpiry && cooldownExpiry > now
-  }
-
-  getAbilityCooldownRemaining(abilityId) {
-    const now = Date.now()
-    const cooldownExpiry = this.abilityCooldowns[abilityId]
-    if (!cooldownExpiry || cooldownExpiry <= now) {
-      return 0
-    }
-    return cooldownExpiry - now
-  }
-
-  setAbilityCooldown(abilityId, cooldownMS) {
-    this.abilityCooldowns[abilityId] = Date.now() + cooldownMS
-  }
-
-  updateTurretCount(abilityId, count) {
-    this.turretCounts[abilityId] = count
-  }
-
-  getTurretCount(abilityId) {
-    return this.turretCounts[abilityId] || 0
-  }
-
-  hasAbilityUnlocked(abilityId) {
-    // For now, all abilities are unlocked
-    // This can be expanded later with a proper unlock system
-    return true
   }
 }

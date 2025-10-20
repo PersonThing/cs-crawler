@@ -1,8 +1,8 @@
-import LivingEntitySprite from './living-entity-sprite.js'
+import EntitySprite from './entity-sprite.js'
 import soundManager from '../sound-manager.js'
 import { Sounds } from '#shared/config/sounds.js'
 
-class PlayerSprite extends LivingEntitySprite {
+class PlayerSprite extends EntitySprite {
   constructor(playerState, texture, world, pather, color) {
     super(playerState, texture, world, pather, color)
     

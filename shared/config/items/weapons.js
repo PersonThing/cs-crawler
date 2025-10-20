@@ -1,7 +1,7 @@
 import Item from '../item.js'
 import ItemType from '../item-type.js'
 import ItemQuality from '../item-quality.js'
-import ItemAttributeType from '../item-attribute-type.js'
+import ItemAttribute from '../item-attribute.js'
 import { Textures } from '#shared/config/textures.js'
 import ItemSet from './sets.js'
 
@@ -19,8 +19,8 @@ export const weaponItems = [
           equippedTexture: Textures.item.weapon[textureKey],
           attackingTexture: Textures.item.weapon_attacks[textureKey],
           attributes: {
-            [ItemAttributeType.PhysicalDamage]: 10,
-            [ItemAttributeType.AttackSpeedPercent]: 20,
+            [ItemAttribute.PhysicalDamage]: 10,
+            [ItemAttribute.AttackSpeedPercent]: 20,
           },
         })
     ),
@@ -38,8 +38,8 @@ export const weaponItems = [
           equippedTexture: Textures.item.weapon[textureKey],
           attackingTexture: Textures.item.weapon_attacks[textureKey],
           attributes: {
-            [ItemAttributeType.PhysicalDamage]: 10,
-            [ItemAttributeType.MovementSpeedPercent]: -5,
+            [ItemAttribute.PhysicalDamage]: 10,
+            [ItemAttribute.MovementSpeedPercent]: -5,
           },
         })
     ),
@@ -54,9 +54,9 @@ export const weaponItems = [
     attackingTexture: Textures.item.weapon_attacks.crossbow,
     attributes: {
       // make this a ranged item
-      [ItemAttributeType.PhysicalDamage]: 7,
-      [ItemAttributeType.AttackHitChance]: 100,
-      [ItemAttributeType.FireDamage]: 3,
+      [ItemAttribute.PhysicalDamage]: 7,
+      [ItemAttribute.AttackHitChance]: 100,
+      [ItemAttribute.FireDamage]: 3,
     },
   }),
 
@@ -68,7 +68,7 @@ export const weaponItems = [
     equippedTexture: Textures.item.weapon.club,
     attackingTexture: Textures.item.weapon_attacks.club,
     attributes: {
-      [ItemAttributeType.PhysicalDamage]: 20,
+      [ItemAttribute.PhysicalDamage]: 20,
     },
   }),
 
@@ -82,12 +82,12 @@ export const weaponItems = [
     equippedTexture: Textures.item.weapon.sword,
     attackingTexture: Textures.item.weapon_attacks.sword,
     attributes: {
-      [ItemAttributeType.PhysicalDamage]: 20,
-      [ItemAttributeType.LightningDamage]: 20,
-      [ItemAttributeType.ColdDamage]: 20,
-      [ItemAttributeType.PoisonDamage]: 20,
-      [ItemAttributeType.AttackHitChance]: 100,
-      [ItemAttributeType.FireDamage]: 20,
+      [ItemAttribute.PhysicalDamage]: 20,
+      [ItemAttribute.LightningDamage]: 20,
+      [ItemAttribute.ColdDamage]: 20,
+      [ItemAttribute.PoisonDamage]: 20,
+      [ItemAttribute.AttackHitChance]: 100,
+      [ItemAttribute.FireDamage]: 20,
     },
     description: 'Lord Eebeeb finds this joke very unfunny.ඞ',
   }),

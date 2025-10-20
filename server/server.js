@@ -117,7 +117,6 @@ function tick() {
   // clients will keep the last known state and only update when sequence changes and items are sent
   if (now - (groundItemsChangedAt || 0) < 1000) {
     state.groundItems = groundItems
-    console.log('sending ground items update to clients, sequence:', groundItemsSequence)
   }
 
   io.emit('serverState', state)

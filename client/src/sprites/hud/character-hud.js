@@ -1,13 +1,13 @@
 import { Graphics, Container, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
 import { Abilities, AbilityModifiers } from '#shared/config/abilities/abilities.js'
-import ItemAttributeType, {
+import ItemAttribute, {
   DefensiveAttributes,
   UtilityAttributes,
   OffensiveAttributes,
   OnHitAttributes,
   AbilityAttributes
-} from '#shared/config/item-attribute-type.js'
+} from '#shared/config/item-attribute.js'
 
 import playerSpriteStore from '../../stores/player-sprite-store.js'
 

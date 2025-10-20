@@ -33,10 +33,11 @@ const AssertValidSlotName = slotName => {
   }
 }
 
-export default class ItemInventory {
-  constructor(content) {
+export default class Inventory {
+  constructor(content, onEquippedSequenceUpdated = null) {
     if (content == null) content = {}
-    this.deserialize(content)
+    this.deserialize(content) // deserialize first so we don't try to call onSequenceUpdated before inventory is even ready
+    this.onEquippedSequenceUpdated = onEquippedSequenceUpdated
   }
 
   serialize() {
@@ -56,15 +57,19 @@ export default class ItemInventory {
     this.bags = content.bags || []
     this.cursor = content.cursor || null
     this.updateSequence()
+    this.updateEquippedSequence()
   }
 
   updateSequence() {
     this.sequence++
   }
-  
+
   updateEquippedSequence() {
     this.sequence++
     this.equippedSequence++
+    if (this.onEquippedSequenceUpdated != null) {
+      this.onEquippedSequenceUpdated()
+    }
   }
 
   reset() {

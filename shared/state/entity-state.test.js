@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import LivingEntityState from './living-entity-state.js'
-import ItemInventory from './item-inventory.js'
+import EntityState from './entity-state.js'
+import Inventory from './inventory.js'
 import { BLOCK_SIZE } from '../config/constants.js'
 import { Abilities } from '#shared/config/abilities/abilities.js'
 
 // Mock dependencies
-vi.mock('./item-inventory.js')
+vi.mock('./inventory.js')
 vi.mock('../utils/inventory-stat-calculator.js', () => ({
   default: {
     calculateStats: vi.fn(() => ({}))
   }
 }))
 
-describe('LivingEntityState', () => {
+describe('EntityState', () => {
   let mockPather
-  let entity
+  let entity = new EntityState({}) // just for intellisense
   
   beforeEach(() => {
     // Reset mocks
@@ -29,7 +29,7 @@ describe('LivingEntityState', () => {
     }
     
     // Create entity instance
-    entity = new LivingEntityState({
+    entity = new EntityState({
       id: 'test-entity',
       label: 'Test Entity',
       pather: mockPather,
@@ -52,11 +52,11 @@ describe('LivingEntityState', () => {
       expect(entity.attackTarget).toBeNull()
       expect(entity.path).toEqual([])
       expect(entity.color).toBe('#FF0000')
-      expect(entity.inventory).toBeInstanceOf(ItemInventory)
+      expect(entity.inventory).toBeInstanceOf(Inventory)
     })
 
     it('should initialize with custom position', () => {
-      const customEntity = new LivingEntityState({
+      const customEntity = new EntityState({
         id: 'custom',
         label: 'Custom',
         pather: mockPather,
@@ -438,15 +438,14 @@ describe('LivingEntityState', () => {
   })
 
   describe('setInventory', () => {
-    it('should deserialize inventory and compute stats', () => {
+    it('should deserialize inventory, which should compute stats indirectly', () => {
       const inventoryData = { sequence: 5, bags: [] }
-      entity.inventory.deserialize = vi.fn()
       entity.computeStats = vi.fn()
       
       entity.setInventory(inventoryData)
       
       expect(entity.inventory.deserialize).toHaveBeenCalledWith(inventoryData)
-      expect(entity.computeStats).toHaveBeenCalled()
+      expect(entity.computeStats).toHaveBeenCalled() // computeStats called via Inventory callback
     })
   })
 })

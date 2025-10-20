@@ -1,7 +1,7 @@
 // mocking out possible abilities and what they might look like
 // need helpers to get entities in range, apply damage, healing, etc
 
-import ItemAttributeType from '../item-attribute-type.js'
+import ItemAttribute from '../item-attribute.js'
 import { Sounds } from '../sounds.js'
 import { Textures } from '../textures.js'
 import { createProjectile, createTurret } from './ability-helpers.js'
@@ -35,7 +35,7 @@ const Abilities = {
         speed: 800,
         lifetime: 2000,
         texture: Textures.particle.blaze,
-        damage: 25 + (source.stats[ItemAttributeType.FireDamage] || 0),
+        damage: 25 + (source.stats[ItemAttribute.FireDamage] || 0),
         damageType: DamageType.Fire,
         radius: 40
       })
@@ -55,7 +55,7 @@ const Abilities = {
         speed: 600,
         lifetime: 2000,
         texture: Textures.particle.cold,
-        damage: 25 + (source.stats[ItemAttributeType.ColdDamage] || 0),
+        damage: 25 + (source.stats[ItemAttribute.ColdDamage] || 0),
         damageType: DamageType.Cold,
         radius: 40,
         onHit: (projectile, hitEntity) => {
@@ -77,7 +77,7 @@ const Abilities = {
         speed: 2000,
         lifetime: 500,
         texture: Textures.particle.lightning,
-        damage: 25 + (source.stats[ItemAttributeType.LightningDamage] || 0),
+        damage: 25 + (source.stats[ItemAttribute.LightningDamage] || 0),
         damageType: DamageType.Lightning,
         radius: 40,
         onHit: (projectile, hitEntity) => {
@@ -95,8 +95,12 @@ const Abilities = {
     cooldown: 5000,
     color: 0x00cc00, // used for tinting turrets or pets
     onUse: (source, target, modifiers) => {
-      // Heal the source player for 50 HP
-      source.heal(50)
+
+      try {
+
+      } catch {
+        source.heal(50)
+      }
       console.log(`${source.label} healed for 50 HP (${source.currentHealth}/${source.maxHealth} HP)`)
       return false // No movement required for heal
     },

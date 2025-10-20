@@ -261,6 +261,8 @@ class ClientPrediction {
     // Update existing sprites and create new ones as needed
     for (let i = 0; i < history.length; i++) {
       const state = history[i]
+      if (state == null) continue
+      
       let sprite = trailSprites[i]
       if (!sprite) {
         // Create new trail sprite (small blue circle)

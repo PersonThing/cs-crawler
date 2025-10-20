@@ -209,6 +209,10 @@ export const Textures = {
     }
   },
   "object": {
+    "bush": "/assets/textures/object/bush.png",
+    "chest": "/assets/textures/object/chest.png",
+    "chestOpenCommon": "/assets/textures/object/chestOpenCommon.png",
+    "chestOpenRare": "/assets/textures/object/chestOpenRare.png",
     "dropped": {
       "axe": "/assets/textures/object/dropped/axe.png",
       "bow": "/assets/textures/object/dropped/bow.png",

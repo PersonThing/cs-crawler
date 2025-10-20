@@ -1,7 +1,7 @@
 import Item from '../item.js'
 import ItemType from '../item-type.js'
 import ItemQuality from '../item-quality.js'
-import ItemAttributeType from '../item-attribute-type.js'
+import ItemAttribute from '../item-attribute.js'
 import { Textures } from '#shared/config/textures.js'
 
 export const headItems = [
@@ -16,7 +16,7 @@ export const headItems = [
           inventoryTexture: Textures.inventory.head[textureKey],
           equippedTexture: Textures.item.head[textureKey],
           attributes: {
-            [ItemAttributeType.Defense]: 10,
+            [ItemAttribute.Defense]: 10,
           },
         })
     ),
@@ -29,7 +29,7 @@ export const headItems = [
     inventoryTexture: Textures.inventory.head.ornatehelm,
     equippedTexture: Textures.item.head.ornatehelm,
     attributes: {
-      [ItemAttributeType.Defense]: 20,
+      [ItemAttribute.Defense]: 20,
     },
   }),
 
@@ -41,9 +41,9 @@ export const headItems = [
     inventoryTexture: Textures.inventory.head.crown,
     equippedTexture: Textures.item.head.crown,
     attributes: {
-      [ItemAttributeType.Defense]: 15,
-      [ItemAttributeType.ColdResist]: 50,
-      [ItemAttributeType.ColdDamage]: 15,
+      [ItemAttribute.Defense]: 15,
+      [ItemAttribute.ColdResist]: 50,
+      [ItemAttribute.ColdDamage]: 15,
     },
   }),
 ]

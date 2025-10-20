@@ -9,6 +9,12 @@ class TurretSprite extends Container {
     
     this.initSprite()
     this.updateFromState()
+
+    DEBUG.subscribe(value => {
+      if (this.rangeIndicator) {
+        this.rangeIndicator.visible = value
+      }
+    })
   }
 
   initSprite() {
@@ -28,17 +34,16 @@ class TurretSprite extends Container {
     this.addChildAt(this.shadowSprite, 0)
 
     // Add range indicator in debug mode
-    if (DEBUG.get()) {
-      this.rangeIndicator = new Graphics()
-      this.rangeIndicator.circle(0, 0, this.state.range)
-      this.rangeIndicator.stroke({
-        width: 2,
-        color: this.state.color || 0xffffff,
-        alpha: 0.6,
-      })
-      this.rangeIndicator.stroke({ color: 0xffffff, width: 2, alpha: 0.3 })
-      this.addChild(this.rangeIndicator)
-    }
+    this.rangeIndicator = new Graphics()
+    this.rangeIndicator.circle(0, 0, this.state.range)
+    this.rangeIndicator.stroke({
+      width: 2,
+      color: this.state.color || 0xffffff,
+      alpha: 0.6,
+    })
+    this.rangeIndicator.stroke({ color: 0xffffff, width: 2, alpha: 0.3 })
+    this.addChild(this.rangeIndicator)
+    this.rangeIndicator.visible = DEBUG.get()
 
     // Set initial z-index
     this.zIndex = 2.5 // Between projectiles (2) and players (3)

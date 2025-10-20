@@ -12,15 +12,17 @@ const DefensiveAttributes = {
 const UtilityAttributes = {
   MovementSpeedPercent: 'MovementSpeedPercent',
   Vision: 'Vision',
+  HealingPower: 'HealingPower', // add flat amount to heals done
 }
 
 const OffensiveAttributes = {
   PercentDamage: 'PercentDamage', // multiply all damage types
-  PhysicalDamage: 'PhysicalDamage',
-  FireDamage: 'FireDamage',
-  ColdDamage: 'ColdDamage',
-  LightningDamage: 'LightningDamage',
-  PoisonDamage: 'PoisonDamage',
+
+  PhysicalDamage: 'PhysicalDamage', // add flat physical damage
+  FireDamage: 'FireDamage', // add flat fire damage
+  ColdDamage: 'ColdDamage', // add flat cold damage
+  LightningDamage: 'LightningDamage', // add flat lightning damage
+  PoisonDamage: 'PoisonDamage', // add flat poison damage
 
   AreaDamageRadius: 'AreaDamageRadius',
   AttackHitChance: 'AttackHitChance',
@@ -34,7 +36,6 @@ const OnHitAttributes = {
   LifePerHit: 'LifePerHit',
   Knockback: 'Knockback',
   Stun: 'Stun',
-
 }
 
 const AbilityAttributes = {
@@ -48,7 +49,7 @@ const AbilityAttributes = {
   MaxPets: 'MaxPets', // increases the max number of pets you can have out at a time
 }
 
-const ItemAttributeType = {
+const ItemAttribute = {
   ...DefensiveAttributes,
   ...UtilityAttributes,
   ...OffensiveAttributes,
@@ -64,4 +65,4 @@ export {
   AbilityAttributes
 }
 
-export default ItemAttributeType
+export default ItemAttribute

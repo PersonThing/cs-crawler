@@ -1,7 +1,7 @@
 import Item from '../item.js'
 import ItemType from '../item-type.js'
 import ItemQuality from '../item-quality.js'
-import ItemAttributeType from '../item-attribute-type.js'
+import ItemAttribute from '../item-attribute.js'
 import { Textures } from '#shared/config/textures.js'
 import ItemSet from './sets.js'
 
@@ -14,7 +14,7 @@ export const handsItems = [
         itemQuality: ItemQuality.Normal,
         inventoryTexture: Textures.inventory.hands[textureKey],
         attributes: {
-          [ItemAttributeType.Defense]: 5,
+          [ItemAttribute.Defense]: 5,
         },
       })
   ),
@@ -27,8 +27,8 @@ export const handsItems = [
     setId: ItemSet.Eebeeb.id,
     inventoryTexture: Textures.inventory.hands.platedgloves,
     attributes: {
-      [ItemAttributeType.Defense]: 25,
-      [ItemAttributeType.AttackSpeedPercent]: 50,
+      [ItemAttribute.Defense]: 25,
+      [ItemAttribute.AttackSpeedPercent]: 50,
     },
   }),
 ]
