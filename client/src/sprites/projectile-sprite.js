@@ -6,7 +6,7 @@ class ProjectileSprite extends Container {
     super()
 
     this.state = projectileData
-    
+
     this.initSprite()
     this.updateFromState()
   }

@@ -30,7 +30,7 @@ function updateProjectiles(deltaMS, players = [], pather = null) {
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const projectile = projectiles[i]
     const shouldContinue = projectile.tick(deltaMS, players, pather)
-    
+
     if (!shouldContinue) {
       projectiles.splice(i, 1)
     }
@@ -39,15 +39,13 @@ function updateProjectiles(deltaMS, players = [], pather = null) {
 
 // Helper function to get all active projectiles (for sending to clients)
 function getActiveProjectiles() {
-  return projectiles
-    .filter(p => p.active)
-    .map(p => p.serialize())
+  return projectiles.filter(p => p.active).map(p => p.serialize())
 }
 
 // Helper function to create turrets
 function createTurret(source, position, abilityId, abilityData, modifiers = []) {
   const maxTurrets = TurretState.getMaxTurrets(source)
-  
+
   // Remove oldest turret if at max capacity
   const ownerTurrets = turrets.filter(t => t.ownerId === source.id && t.active)
   if (ownerTurrets.length >= maxTurrets) {
@@ -76,24 +74,18 @@ function updateTurrets(deltaMS, players = []) {
 
 // Helper function to get all active turrets (for sending to clients)
 function getActiveTurrets() {
-  return turrets
-    .filter(t => t.active)
-    .map(t => t.serialize())
+  return turrets.filter(t => t.active).map(t => t.serialize())
 }
 
 // Helper function to get turret count for a specific player and ability
 function getTurretCount(playerId, abilityId = null) {
-  return turrets.filter(t => 
-    t.active && 
-    t.ownerId === playerId && 
-    (abilityId === null || t.abilityId === abilityId)
-  ).length
+  return turrets.filter(t => t.active && t.ownerId === playerId && (abilityId === null || t.abilityId === abilityId)).length
 }
 
 // Helper function to create pets
 function createPet(source, position, abilityId, abilityData, modifiers = []) {
   const maxPets = PetState.getMaxPets(source)
-  
+
   // Remove oldest pet if at max capacity
   const ownerPets = pets.filter(p => p.ownerId === source.id && p.active)
   if (ownerPets.length >= maxPets) {
@@ -122,18 +114,12 @@ function updatePets(deltaMS, players = []) {
 
 // Helper function to get all active pets (for sending to clients)
 function getActivePets() {
-  return pets
-    .filter(p => p.active)
-    .map(p => p.serialize())
+  return pets.filter(p => p.active).map(p => p.serialize())
 }
 
 // Helper function to get pet count for a specific player and ability
 function getPetCount(playerId, abilityId = null) {
-  return pets.filter(p => 
-    p.active && 
-    p.ownerId === playerId && 
-    (abilityId === null || p.abilityId === abilityId)
-  ).length
+  return pets.filter(p => p.active && p.ownerId === playerId && (abilityId === null || p.abilityId === abilityId)).length
 }
 
 export {

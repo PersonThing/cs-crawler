@@ -6,7 +6,6 @@ const DefensiveAttributes = {
   FireResist: 'FireResist',
   LightningResist: 'LightningResist',
   PoisonResist: 'PoisonResist',
-
 }
 
 const UtilityAttributes = {
@@ -57,12 +56,6 @@ const ItemAttribute = {
   ...AbilityAttributes,
 }
 
-export {
-  DefensiveAttributes,
-  UtilityAttributes,
-  OffensiveAttributes,
-  OnHitAttributes,
-  AbilityAttributes
-}
+export { DefensiveAttributes, UtilityAttributes, OffensiveAttributes, OnHitAttributes, AbilityAttributes }
 
 export default ItemAttribute

@@ -339,12 +339,12 @@ describe('Inventory', () => {
     inv.tryEquip(oneA, InventorySlot.MainHand.name)
     inv.tryEquip(oneB, InventorySlot.OffHand.name)
     inv.setBagSlot(0, oneC)
-    
+
     expect(inv.tryEquipFromBagSlot(0, true)).toBe(true)
     expect(inv.getEquippedSlot(InventorySlot.MainHand.name)).toBe(oneA)
     expect(inv.getEquippedSlot(InventorySlot.OffHand.name)).toBe(oneC)
     expect(inv.bags.includes(oneB)).toBe(true)
-    
+
     expect(inv.tryEquipFromBagSlot(0, false)).toBe(true)
     expect(inv.getEquippedSlot(InventorySlot.MainHand.name)).toBe(oneB)
     expect(inv.getEquippedSlot(InventorySlot.OffHand.name)).toBe(oneC)
@@ -357,7 +357,7 @@ describe('Inventory', () => {
     const slot = inv.getValidSlotNamesForItem(item)[0]
     inv.tryEquip(item, slot)
     expect(inv.sequence).not.toBe(initialSequence)
-    
+
     const afterEquipSequence = inv.sequence
     fillBags()
     expect(inv.sequence).not.toBe(afterEquipSequence)

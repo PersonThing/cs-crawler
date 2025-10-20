@@ -1,18 +1,7 @@
 import EntityState from './entity-state.js'
 
 export default class PlayerState extends EntityState {
-  constructor({
-    playerId,
-    socketId,
-    username,
-    color,
-    targetItem,
-    inventory,
-    pather,
-    x = 0,
-    y = 0,
-    actionBarConfig = null,
-  }) {
+  constructor({ playerId, socketId, username, color, targetItem, inventory, pather, x = 0, y = 0, actionBarConfig = null }) {
     super({
       id: playerId,
       label: username,
@@ -27,10 +16,14 @@ export default class PlayerState extends EntityState {
     this.playerId = playerId
     this.socketId = socketId
     this.username = username
-    this.actionBarConfig = actionBarConfig || Array(6).fill(null).map(() => ({
-      abilityId: null,
-      modifiers: []
-    }))
+    this.actionBarConfig =
+      actionBarConfig ||
+      Array(6)
+        .fill(null)
+        .map(() => ({
+          abilityId: null,
+          modifiers: [],
+        }))
   }
 
   serialize() {

@@ -4,7 +4,7 @@ class LevelGenerationManager {
   constructor() {
     this.level = null
     this.pather = null
-    
+
     // Level generation state management
     this.levelGenerationInProgress = false
     this.levelGenerationRequestedBy = null
@@ -28,29 +28,29 @@ class LevelGenerationManager {
   requestLevelGeneration(playerId, socket, initCallback) {
     // Add this player to the pending list
     this.pendingPlayerInitializations.push({ playerId, socket, initCallback })
-    
+
     // If generation is already in progress, just wait
     if (this.levelGenerationInProgress) {
       console.log(`Player ${playerId} waiting for level generation in progress by ${this.levelGenerationRequestedBy}`)
       return
     }
-    
+
     // Start level generation process
     this.levelGenerationInProgress = true
     this.levelGenerationRequestedBy = playerId
     console.log(`Requesting level generation from player ${playerId}`)
-    
+
     // Set timeout to try next player if this one fails
     this.levelGenerationTimeout = setTimeout(() => {
       console.log(`Level generation timeout for player ${this.levelGenerationRequestedBy}, trying next player`)
       this.levelGenerationInProgress = false
       this.levelGenerationRequestedBy = null
-      
+
       // Remove the failed player from pending list and try the next one
       this.pendingPlayerInitializations = this.pendingPlayerInitializations.filter(p => p.playerId !== playerId)
       this.tryNextLevelGeneration()
     }, this.LEVEL_GENERATION_TIMEOUT_MS)
-    
+
     socket.emit('requestLevel')
   }
 
@@ -58,7 +58,7 @@ class LevelGenerationManager {
     if (this.level != null || this.levelGenerationInProgress || this.pendingPlayerInitializations.length === 0) {
       return
     }
-    
+
     // Get the next player in line
     const nextPlayer = this.pendingPlayerInitializations[0]
     if (nextPlayer) {
@@ -72,25 +72,25 @@ class LevelGenerationManager {
       console.log(`Ignoring level from player ${expectedPlayerId}, expecting from ${this.levelGenerationRequestedBy}`)
       return false
     }
-    
+
     // Clear timeout and reset state
     if (this.levelGenerationTimeout) {
       clearTimeout(this.levelGenerationTimeout)
       this.levelGenerationTimeout = null
     }
-    
+
     this.level = levelConfig
     this.pather = new Pather(this.level)
     this.levelGenerationInProgress = false
     const generatedBy = this.levelGenerationRequestedBy
     this.levelGenerationRequestedBy = null
-    
+
     console.log(`Level generated successfully by player ${generatedBy}`)
-    
+
     // Initialize all pending players
     const playersToInit = [...this.pendingPlayerInitializations]
     this.pendingPlayerInitializations = []
-    
+
     for (const { initCallback } of playersToInit) {
       try {
         await initCallback()
@@ -98,7 +98,7 @@ class LevelGenerationManager {
         console.error('Error initializing player after level generation:', error)
       }
     }
-    
+
     return true
   }
 
@@ -112,7 +112,7 @@ class LevelGenerationManager {
       }
       this.levelGenerationInProgress = false
       this.levelGenerationRequestedBy = null
-      
+
       // Remove this player from pending list and try next
       this.pendingPlayerInitializations = this.pendingPlayerInitializations.filter(p => p.playerId !== playerId)
       this.tryNextLevelGeneration()

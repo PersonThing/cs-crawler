@@ -1,5 +1,4 @@
 import { Container } from 'pixi.js'
-import { DEBUG, MINIMAP_HEIGHT, HUD_PLAYERS_WIDTH } from '#shared/config/constants.js'
 import InventoryHud from './inventory-hud.js'
 import screenSizeStore from '../../stores/screen-size-store.js'
 import CharacterHud from './character-hud.js'
@@ -15,7 +14,7 @@ class Hud extends Container {
     super()
 
     this.eventMode = 'static'
-    
+
     this.minimap = new Minimap(levelConfig, false)
     this.addChild(this.minimap)
 
@@ -40,7 +39,7 @@ class Hud extends Container {
 
     this.actionBar = new ActionBarHud(app, this)
     this.addChild(this.actionBar)
-    
+
     screenSizeStore.subscribe(({ width, height }) => {
       // minimap aligned to top right
       this.minimap.x = width - this.minimap.width / 2 - 10
@@ -82,17 +81,17 @@ class Hud extends Container {
     this.inventory.visible = false
     this.character.visible = false
     this.help.visible = false
-    
+
     // Reset players position when help is closed
     this.players.x = 0
-    
+
     // Close ability selection menu if open
     if (this.actionBar && this.actionBar.abilityMenu) {
       this.actionBar.closeAbilityMenu()
     }
   }
 
-  tick(time) {
+  tick() {
     this.minimap.tick()
     this.inventory.tick()
     this.actionBar.tick()

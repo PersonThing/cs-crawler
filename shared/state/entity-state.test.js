@@ -8,26 +8,26 @@ import { Abilities } from '#shared/config/abilities/abilities.js'
 vi.mock('./inventory.js')
 vi.mock('../utils/inventory-stat-calculator.js', () => ({
   default: {
-    calculateStats: vi.fn(() => ({}))
-  }
+    calculateStats: vi.fn(() => ({})),
+  },
 }))
 
 describe('EntityState', () => {
   let mockPather
   let entity = new EntityState({}) // just for intellisense
-  
+
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks()
-    
+
     // Mock pather
     mockPather = {
       findPath: vi.fn(() => [
         { x: 50, y: 50 },
-        { x: 100, y: 100 }
-      ])
+        { x: 100, y: 100 },
+      ]),
     }
-    
+
     // Create entity instance
     entity = new EntityState({
       id: 'test-entity',
@@ -35,7 +35,7 @@ describe('EntityState', () => {
       pather: mockPather,
       color: '#FF0000',
       x: 0,
-      y: 0
+      y: 0,
     })
   })
 
@@ -61,9 +61,9 @@ describe('EntityState', () => {
         label: 'Custom',
         pather: mockPather,
         x: 100,
-        y: 200
+        y: 200,
       })
-      
+
       expect(customEntity.x).toBe(100)
       expect(customEntity.y).toBe(200)
     })
@@ -76,12 +76,12 @@ describe('EntityState', () => {
       entity.target = { x: 30, y: 40 }
       entity.rotation = Math.PI / 2
       entity.targetItem = { item: { id: 'test-item' } }
-      
+
       const mockInventoryData = { sequence: 1, bags: [] }
       entity.inventory.serialize = vi.fn(() => mockInventoryData)
-      
+
       const serialized = entity.serialize()
-      
+
       expect(serialized).toEqual({
         id: 'test-entity',
         label: 'Test Entity',
@@ -97,7 +97,7 @@ describe('EntityState', () => {
         currentHealth: 100,
         maxHealth: 100,
         targetItem: { item: { id: 'test-item' } },
-        inventory: mockInventoryData
+        inventory: mockInventoryData,
       })
     })
   })
@@ -107,17 +107,17 @@ describe('EntityState', () => {
       const mockInventoryData = { sequence: 2, bags: ['item1'] }
       entity.inventory.deserialize = vi.fn()
       entity.computeStats = vi.fn()
-      
+
       const data = {
         x: 50,
         y: 100,
         rotation: Math.PI,
         isAttacking: true,
-        inventory: mockInventoryData
+        inventory: mockInventoryData,
       }
-      
+
       entity.deserialize(data)
-      
+
       expect(entity.x).toBe(50)
       expect(entity.y).toBe(100)
       expect(entity.rotation).toBe(Math.PI)
@@ -128,10 +128,10 @@ describe('EntityState', () => {
 
     it('should handle data without inventory', () => {
       entity.computeStats = vi.fn()
-      
+
       const data = { x: 25, y: 75 }
       entity.deserialize(data)
-      
+
       expect(entity.x).toBe(25)
       expect(entity.y).toBe(75)
       // expect(entity.computeStats).toHaveBeenCalled()
@@ -141,7 +141,7 @@ describe('EntityState', () => {
   describe('setPosition', () => {
     it('should set valid position coordinates', () => {
       entity.setPosition(100, 200)
-      
+
       expect(entity.x).toBe(100)
       expect(entity.y).toBe(200)
     })
@@ -150,16 +150,16 @@ describe('EntityState', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const originalX = entity.x
       const originalY = entity.y
-      
+
       entity.setPosition(NaN, 100)
       expect(entity.x).toBe(originalX)
       expect(entity.y).toBe(originalY)
       expect(consoleSpy).toHaveBeenCalled()
-      
+
       entity.setPosition(100, 'invalid')
       expect(entity.x).toBe(originalX)
       expect(entity.y).toBe(originalY)
-      
+
       consoleSpy.mockRestore()
     })
   })
@@ -167,15 +167,15 @@ describe('EntityState', () => {
   describe('rotateToward', () => {
     it('should calculate correct rotation angle', () => {
       entity.setPosition(0, 0)
-      
+
       // Target to the right (east)
       entity.rotateToward({ x: 100, y: 0 })
       expect(entity.rotation).toBeCloseTo(Math.PI / 2) // 90 degrees
-      
+
       // Target above (north)
       entity.rotateToward({ x: 0, y: -100 })
       expect(entity.rotation).toBeCloseTo(0) // 0 degrees
-      
+
       // Target to the left (west)
       entity.rotateToward({ x: -100, y: 0 })
       expect(entity.rotation).toBeCloseTo(Math.PI * 1.5) // 270 degrees (or -90)
@@ -199,7 +199,7 @@ describe('EntityState', () => {
     it('should set target and find path', () => {
       const target = { x: 100, y: 100 }
       entity.setTarget(target)
-      
+
       expect(entity.target).toEqual(target)
       expect(mockPather.findPath).toHaveBeenCalledWith({ x: 0, y: 0 }, target)
       expect(entity.tempTarget).toEqual({ x: 50, y: 50 }) // First path point
@@ -216,14 +216,14 @@ describe('EntityState', () => {
       const target = { x: 100, y: 100 }
       entity.target = target
       entity.setTarget(target)
-      
+
       expect(mockPather.findPath).not.toHaveBeenCalled()
     })
 
     it('should not set target if same as current position', () => {
       entity.setPosition(50, 50)
       entity.setTarget({ x: 50, y: 50 })
-      
+
       expect(entity.target).toBeNull()
       expect(mockPather.findPath).not.toHaveBeenCalled()
     })
@@ -233,18 +233,21 @@ describe('EntityState', () => {
     it('should move toward tempTarget when available', () => {
       entity.tempTarget = { x: 100, y: 0 }
       entity.setPosition(0, 0)
-      
+
       // Move for 100ms at 500 pixels/second = 50 pixels
       entity.moveTowardTarget(100)
-      
+
       expect(entity.x).toBe(50)
       expect(entity.y).toBe(0)
     })
 
     it('should set tempTarget from path if none exists', () => {
-      entity.path = [{ x: 50, y: 50 }, { x: 100, y: 100 }]
+      entity.path = [
+        { x: 50, y: 50 },
+        { x: 100, y: 100 },
+      ]
       entity.tempTarget = null
-      
+
       entity.moveTowardTarget(100)
       expect(entity.tempTarget).toEqual({ x: 50, y: 50 })
       expect(entity.path.length).toEqual(1)
@@ -258,10 +261,10 @@ describe('EntityState', () => {
       entity.setPosition(0, 0)
       entity.tempTarget = { x: 50, y: 0 }
       entity.path = [{ x: 100, y: 0 }]
-      
+
       // Move for 200ms at 500 pixels/second = 100 pixels (more than distance to tempTarget)
       entity.moveTowardTarget(200)
-      
+
       expect(entity.x).toBe(100) // Should reach the next target
       expect(entity.y).toBe(0)
       expect(entity.tempTarget).toBeNull() // Path should be empty
@@ -271,9 +274,9 @@ describe('EntityState', () => {
       entity.setPosition(50, 50)
       entity.tempTarget = null
       entity.path = []
-      
+
       entity.moveTowardTarget(100)
-      
+
       expect(entity.x).toBe(50)
       expect(entity.y).toBe(50)
     })
@@ -283,7 +286,7 @@ describe('EntityState', () => {
     it('should set attacking state and target', () => {
       const attackTarget = { x: 50, y: 50 }
       entity.attack(attackTarget)
-      
+
       expect(entity.isAttacking).toBe(true)
       expect(entity.attackTarget).toEqual(attackTarget)
     })
@@ -293,9 +296,9 @@ describe('EntityState', () => {
     it('should clear attacking state and target', () => {
       entity.isAttacking = true
       entity.attackTarget = { x: 50, y: 50 }
-      
+
       entity.stopAttacking()
-      
+
       expect(entity.isAttacking).toBe(false)
       expect(entity.attackTarget).toBeNull()
     })
@@ -305,7 +308,7 @@ describe('EntityState', () => {
     it('should set target item', () => {
       const groundItem = { item: { id: 'test-item' } }
       entity.setTargetItem(groundItem)
-      
+
       expect(entity.targetItem).toEqual(groundItem)
     })
   })
@@ -314,9 +317,9 @@ describe('EntityState', () => {
     it('should call moveTowardTarget with deltaMS', () => {
       entity.moveTowardTarget = vi.fn()
       const time = { deltaMS: 16 }
-      
+
       entity.tick(time, [])
-      
+
       expect(entity.moveTowardTarget).toHaveBeenCalledWith(16)
     })
 
@@ -324,9 +327,9 @@ describe('EntityState', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
       entity.targetItem = { item: { id: 'missing-item' } }
       const groundItems = [{ item: { id: 'other-item' } }]
-      
+
       entity.tick({ deltaMS: 16 }, groundItems)
-      
+
       expect(entity.targetItem).toBeNull()
       expect(consoleSpy).toHaveBeenCalledWith('targetItem no longer exists on ground, clearing')
       consoleSpy.mockRestore()
@@ -336,16 +339,16 @@ describe('EntityState', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
       const targetItem = {
         item: { id: 'pickup-item', name: 'Test Item' },
-        position: { x: BLOCK_SIZE, y: 0 } // Within pickup range
+        position: { x: BLOCK_SIZE, y: 0 }, // Within pickup range
       }
       entity.targetItem = targetItem
       entity.setPosition(0, 0)
       entity.inventory.pickup = vi.fn(() => true)
-      
+
       const groundItems = [targetItem]
-      
+
       entity.tick({ deltaMS: 16 }, groundItems)
-      
+
       expect(entity.inventory.pickup).toHaveBeenCalledWith(targetItem.item)
       expect(groundItems).toHaveLength(0) // Item should be removed
       expect(entity.targetItem).toBeNull()
@@ -356,16 +359,16 @@ describe('EntityState', () => {
     it('should not pick up item when too far away', () => {
       const targetItem = {
         item: { id: 'far-item' },
-        position: { x: BLOCK_SIZE * 5, y: 0 } // Too far
+        position: { x: BLOCK_SIZE * 5, y: 0 }, // Too far
       }
       entity.targetItem = targetItem
       entity.setPosition(0, 0)
       entity.inventory.pickup = vi.fn(() => true)
-      
+
       const groundItems = [targetItem]
-      
+
       entity.tick({ deltaMS: 16 }, groundItems)
-      
+
       expect(entity.inventory.pickup).not.toHaveBeenCalled()
       expect(groundItems).toHaveLength(1) // Item should remain
       expect(entity.targetItem).toBe(targetItem)
@@ -374,16 +377,16 @@ describe('EntityState', () => {
     it('should not pick up item when inventory is full', () => {
       const targetItem = {
         item: { id: 'full-item' },
-        position: { x: BLOCK_SIZE, y: 0 }
+        position: { x: BLOCK_SIZE, y: 0 },
       }
       entity.targetItem = targetItem
       entity.setPosition(0, 0)
       entity.inventory.pickup = vi.fn(() => false) // Inventory full
-      
+
       const groundItems = [targetItem]
-      
+
       entity.tick({ deltaMS: 16 }, groundItems)
-      
+
       expect(entity.inventory.pickup).toHaveBeenCalledWith(targetItem.item)
       expect(groundItems).toHaveLength(1) // Item should remain
       expect(entity.targetItem).toBe(targetItem) // Target should remain
@@ -395,9 +398,9 @@ describe('EntityState', () => {
       entity.inventory.equippedSequence = 5
       entity.computedEquippedSequence = 5
       const originalStats = entity.stats
-      
+
       entity.computeStats()
-      
+
       expect(entity.stats).toBe(originalStats)
     })
 
@@ -405,12 +408,12 @@ describe('EntityState', () => {
       const InventoryStatCalculator = (await import('../utils/inventory-stat-calculator.js')).default
       const mockStats = { strength: 10, agility: 5 }
       InventoryStatCalculator.calculateStats.mockReturnValue(mockStats)
-      
+
       entity.inventory.equippedSequence = 10
       entity.computedEquippedSequence = 5
-      
+
       entity.computeStats()
-      
+
       expect(entity.stats).toEqual(mockStats)
       expect(entity.computedEquippedSequence).toBe(10)
       expect(InventoryStatCalculator.calculateStats).toHaveBeenCalledWith(entity.inventory.equipped)
@@ -425,7 +428,7 @@ describe('EntityState', () => {
     it('should return true for abilities with positive stats', () => {
       entity.stats = { 'some-ability': 1 }
       entity.computeStats = vi.fn()
-      
+
       expect(entity.hasAbilityUnlocked('some-ability')).toBe(true)
       expect(entity.computeStats).toHaveBeenCalled()
     })
@@ -433,7 +436,7 @@ describe('EntityState', () => {
     it('should return false for abilities with zero or no stats', () => {
       entity.stats = { 'some-ability': 0 }
       entity.computeStats = vi.fn()
-      
+
       expect(entity.hasAbilityUnlocked('some-ability')).toBe(false)
       expect(entity.hasAbilityUnlocked('non-existent-ability')).toBe(false)
     })
@@ -443,9 +446,9 @@ describe('EntityState', () => {
     it('should deserialize inventory, which should compute stats indirectly', () => {
       const inventoryData = { sequence: 5, bags: [] }
       entity.computeStats = vi.fn()
-      
+
       entity.setInventory(inventoryData)
-      
+
       expect(entity.inventory.deserialize).toHaveBeenCalledWith(inventoryData)
       // expect(entity.computeStats).toHaveBeenCalled() // computeStats called via Inventory callback
     })

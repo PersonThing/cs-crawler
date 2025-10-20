@@ -1,5 +1,5 @@
-import { Graphics, Container, Text } from 'pixi.js'
-import { HUD_BORDER_COLOR, HUD_FILL_COLOR, HUD_PLAYERS_WIDTH, LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '#shared/config/constants.js'
+import { Container, Text } from 'pixi.js'
+import { HUD_PLAYERS_WIDTH, LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '#shared/config/constants.js'
 import { renderHealthBar, createHealthBarGraphics } from '../../utils/health-bar-renderer.js'
 import playerSpriteStore from '../../stores/player-sprite-store.js'
 

@@ -1,11 +1,11 @@
 import { Assets } from 'pixi.js'
 import { Textures } from '#shared/config/textures.js'
 
-const preloadTextures = (textures) => {
+const preloadTextures = textures => {
   if (textures == null) {
     textures = Textures
   }
-  const promises = Object.keys(textures).map((key) => {
+  const promises = Object.keys(textures).map(key => {
     if (typeof textures[key] === 'object' && textures[key] != null) {
       return preloadTextures(textures[key])
     }

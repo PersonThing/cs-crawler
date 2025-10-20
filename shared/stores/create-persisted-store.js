@@ -8,9 +8,9 @@ export default function createPersistedStore(key, initialValue, validator) {
   // on server, just use plain store, local storage not necessary
   // we could consider persisting to db or json file here instead
   if (typeof localStorage === 'undefined') {
-    return store;
+    return store
   }
-  
+
   // load from local storage
   const saved = localStorage.getItem(key)
   if (saved) {

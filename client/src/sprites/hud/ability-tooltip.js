@@ -3,10 +3,10 @@ import { Container, Graphics, Text } from 'pixi.js'
 class AbilityTooltip extends Container {
   constructor() {
     super()
-    
+
     // Prevent tooltip from interfering with mouse events
     this.eventMode = 'none'
-    
+
     this.background = new Graphics()
     this.nameText = new Text({
       text: '',
@@ -14,10 +14,10 @@ class AbilityTooltip extends Container {
         fontFamily: 'Arial',
         fontSize: 14,
         fill: 0xffffff,
-        fontWeight: 'bold'
-      }
+        fontWeight: 'bold',
+      },
     })
-    
+
     this.descriptionText = new Text({
       text: '',
       style: {
@@ -25,21 +25,21 @@ class AbilityTooltip extends Container {
         fontSize: 12,
         fill: 0xcccccc,
         wordWrap: true,
-        wordWrapWidth: 200
-      }
+        wordWrapWidth: 200,
+      },
     })
 
     // Container for modifier lines (Text objects)
     this.modifierTexts = []
-    
+
     this.addChild(this.background)
     this.addChild(this.nameText)
     this.addChild(this.descriptionText)
-    
+
     this.visible = false
     this.zIndex = 1000 // Ensure tooltip appears on top
   }
-  
+
   show(ability, x, y, modifierInfo = []) {
     if (!ability) return
 
@@ -73,8 +73,8 @@ class AbilityTooltip extends Container {
           fontFamily: 'Arial',
           fontSize: 12,
           fill: 0xffffff,
-          fontWeight: 'bold'
-        }
+          fontWeight: 'bold',
+        },
       })
       header.x = padding
       header.y = currentY
@@ -89,7 +89,7 @@ class AbilityTooltip extends Container {
             fontFamily: 'Arial',
             fontSize: 12,
             fill: mod.locked ? 0x666666 : 0x00ff00,
-          }
+          },
         })
         line.x = padding + 4
         line.y = currentY
@@ -106,10 +106,7 @@ class AbilityTooltip extends Container {
 
     // Redraw background
     this.background.clear()
-    this.background
-      .rect(0, 0, width, height)
-      .fill(0x000000, 0.9)
-      .stroke({ color: 0x666666, width: 1 })
+    this.background.rect(0, 0, width, height).fill(0x000000, 0.9).stroke({ color: 0x666666, width: 1 })
 
     // Position tooltip
     this.x = x
@@ -117,7 +114,7 @@ class AbilityTooltip extends Container {
 
     this.visible = true
   }
-  
+
   hide() {
     this.visible = false
   }

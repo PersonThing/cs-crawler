@@ -5,44 +5,43 @@ import AbilityTooltip from './ability-tooltip.js'
 const SLOT_SIZE = 48
 const KEY_LABELS = ['Shift\nLClick', 'RClick', 'Q', 'W', 'E', 'R']
 const BORDER_COLOR = 0x666666
-const BORDER_COLOR_LOCKED = 0x444444
 const FILL_COLOR = 0x222222
 const FILL_COLOR_LOCKED = 0x111111
 
 class ActionBarSlot extends Container {
   constructor(index, config, tooltipContainer = null) {
     super()
-    
+
     this.index = index
     this.config = config || { abilityId: null, modifiers: [] }
     this.unlockedAbilities = []
     this.unlockedModifiers = []
     this.tooltipContainer = tooltipContainer
-    
+
     this.eventMode = 'static'
     this.cursor = 'pointer'
     this.sortableChildren = true // Enable z-index sorting
-    
+
     // Create tooltip instance if we have a container to add it to
     if (this.tooltipContainer) {
       this.tooltip = new AbilityTooltip()
       this.tooltipContainer.addChild(this.tooltip)
     }
-    
+
     this.renderBackground()
     this.renderContent()
     this.renderCooldownOverlay()
     this.setupEvents()
   }
-  
+
   renderBackground() {
     if (this.bg) {
       this.removeChild(this.bg)
       this.bg.destroy()
     }
-    
+
     const isLocked = this.config.abilityId && !this.unlockedAbilities.includes(this.config.abilityId)
-    
+
     this.bg = new Graphics()
       .rect(0, 0, SLOT_SIZE, SLOT_SIZE)
       .fill(isLocked ? FILL_COLOR_LOCKED : FILL_COLOR)
@@ -50,31 +49,31 @@ class ActionBarSlot extends Container {
         color: BORDER_COLOR,
         width: 2,
       })
-    
+
     this.addChild(this.bg)
   }
-  
+
   renderContent() {
     // Clear existing content
     if (this.contentContainer) {
       this.removeChild(this.contentContainer)
       this.contentContainer.destroy()
     }
-    
+
     this.contentContainer = new Container()
     this.contentContainer.eventMode = 'none' // Prevent child events from interfering
     this.addChild(this.contentContainer)
-    
+
     if (!this.config.abilityId) {
       this.renderEmptySlot()
       return
     }
-    
+
     const ability = Abilities[this.config.abilityId]
     if (!ability) return
-    
+
     const isLocked = !this.unlockedAbilities.includes(this.config.abilityId)
-    
+
     // Render ability icon
     if (ability.icon) {
       const icon = Sprite.from(ability.icon)
@@ -82,7 +81,7 @@ class ActionBarSlot extends Container {
       icon.height = SLOT_SIZE - 8
       icon.x = 4
       icon.y = 4
-      
+
       // Desaturate and dim locked abilities
       if (isLocked) {
         icon.alpha = 0.3
@@ -91,24 +90,24 @@ class ActionBarSlot extends Container {
         icon.alpha = 1.0
         icon.tint = 0xffffff
       }
-      
+
       this.contentContainer.addChild(icon)
     }
-    
+
     // Render modifier indicators
     if (this.config.modifiers.length > 0) {
       this.renderModifierIndicators(isLocked)
     }
-    
+
     // Render keybind label
     this.renderKeybind()
   }
-  
+
   renderEmptySlot() {
     // Show keybind label in bottom right (same as filled slots)
     this.renderKeybind()
   }
-  
+
   renderModifierIndicators(abilityLocked) {
     // Remove any previous modifier label container if exists
     if (this.modifierLabelContainer) {
@@ -143,7 +142,7 @@ class ActionBarSlot extends Container {
           fontFamily: 'Arial',
           fontSize: 9,
           fill: isModifierLocked ? 0x555555 : 0xeeeeee,
-        }
+        },
       })
 
       // If too wide, truncate with ellipsis (single char) until fits
@@ -158,7 +157,7 @@ class ActionBarSlot extends Container {
       this.modifierLabelContainer.addChild(text)
     })
   }
-  
+
   renderKeybind() {
     // Show keybind label in bottom right
     const text = new Text({
@@ -169,12 +168,12 @@ class ActionBarSlot extends Container {
         fill: 0x999999,
         fontWeight: 'bold',
         textAlign: 'right',
-      }
+      },
     })
-    
-    text.x = 2//SLOT_SIZE - text.width - 2
+
+    text.x = 2 //SLOT_SIZE - text.width - 2
     text.y = SLOT_SIZE - text.height - 2
-    
+
     this.contentContainer.addChild(text)
   }
 
@@ -188,7 +187,7 @@ class ActionBarSlot extends Container {
     this.cooldownOverlay.alpha = 0.7
     this.cooldownOverlay.visible = false
     this.cooldownOverlay.zIndex = 1000 // Make sure it's on top
-    
+
     // Create a square mask to clip the circle to slot boundaries
     const mask = new Graphics()
     mask.rect(2, 2, SLOT_SIZE - 4, SLOT_SIZE - 4) // Account for 2px border
@@ -213,9 +212,9 @@ class ActionBarSlot extends Container {
           color: 0x000000,
           blur: 2,
           alpha: 0.8,
-          distance: 0
-        }
-      }
+          distance: 0,
+        },
+      },
     })
     this.cooldownText.alpha = 1
     this.cooldownText.anchor.set(0.5)
@@ -242,9 +241,9 @@ class ActionBarSlot extends Container {
           color: 0x000000,
           blur: 2,
           alpha: 0.8,
-          distance: 1
-        }
-      }
+          distance: 1,
+        },
+      },
     })
     this.entityCountText.anchor.set(1, 0) // Top-right anchor
     this.entityCountText.x = SLOT_SIZE - 2
@@ -253,27 +252,31 @@ class ActionBarSlot extends Container {
     this.entityCountText.zIndex = 1002 // Above everything
     this.addChild(this.entityCountText)
   }
-  
+
   setupEvents() {
     // Helper to stop all events from propagating
-    const stopEvent = (event) => {
+    const stopEvent = event => {
       event.stopPropagation()
       event.preventDefault()
       return false
     }
-    
-    this.on('pointerdown', (event) => {
+
+    this.on('pointerdown', event => {
       stopEvent(event)
-      
-      if (event.button === 0) { // Left click
-        if (event.shiftKey) { // Shift + Left click - clear binding
+
+      if (event.button === 0) {
+        // Left click
+        if (event.shiftKey) {
+          // Shift + Left click - clear binding
           this.emit('clear')
         } else {
           this.emit('click')
         }
-      } else if (event.button === 1) { // Middle click - clear binding
+      } else if (event.button === 1) {
+        // Middle click - clear binding
         this.emit('clear')
-      } else if (event.button === 2) { // Right click
+      } else if (event.button === 2) {
+        // Right click
         this.emit('rightclick')
       }
     })
@@ -284,57 +287,59 @@ class ActionBarSlot extends Container {
       this.hideTooltip()
     })
   }
-  
+
   showTooltip() {
     if (!this.tooltip || !this.config.abilityId) return
-    
+
     const ability = Abilities[this.config.abilityId]
     if (!ability) return
-    
+
     // Get global position of this slot
     const globalPos = this.toGlobal({ x: 0, y: 0 })
-    
+
     // Build modifier info list (preserve locked modifiers but grey them)
-    const modifierInfo = (this.config.modifiers || []).map(modId => {
-      const mod = AbilityModifiers[modId]
-      if (!mod) return null
-      const locked = !this.unlockedModifiers.includes(modId) || !this.unlockedAbilities.includes(this.config.abilityId)
-      return { id: modId, name: mod.name || modId, locked }
-    }).filter(Boolean)
-    
+    const modifierInfo = (this.config.modifiers || [])
+      .map(modId => {
+        const mod = AbilityModifiers[modId]
+        if (!mod) return null
+        const locked = !this.unlockedModifiers.includes(modId) || !this.unlockedAbilities.includes(this.config.abilityId)
+        return { id: modId, name: mod.name || modId, locked }
+      })
+      .filter(Boolean)
+
     // Show tooltip positioned relative to this slot including modifiers
     this.tooltip.show(ability, globalPos.x, globalPos.y, modifierInfo)
   }
-  
+
   hideTooltip() {
     if (this.tooltip) {
       this.tooltip.hide()
     }
   }
-  
+
   updateConfig(newConfig) {
     this.config = newConfig
     this.renderBackground() // This should preserve highlight state via this.isHighlighted
     this.renderContent()
     this.renderCooldownOverlay()
   }
-  
+
   updateUnlockedState(unlockedAbilities, unlockedModifiers) {
     // Only re-render if the unlocked state actually changed
     const abilitiesChanged = JSON.stringify(this.unlockedAbilities) !== JSON.stringify(unlockedAbilities)
     const modifiersChanged = JSON.stringify(this.unlockedModifiers) !== JSON.stringify(unlockedModifiers)
-    
+
     if (!abilitiesChanged && !modifiersChanged) {
       return // No change, skip re-rendering
     }
-    
+
     this.unlockedAbilities = unlockedAbilities
     this.unlockedModifiers = unlockedModifiers
     this.renderBackground()
     this.renderContent()
     this.renderCooldownOverlay()
   }
-  
+
   tick(playerState) {
     if (!this.config.abilityId || !playerState) {
       this.cooldownOverlay.visible = false
@@ -349,8 +354,7 @@ class ActionBarSlot extends Container {
       return
     }
 
-    const cooldownRemaining = playerState.getAbilityCooldownRemaining ? 
-      playerState.getAbilityCooldownRemaining(this.config.abilityId) : 0
+    const cooldownRemaining = playerState.getAbilityCooldownRemaining ? playerState.getAbilityCooldownRemaining(this.config.abilityId) : 0
 
     if (cooldownRemaining > 0) {
       // Show cooldown overlay
@@ -360,15 +364,15 @@ class ActionBarSlot extends Container {
       // Update overlay graphics (radial fill based on remaining cooldown)
       const totalCooldown = ability.cooldown
       const progress = cooldownRemaining / totalCooldown
-      
+
       this.cooldownOverlay.clear()
-      
+
       // Draw remaining cooldown as a radial fill covering the whole square
       if (progress > 0) {
         const centerX = SLOT_SIZE / 2
         const centerY = SLOT_SIZE / 2
         const startAngle = -Math.PI / 2 // Start at top
-        const endAngle = startAngle + (2 * Math.PI * progress)
+        const endAngle = startAngle + 2 * Math.PI * progress
         const radius = SLOT_SIZE // Large enough to cover the entire square
 
         // Draw a large circle and let the square boundaries mask it
@@ -390,18 +394,18 @@ class ActionBarSlot extends Container {
     // Show entity count if this ability has Turret or Pet modifier
     const hasTurretModifier = this.config.modifiers && this.config.modifiers.includes(AbilityModifiers.Turret.id)
     const hasPetModifier = this.config.modifiers && this.config.modifiers.includes(AbilityModifiers.Pet.id)
-    
+
     if ((hasTurretModifier || hasPetModifier) && playerState) {
       let entityCount = 0
-      
+
       if (hasTurretModifier && playerState.turretCounts) {
         entityCount += playerState.turretCounts[this.config.abilityId] || 0
       }
-      
+
       if (hasPetModifier && playerState.petCounts) {
         entityCount += playerState.petCounts[this.config.abilityId] || 0
       }
-      
+
       if (entityCount > 0) {
         this.entityCountText.text = entityCount.toString()
         this.entityCountText.visible = true
@@ -412,7 +416,7 @@ class ActionBarSlot extends Container {
       this.entityCountText.visible = false
     }
   }
-  
+
   destroy() {
     if (this.tooltip) {
       this.tooltip.destroy()

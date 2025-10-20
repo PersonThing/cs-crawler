@@ -1,4 +1,3 @@
-import { v8_0_0 } from 'pixi.js'
 import soundManager from './sound-manager.js'
 import { Sounds } from '#shared/config/sounds.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
@@ -60,13 +59,13 @@ class InventorySoundMonitor {
     // Check if items were added to bags (pickup from ground or moving around)
     const currentBagItemIds = currentBagItems.filter(item => item != null).map(item => item.id)
     const lastBagItemIds = this.lastBagItems.filter(item => item != null).map(item => item.id)
-    
+
     // Check for new items in bags (pickup or moving)
     const newItemsInBags = currentBagItemIds.filter(id => !lastBagItemIds.includes(id))
-    
+
     // Check if cursor changed (picking up or putting down)
-    const cursorChanged = (currentCursor && !this.lastCursor) || 
-                         (currentCursor && this.lastCursor && currentCursor.id !== this.lastCursor.id)
+    const cursorChanged =
+      (currentCursor && !this.lastCursor) || (currentCursor && this.lastCursor && currentCursor.id !== this.lastCursor.id)
 
     if (newItemsInBags.length > 0 || cursorChanged) {
       itemWasPickedUp = true

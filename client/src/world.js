@@ -1,4 +1,4 @@
-import { Container, BlurFilter, Rectangle, Graphics, Sprite, Text } from 'pixi.js'
+import { Container, BlurFilter, Rectangle, Graphics, Sprite } from 'pixi.js'
 import LevelSprite from './sprites/level-sprite.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
 import screenSizeStore from './stores/screen-size-store.js'
@@ -10,7 +10,6 @@ import PetSprite from './sprites/pet-sprite.js'
 import ProjectileSprite from './sprites/projectile-sprite.js'
 import soundManager from './sound-manager.js'
 import { Sounds } from '#shared/config/sounds.js'
-import { ART_SCALE, DEBUG } from '#shared/config/constants.js'
 
 const PARALLAX_SCALE = 1.1
 
@@ -186,7 +185,7 @@ class World extends Container {
     return focus
   }
 
-  tick(time) {
+  tick() {
     const { width: screenWidth, height: screenHeight } = screenSizeStore.get()
     const localPlayer = playerSpriteStore.getLocalPlayer()
     if (localPlayer == null) return

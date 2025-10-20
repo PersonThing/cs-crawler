@@ -1,6 +1,15 @@
 import { Abilities, AbilityModifiers, useAbility } from '#shared/config/abilities/abilities.js'
 import { generateRandomItem } from '#shared/config/items.js'
-import { getActiveProjectiles, updateProjectiles, getActiveTurrets, updateTurrets, getTurretCount, getActivePets, updatePets, getPetCount } from '#shared/config/abilities/ability-helpers.js'
+import {
+  getActiveProjectiles,
+  updateProjectiles,
+  getActiveTurrets,
+  updateTurrets,
+  getTurretCount,
+  getActivePets,
+  updatePets,
+  getPetCount,
+} from '#shared/config/abilities/ability-helpers.js'
 import { Server } from 'socket.io'
 import { SERVER_FPS } from '#shared/config/constants.js'
 import db from './db.js'
@@ -11,6 +20,7 @@ import levelManager from './level-manager.js'
 import PlayerState from '#shared/state/player-state.js'
 
 const SERVER_TICK_RATE = 1000 / SERVER_FPS
+// eslint-disable-next-line no-undef
 const PORT = process.env.PORT || 3000
 
 const app = express()
@@ -243,8 +253,8 @@ io.on('connection', async socket => {
     await levelManager.onLevelGenerated(levelConfig, playerId)
   })
 
-  socket.on('setUsername', username => {
-    username = username
+  socket.on('setUsername', newUsername => {
+    username = newUsername
     console.log('username set for player ' + playerId + ': ' + username)
     if (player) {
       player.username = username
@@ -323,6 +333,7 @@ io.on('connection', async socket => {
     }
   })
 
+  // eslint-disable-next-line no-unused-vars
   socket.on('inventoryBagSlotClick', (index, { ctrlKey, shiftKey, altKey, rightClick } = {}) => {
     if (!player?.isConnected) {
       return
@@ -348,6 +359,7 @@ io.on('connection', async socket => {
     player.inventory.clickBagSlot(index)
   })
 
+  // eslint-disable-next-line no-unused-vars
   socket.on('inventoryEquippedSlotClick', (slotName, { ctrlKey, shiftKey, altKey, rightClick } = {}) => {
     if (!player?.isConnected) {
       return
@@ -382,7 +394,9 @@ io.on('connection', async socket => {
     if (!player?.isConnected) {
       return
     }
-    while (player.inventory.pickup(generateRandomItem())) { }
+    while (player.inventory.pickup(generateRandomItem())) {
+      // nothing
+    }
   })
 
   // temp: empty player inventory
@@ -421,7 +435,7 @@ io.on('connection', async socket => {
     if (!player?.isConnected) {
       return
     }
-    
+
     if (!levelManager.getPather().isWalkableAt(position.x, position.y)) {
       console.log(`Cannot teleport player ${player.username} to non-walkable position (${position.x}, ${position.y})`)
       return

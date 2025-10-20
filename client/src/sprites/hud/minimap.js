@@ -124,7 +124,7 @@ class Minimap extends Sprite {
     // add / update dots for connected players
     if (connectedPlayerStates.length) {
       connectedPlayerStates.forEach(player => {
-        if (!this.remotePlayerMarkers.hasOwnProperty(player.playerId)) {
+        if (!this.remotePlayerMarkers[player.playerId]) {
           this.remotePlayerMarkers[player.playerId] = this.makePlayerMarker(player.username, 0x00ff00)
         }
         this.remotePlayerMarkers[player.playerId].x = player.x * this.mapScale

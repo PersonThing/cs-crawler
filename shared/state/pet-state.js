@@ -174,9 +174,7 @@ export default class PetState extends EntityState {
         })
 
         // Only move toward target if it won't break leash
-        const targetDistance = Math.hypot(closestTarget.x - this.x, closestTarget.y - this.y)
         const ownerToTargetDistance = Math.hypot(closestTarget.x - owner.x, closestTarget.y - owner.y)
-
         if (ownerToTargetDistance <= this.leashDistance) {
           this.setTarget({ x: closestTarget.x, y: closestTarget.y })
           this.currentTarget = closestTarget
@@ -270,7 +268,7 @@ export default class PetState extends EntityState {
 
         if (distance < avoidanceRadius && distance > 0) {
           // Calculate repulsion force (inverse square law-ish)
-          const repulsionStrength = avoidanceStrength * (avoidanceRadius - distance) / avoidanceRadius
+          const repulsionStrength = (avoidanceStrength * (avoidanceRadius - distance)) / avoidanceRadius
           const normalizedDx = dx / distance
           const normalizedDy = dy / distance
 

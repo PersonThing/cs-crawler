@@ -70,10 +70,10 @@ class ClientPrediction {
       const distance = Math.sqrt(dx * dx + dy * dy)
       correctionNeeded = distance > this.reconciliationThreshold
     }
-    
+
     // Also check if target changed meaningfully
     correctionNeeded = correctionNeeded || (!entity.isLocalPlayer && this.hasTargetChanged(entity, serverState.target))
-    
+
     if (correctionNeeded) {
       // Start by moving entity to wherever the server state says it was at serverTimestamp
       entity.x = serverState.x
@@ -86,7 +86,7 @@ class ClientPrediction {
       const currentTimestamp = Date.now()
       entity.moveTowardTarget(currentTimestamp - serverTimestamp)
     }
-    
+
     return correctionNeeded
   }
 
@@ -128,7 +128,10 @@ class ClientPrediction {
       // Early exit if we found a state within threshold - no correction needed
       if (distance <= this.reconciliationThreshold) {
         // we can also delete any states older than this one now
-        this.stateHistories.set(playerId, history.filter(s => s.timestamp > state.timestamp))
+        this.stateHistories.set(
+          playerId,
+          history.filter(s => s.timestamp > state.timestamp)
+        )
         return state
       }
     }
@@ -198,13 +201,13 @@ class ClientPrediction {
     if (!this.debugContainer) return
 
     // Clean up all debug sprites
-    for (const [playerId, debugSprite] of this.serverPositionSprites) {
+    for (const debugSprite of Object.values(this.serverPositionSprites)) {
       debugSprite.destroy()
     }
     this.serverPositionSprites.clear()
 
     // Clean up all trail sprites
-    for (const [playerId, trailSprites] of this.clientStateTrailSprites) {
+    for (const trailSprites of Object.values(this.clientStateTrailSprites)) {
       for (const sprite of trailSprites) {
         sprite.destroy()
       }
@@ -262,7 +265,7 @@ class ClientPrediction {
     for (let i = 0; i < history.length; i++) {
       const state = history[i]
       if (state == null) continue
-      
+
       let sprite = trailSprites[i]
       if (!sprite) {
         // Create new trail sprite (small blue circle)

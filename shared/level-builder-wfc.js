@@ -70,7 +70,9 @@ async function generateLevel(wfcLevel) {
     if (attempts < 10) {
       console.warn('WFC generation failed, trying again')
     } else {
-      throw new Error('WFC generation failed after multiple attempts, try changing OverlappingModel config for this level or adjust the input texture')
+      throw new Error(
+        'WFC generation failed after multiple attempts, try changing OverlappingModel config for this level or adjust the input texture'
+      )
     }
   }
   const outputCanvas = document.createElement('canvas')

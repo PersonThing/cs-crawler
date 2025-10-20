@@ -19,27 +19,16 @@ const CreateItemType = ({ name, validSlotTypes, ranged, bothHands = false }) => 
 const ItemType = {
   TwoHandWeapon: CreateItemType({
     name: 'Two-Handed Weapon',
-    validSlotTypes: [
-      ItemSlotType.MainHand,
-      ItemSlotType.Bonus,
-    ],
+    validSlotTypes: [ItemSlotType.MainHand, ItemSlotType.Bonus],
     bothHands: true,
   }),
   OneHandWeapon: CreateItemType({
     name: 'One-Handed Weapon',
-    validSlotTypes: [
-      ItemSlotType.MainHand,
-      ItemSlotType.OffHand,
-      ItemSlotType.Bonus,
-    ],
+    validSlotTypes: [ItemSlotType.MainHand, ItemSlotType.OffHand, ItemSlotType.Bonus],
   }),
   OffHand: CreateItemType({
     name: 'OffHand',
-    validSlotTypes: [
-      ItemSlotType.MainHand,
-      ItemSlotType.OffHand,
-      ItemSlotType.Bonus,
-    ],
+    validSlotTypes: [ItemSlotType.MainHand, ItemSlotType.OffHand, ItemSlotType.Bonus],
   }),
   Chest: CreateItemType({
     name: 'Chest',

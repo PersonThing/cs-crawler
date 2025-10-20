@@ -89,7 +89,7 @@ export default class InventoryItem extends Container {
 
     // attributes + abilities + modifiers + description
     const attributeLines = []
-    
+
     // Add regular attributes
     Object.keys(item.attributes).forEach(attributeName => {
       const attributeValue = item.attributes[attributeName]
@@ -99,17 +99,17 @@ export default class InventoryItem extends Container {
       }
       attributeLines.push(`${symbol}${attributeValue} ${attributeName}`)
     })
-    
+
     // Add abilities granted by this item
     item.abilities.forEach(abilityId => {
       attributeLines.push(`Ability: ${Abilities[abilityId].name}`)
     })
-    
+
     // Add modifiers granted by this item
     item.abilityModifiers.forEach(modifierId => {
       attributeLines.push(`Ability Modifier: ${AbilityModifiers[modifierId].name}`)
     })
-    
+
     let attributeText = attributeLines.join('\n')
 
     if (item.description != null) {
@@ -143,7 +143,6 @@ export default class InventoryItem extends Container {
 
         // Add each set bonus tier
         setTiers.forEach(({ itemCount, attributes, abilities, abilityModifiers, isEarned }) => {
-
           // Tier header with appropriate color
           const tierHeaderText = new Text({
             text: `${itemCount} pieces:` + (isEarned ? '' : ' (not equipped)'),
@@ -160,7 +159,7 @@ export default class InventoryItem extends Container {
 
           // Collect all bonuses for this tier
           const bonusLines = []
-          
+
           // Add attribute bonuses
           Object.keys(attributes).forEach(attributeName => {
             const attributeValue = attributes[attributeName]
@@ -170,12 +169,12 @@ export default class InventoryItem extends Container {
             }
             bonusLines.push(`  ${symbol}${attributeValue} ${attributeName}`)
           })
-          
+
           // Add ability bonuses
           abilities.forEach(abilityId => {
             bonusLines.push(`  Ability: ${Abilities[abilityId].name}`)
           })
-          
+
           // Add modifier bonuses
           abilityModifiers.forEach(modifierId => {
             bonusLines.push(`  Ability Modifier: ${AbilityModifiers[modifierId].name} `)

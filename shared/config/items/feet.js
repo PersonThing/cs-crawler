@@ -22,7 +22,7 @@ export const feetItems = [
 
   // Set feet
   new Item({
-    name: 'Eebeeb\'s Boots',
+    name: "Eebeeb's Boots",
     itemType: ItemType.Feet,
     itemQuality: ItemQuality.Set,
     setId: ItemSet.Eebeeb.id,

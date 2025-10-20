@@ -69,9 +69,7 @@ class Pather {
     // find all points in a line between from and to
     // filter to only walkable points
     // loop walkable points backward, trying to find paths to them.  use the first path found.
-    const lineBetween = Util.interpolate(fromX, fromY, toX, toY).filter(([x, y]) =>
-      this.grid.isWalkableAt(x, y)
-    )
+    const lineBetween = Util.interpolate(fromX, fromY, toX, toY).filter(([x, y]) => this.grid.isWalkableAt(x, y))
     let path = null
     for (let i = lineBetween.length - 1; i >= 0; i--) {
       let [x, y] = lineBetween[i]
@@ -118,7 +116,6 @@ class Pather {
 
   getBestAvailableItemPosition(position, currentGroundItems) {
     // TODO: make this better and respect obstacles
-
 
     // given a position {x, y}, return the best available position to place an item
     // where there isn't already an item within 20 pixels radius

@@ -2,7 +2,19 @@ import ItemQuality from './item-quality.js'
 import ItemSlotType from './item-slot-type.js'
 
 export default class Item {
-  constructor({ itemType, itemQuality, name, inventoryTexture, equippedTexture, attackingTexture, attributes, description, setId, abilities, abilityModifiers }) {
+  constructor({
+    itemType,
+    itemQuality,
+    name,
+    inventoryTexture,
+    equippedTexture,
+    attackingTexture,
+    attributes,
+    description,
+    setId,
+    abilities,
+    abilityModifiers,
+  }) {
     if (itemType == null) {
       throw new Error(`cannot create item, invalid itemType: ${itemType}`)
     }
@@ -15,7 +27,10 @@ export default class Item {
     if (inventoryTexture == null) {
       throw new Error(`cannot create item, invalid inventory texture: ${inventoryTexture}`)
     }
-    if (itemType.validSlotTypes.some(st => st === ItemSlotType.Head || st === ItemSlotType.MainHand || st === ItemSlotType.OffHand) && equippedTexture == null) {
+    if (
+      itemType.validSlotTypes.some(st => st === ItemSlotType.Head || st === ItemSlotType.MainHand || st === ItemSlotType.OffHand) &&
+      equippedTexture == null
+    ) {
       throw new Error(`cannot create a head, mainhand, or offhand without a valid equipped texture: ${name}, ${equippedTexture}`)
     }
 

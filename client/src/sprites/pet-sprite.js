@@ -6,7 +6,7 @@ class PetSprite extends Container {
     super()
 
     this.state = petData
-    
+
     this.initSprite()
     this.updateFromState()
 
@@ -96,18 +96,18 @@ class PetSprite extends Container {
     // Update leash indicator to show current leash status
     this.leashIndicator.clear()
     this.leashIndicator.circle(0, 0, this.state.leashDistance)
-    
+
     // Update detection range indicator
     this.detectionIndicator.clear()
     this.detectionIndicator.circle(0, 0, this.state.range)
     this.detectionIndicator.stroke({ color: 0xff6600, width: 1, alpha: 0.2 })
-    
+
     // Color the leash indicator based on distance from owner
     if (this.state.owner) {
       const dx = this.state.x - this.state.owner.x
       const dy = this.state.y - this.state.owner.y
       const distanceFromOwner = Math.sqrt(dx * dx + dy * dy)
-      
+
       if (distanceFromOwner > this.state.leashDistance * 0.8) {
         // Close to leash limit - red
         this.leashIndicator.stroke({ color: 0xff0000, width: 2, alpha: 0.5 })

@@ -6,7 +6,7 @@ class TurretSprite extends Container {
     super()
 
     this.state = turretData
-    
+
     this.initSprite()
     this.updateFromState()
 

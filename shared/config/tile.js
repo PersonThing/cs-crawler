@@ -6,7 +6,7 @@ export default class Tile {
       up: null,
       right: null,
       down: null,
-      left: null
+      left: null,
     }
   }
 

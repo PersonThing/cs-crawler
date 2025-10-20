@@ -23,8 +23,8 @@ const textureMap = {
 const generateLevel = async () => {
   const level = new Level()
 
-  const notWalkableTiles = [1,2]
-  const t = (config) => {
+  const notWalkableTiles = [1, 2]
+  const t = config => {
     const tile = new Tile(config.label)
     config.grid.forEach((row, y) => {
       row.forEach((n, x) => {
@@ -46,10 +46,7 @@ const generateLevel = async () => {
   }
 
   level.tileGrid = [
-    [
-      t(Tiles.MushRoom),
-      t(Tiles.TestRoom),
-    ],
+    [t(Tiles.MushRoom), t(Tiles.TestRoom)],
     [
       t(Tiles.DoorRightTopBottom),
       t(Tiles.DoorLeftRightTop),
@@ -66,22 +63,9 @@ const generateLevel = async () => {
       t(Tiles.HallwayHorizontal),
       t(Tiles.DoorLeftTop),
     ],
-    [
-      t(Tiles.DoorRightTop),
-      t(Tiles.DoorLeftRightTop),
-      t(Tiles.HallwayHorizontal),
-      t(Tiles.DoorLeftTopBottom),
-    ],
+    [t(Tiles.DoorRightTop), t(Tiles.DoorLeftRightTop), t(Tiles.HallwayHorizontal), t(Tiles.DoorLeftTopBottom)],
     [null, null, null, t(Tiles.HallwayVertical)],
-    [
-      null,
-      null,
-      null,
-      t(Tiles.DoorRightTop),
-      t(Tiles.HallwayHorizontal),
-      t(Tiles.DoorLeftRightBottom),
-      t(Tiles.DoorLeft),
-    ],
+    [null, null, null, t(Tiles.DoorRightTop), t(Tiles.HallwayHorizontal), t(Tiles.DoorLeftRightBottom), t(Tiles.DoorLeft)],
     [null, null, null, null, null, t(Tiles.DoorTop)],
   ]
 

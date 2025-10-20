@@ -12,16 +12,16 @@ const FILL_COLOR_LOCKED = 0x111111
 class ModifierListItem extends Container {
   constructor(modifier, isUnlocked, isSelected, width, tooltipContainer = null) {
     super()
-    
+
     this.modifier = modifier
     this.isUnlocked = isUnlocked
     this.isSelected = isSelected
     this.ITEM_WIDTH = width
     this.tooltipContainer = tooltipContainer
-    
+
     this.eventMode = 'static'
     this.cursor = 'pointer'
-    
+
     // Create tooltip instance if we have a container to add it to
     if (this.tooltipContainer) {
       this.tooltip = new AbilityTooltip()
@@ -31,17 +31,15 @@ class ModifierListItem extends Container {
     this.render()
     this.setupEvents()
   }
-  
+
   render() {
     // Clear existing content
     this.removeChildren()
-    
+
     // Background - same styling as abilities
-    const borderColor = this.isSelected ? BORDER_COLOR_SELECTED : 
-                       this.isUnlocked ? BORDER_COLOR_NORMAL : BORDER_COLOR_LOCKED
-    const fillColor = this.isSelected ? FILL_COLOR_SELECTED :
-                     this.isUnlocked ? FILL_COLOR_NORMAL : FILL_COLOR_LOCKED
-    
+    const borderColor = this.isSelected ? BORDER_COLOR_SELECTED : this.isUnlocked ? BORDER_COLOR_NORMAL : BORDER_COLOR_LOCKED
+    const fillColor = this.isSelected ? FILL_COLOR_SELECTED : this.isUnlocked ? FILL_COLOR_NORMAL : FILL_COLOR_LOCKED
+
     this.bg = new Graphics()
       .rect(0, 0, this.ITEM_WIDTH, ITEM_HEIGHT)
       .fill(fillColor)
@@ -49,9 +47,9 @@ class ModifierListItem extends Container {
         color: borderColor,
         width: this.isSelected ? 3 : 2,
       })
-    
+
     this.addChild(this.bg)
-    
+
     // Label
     const label = new Text({
       text: this.modifier.name,
@@ -59,64 +57,66 @@ class ModifierListItem extends Container {
         fontFamily: 'Arial',
         fontSize: 12,
         fill: this.isUnlocked ? 0xffffff : 0x666666,
-      }
+      },
     })
-    
+
     label.x = 8
     label.y = (ITEM_HEIGHT - label.height) / 2
-    
-    this.addChild(label)
-    
 
+    this.addChild(label)
   }
-  
+
   setupEvents() {
-    this.on('pointerdown', (event) => {
+    this.on('pointerdown', event => {
       event.stopPropagation()
-      
+
       if (this.isUnlocked) {
         this.emit('toggle')
       }
     })
-    
+
     this.on('pointerover', () => {
       if (this.isUnlocked) {
         this.bg.tint = 0xcccccc
       }
       this.showTooltip()
     })
-    
+
     this.on('pointerout', () => {
       this.bg.tint = 0xffffff
       this.hideTooltip()
     })
   }
-  
+
   showTooltip() {
     if (!this.tooltip || !this.modifier) return
 
     // Position similar to ability grid items
     let containerPos = this.tooltipContainer.toLocal(this.toGlobal({ x: 0, y: 0 }))
 
-    this.tooltip.show({
-      name: this.modifier.name,
-      description: this.modifier.description || 'No description available'
-    }, containerPos.x, containerPos.y)
+    this.tooltip.show(
+      {
+        name: this.modifier.name,
+        description: this.modifier.description || 'No description available',
+      },
+      containerPos.x,
+      containerPos.y
+    )
   }
-  
+
   hideTooltip() {
     if (this.tooltip) {
       this.tooltip.hide()
     }
   }
-  
+
   setSelected(selected) {
     if (this.isSelected !== selected) {
       this.isSelected = selected
       this.render()
     }
   }
-  
+
   setUnlocked(unlocked) {
     if (this.isUnlocked !== unlocked) {
       this.isUnlocked = unlocked

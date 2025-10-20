@@ -1,4 +1,4 @@
-import { Container, Sprite, Graphics, Text } from 'pixi.js'
+import { Container, Sprite } from 'pixi.js'
 import { ART_SCALE } from '#shared/config/constants.js'
 import InventorySlot from '#shared/config/inventory-slot'
 import HealthBar from './health-bar.js'

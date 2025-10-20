@@ -36,14 +36,14 @@ class LevelSprite extends Container {
     // note: maxWidth and maxHeight do not factor our scale in - so we should multiply them by our scale
     maxWidth = maxWidth / this.tileContainer.scale.x
     maxHeight = maxHeight / this.tileContainer.scale.y
-    
+
     const localPlayer = playerSpriteStore.getLocalPlayer()
     if (localPlayer == null) return
 
     // only render the tiles around the local player
     // figure out which tile the local player is inside
-    const playerTileX = Math.floor((localPlayer.x) / this.tileSize)
-    const playerTileY = Math.floor((localPlayer.y) / this.tileSize)
+    const playerTileX = Math.floor(localPlayer.x / this.tileSize)
+    const playerTileY = Math.floor(localPlayer.y / this.tileSize)
 
     // compute the bounds of the screen in tiles
     const numTilesWide = Math.ceil(maxWidth / this.tileSize)
@@ -59,19 +59,12 @@ class LevelSprite extends Container {
         if (!tile) return
 
         // if tile is NOT around player's current tile, unrender it
-        if (
-          tile.rendered &&
-          (Math.abs(tileX - playerTileX) > renderWidth ||
-            Math.abs(tileY - playerTileY) > renderHeight)
-        ) {
+        if (tile.rendered && (Math.abs(tileX - playerTileX) > renderWidth || Math.abs(tileY - playerTileY) > renderHeight)) {
           this.unrenderTile(tile)
         }
 
         // if tile is around player's current tile, make sure it's rendered
-        if (
-          Math.abs(tileX - playerTileX) <= renderWidth &&
-          Math.abs(tileY - playerTileY) <= renderHeight
-        ) {
+        if (Math.abs(tileX - playerTileX) <= renderWidth && Math.abs(tileY - playerTileY) <= renderHeight) {
           if (!tile.rendered) {
             tile.container = new Container()
             tile.container.filters = this.tileFilters
@@ -190,7 +183,7 @@ class LevelSprite extends Container {
         .forEach(block => {
           const worldX = tile.container.x + block.sprite.x
           const worldY = tile.container.y + block.sprite.y
-          
+
           // Get alpha from exploration state instead of calculating distance
           const alpha = explorationState.getAlphaForPosition(worldX, worldY)
           block.alpha = alpha

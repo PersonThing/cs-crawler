@@ -9,7 +9,7 @@ class SoundManager {
 
   // Helper function to flatten nested sound tree and collect all paths
   _flattenSounds(obj, result = []) {
-    for (const [key, value] of Object.entries(obj)) {
+    for (const value of Object.values(obj)) {
       if (typeof value === 'string') {
         result.push(value)
       } else if (typeof value === 'object') {
@@ -42,12 +42,12 @@ class SoundManager {
     try {
       const audio = this.sounds[soundPath].cloneNode()
       audio.volume = volume
-      
+
       // Set start time
       if (start > 0) {
         audio.currentTime = start
       }
-      
+
       // Set up end time or duration handling
       let stopTimer = null
       if (end !== null) {
@@ -62,21 +62,21 @@ class SoundManager {
           audio.currentTime = 0
         }, duration * 1000) // convert to milliseconds
       }
-      
+
       // Clean up timer when audio ends naturally
       audio.addEventListener('ended', () => {
         if (stopTimer) {
           clearTimeout(stopTimer)
         }
       })
-      
+
       audio.play().catch(error => {
         console.warn(`Failed to play sound: ${soundPath}`, error)
         if (stopTimer) {
           clearTimeout(stopTimer)
         }
       })
-      
+
       return audio // Return audio element in case caller needs to control it
     } catch (error) {
       console.warn(`Failed to play sound: ${soundPath}`, error)

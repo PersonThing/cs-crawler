@@ -1,5 +1,5 @@
 import { BAG_SLOTS, HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
-import { Graphics, Container, Sprite, Text } from 'pixi.js'
+import { Graphics, Container, Sprite } from 'pixi.js'
 import { ItemQualityColors } from '#shared/config/item-quality.js'
 import { Textures } from '#shared/config/textures.js'
 import InventorySlot from '#shared/config/inventory-slot.js'
@@ -230,7 +230,7 @@ class InventoryHud extends Container {
       bgSprite.y = coords.y + PADDING
       bgSprite.alpha = 0.25
       bgSprite.eventMode = 'static'
-      bgSprite.on('pointerdown', event => {
+      bgSprite.on('pointerdown', () => {
         socket.emit('inventoryEquippedSlotClick', inventorySlot.name)
       })
       this.bg.addChild(bgSprite)
@@ -241,7 +241,7 @@ class InventoryHud extends Container {
       const color = item != null ? ItemQualityColors[item.itemQuality] : DEFAULT_SLOT_COLOR
       const slotBg = this.drawItemBg(color, this.getBagSlotCoordinates(index))
       slotBg.eventMode = 'static'
-      slotBg.on('pointerdown', event => {
+      slotBg.on('pointerdown', () => {
         socket.emit('inventoryBagSlotClick', index)
       })
     }

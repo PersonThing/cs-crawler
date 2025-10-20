@@ -56,39 +56,26 @@ class PlayerControls {
     this.app.ticker.add(this.tick.bind(this))
 
     this.keyDownHandlers = {
-      shift: event => {
-        // stop moving when shift is held down
-        this.isShiftKeyDown = true
-        this.stopMovement()
-      },
-      f2: event => {
-        console.log('toggling debug mode', !DEBUG.get())
-        DEBUG.set(!DEBUG.get())
-      },
-      tab: event => {
-        this.minimap.toggleCentered()
-        return false
-      },
-      b: event => {
-        this.hud.toggleInventory()
-      },
-      c: event => {
-        this.hud.toggleCharacterSheet()
-      },
-      f1: event => {
-        this.hud.toggleHelp()
-      },
-
       escape: event => {
         this.hud.closeAllHuds()
         event.preventDefault()
         return false
       },
 
-      // Action bar ability hotkeys
-      q: event => this.hud.actionBar.useSlot3(cursorPositionStore.get()),
-      w: event => this.hud.actionBar.useSlot4(cursorPositionStore.get()),
-      e: event => this.hud.actionBar.useSlot5(cursorPositionStore.get()),
+      shift: () => {
+        // stop moving when shift is held down
+        this.isShiftKeyDown = true
+        this.stopMovement()
+      },
+
+      tab: () => this.minimap.toggleCentered(),
+
+      b: () => this.hud.toggleInventory(),
+      c: () => this.hud.toggleCharacterSheet(),
+
+      q: () => this.hud.actionBar.useSlot3(cursorPositionStore.get()),
+      w: () => this.hud.actionBar.useSlot4(cursorPositionStore.get()),
+      e: () => this.hud.actionBar.useSlot5(cursorPositionStore.get()),
       r: event => {
         this.hud.actionBar.useSlot6(cursorPositionStore.get())
         if (event.ctrlKey) {
@@ -97,32 +84,15 @@ class PlayerControls {
       },
 
       // temp debug methods for items
-      n: event => {
-        socket.emit('pickupRandomItem')
-      },
-      m: event => {
-        socket.emit('fillInventoryWithRandomItems')
-      },
-      ',': event => {
-        socket.emit('resetInventory')
-      },
-      g: event => {
-        socket.emit('generateGroundItemsAtPlayer')
-      },
-      f5: event => {
-        socket.emit('debugTeleport', cursorPositionStore.get())
-      },
-      // Debug exploration state
-      f3: event => {
-        explorationState.reset()
-        console.log('Exploration state reset')
-      },
-      v: event => {
-        socket.emit('clearGroundItems')
-      },
-
+      n: () => socket.emit('pickupRandomItem'),
+      m: () => socket.emit('fillInventoryWithRandomItems'),
+      ',': () => socket.emit('resetInventory'),
+      g: () => socket.emit('generateGroundItemsAtPlayer'),
+      v: () => socket.emit('clearGroundItems'),
+      f1: () => this.hud.toggleHelp(),
+      f2: () => DEBUG.set(!DEBUG.get()),
       // temp method for setting username
-      f3: event => {
+      f3: () => {
         const newUsername = prompt('Enter new username:', usernameStore.get() || '')
         if (newUsername != null && newUsername.trim().length > 0) {
           if (!usernameStore.set(newUsername.trim())) {
@@ -130,10 +100,12 @@ class PlayerControls {
           }
         }
       },
+      f5: () => socket.emit('debugTeleport', cursorPositionStore.get()),
+      f6: () => explorationState.reset(),
     }
 
     this.keyUpHandlers = {
-      shift: event => {
+      shift: () => {
         this.isShiftKeyDown = false
       },
     }
@@ -245,7 +217,7 @@ class PlayerControls {
     const rect = this.app.canvas.getBoundingClientRect()
     this.screenCursorX = event.clientX - rect.left
     this.screenCursorY = event.clientY - rect.top
-    
+
     // Update world coordinates immediately
     this.updateCursorWorldPosition()
 
@@ -263,10 +235,10 @@ class PlayerControls {
     this.isMouseDown = false
   }
 
-  tick(time) {
+  tick() {
     // Always update cursor world position to account for world movement
     this.updateCursorWorldPosition()
-    
+
     if (this.isShiftKeyDown && this.player.target != null) {
       this.stopMovement()
     }

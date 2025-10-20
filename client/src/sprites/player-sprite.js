@@ -5,7 +5,7 @@ import { Sounds } from '#shared/config/sounds.js'
 class PlayerSprite extends EntitySprite {
   constructor(playerState, texture, world, pather, color) {
     super(playerState, texture, world, pather, color)
-    
+
     this.isMoving = false
     this.stepSound = null
     this.lastPosition = { x: this.state.x, y: this.state.y }
@@ -13,7 +13,7 @@ class PlayerSprite extends EntitySprite {
 
   updateFromState() {
     super.updateFromState()
-    
+
     // Only handle step sounds for local player
     if (this.isLocalPlayer) {
       this.updateStepSound()
@@ -22,10 +22,7 @@ class PlayerSprite extends EntitySprite {
 
   updateStepSound() {
     // Check if player is moving by comparing current position to last position
-    const currentlyMoving = (
-      Math.abs(this.state.x - this.lastPosition.x) > 0.1 || 
-      Math.abs(this.state.y - this.lastPosition.y) > 0.1
-    )
+    const currentlyMoving = Math.abs(this.state.x - this.lastPosition.x) > 0.1 || Math.abs(this.state.y - this.lastPosition.y) > 0.1
 
     // Update last position
     this.lastPosition.x = this.state.x

@@ -1,12 +1,12 @@
 import { Graphics, Container, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
 import { Abilities, AbilityModifiers } from '#shared/config/abilities/abilities.js'
-import ItemAttribute, {
+import {
   DefensiveAttributes,
   UtilityAttributes,
   OffensiveAttributes,
   OnHitAttributes,
-  AbilityAttributes
+  AbilityAttributes,
 } from '#shared/config/item-attribute.js'
 
 import playerSpriteStore from '../../stores/player-sprite-store.js'
@@ -20,14 +20,14 @@ const RIGHT_COLUMN_X = 220
 
 // Color scheme for stat groups
 const COLORS = {
-  OFFENSIVE: 0xff8888,      // Red for offense
-  DEFENSIVE: 0x88aaff,      // Blue for defense  
-  UTILITY: 0x88ff88,        // Green for utility
-  ON_HIT: 0xffaa88,         // Orange for on-hit effects
-  OTHER: 0xcccccc,          // Grey for other stats
-  ABILITIES: 0x88ff88,      // Green for abilities
-  MODIFIERS: 0x88aaff,      // Blue for modifiers
-  ABILITY_ATTRS: 0xffaa44,  // Orange for ability attributes
+  OFFENSIVE: 0xff8888, // Red for offense
+  DEFENSIVE: 0x88aaff, // Blue for defense
+  UTILITY: 0x88ff88, // Green for utility
+  ON_HIT: 0xffaa88, // Orange for on-hit effects
+  OTHER: 0xcccccc, // Grey for other stats
+  ABILITIES: 0x88ff88, // Green for abilities
+  MODIFIERS: 0x88aaff, // Blue for modifiers
+  ABILITY_ATTRS: 0xffaa44, // Orange for ability attributes
 }
 
 class CharacterHud extends Container {
@@ -79,8 +79,6 @@ class CharacterHud extends Container {
     gfx.x = 0
     gfx.y = 0
     this.bg.addChild(gfx)
-
-
   }
 
   renderStats() {
@@ -101,7 +99,7 @@ class CharacterHud extends Container {
     const onHitStats = []
     const abilityAttributeStats = []
     const otherStats = []
-    
+
     Object.keys(this.stats).forEach(statName => {
       if (Abilities[statName]) {
         abilities.push(statName)
@@ -121,7 +119,7 @@ class CharacterHud extends Container {
         otherStats.push(statName)
       }
     })
-    
+
     // Sort each category
     abilities.sort()
     modifiers.sort()
@@ -131,14 +129,14 @@ class CharacterHud extends Container {
     onHitStats.sort()
     abilityAttributeStats.sort()
     otherStats.sort()
-    
+
     // Left column: Grouped stats
     let leftY = 20
-    
+
     // Helper function to render a stat group
     const renderStatGroup = (stats, title, color, x, y) => {
       if (stats.length === 0) return y
-      
+
       // Group title
       const groupTitle = new Text({
         text: title,
@@ -152,12 +150,12 @@ class CharacterHud extends Container {
       })
       this.statContainer.addChild(groupTitle)
       y += 20
-      
+
       // Group stats
       stats.forEach(statName => {
         const statValue = this.stats[statName]
         const displayText = `${statName}: ${statValue}`
-        
+
         const statText = new Text({
           text: displayText,
           style: {
@@ -170,24 +168,24 @@ class CharacterHud extends Container {
         this.statContainer.addChild(statText)
         y += STAT_SIZE + STAT_MARGIN
       })
-      
+
       return y + 5 // Add small spacing between groups
     }
-    
+
     // Render stat groups in left column
     leftY = renderStatGroup(offensiveStats, 'Offense', COLORS.OFFENSIVE, LEFT_COLUMN_X, leftY)
     leftY = renderStatGroup(defensiveStats, 'Defense', COLORS.DEFENSIVE, LEFT_COLUMN_X, leftY)
     leftY = renderStatGroup(utilityStats, 'Utility', COLORS.UTILITY, LEFT_COLUMN_X, leftY)
     leftY = renderStatGroup(onHitStats, 'On Hit', COLORS.ON_HIT, LEFT_COLUMN_X, leftY)
-    leftY = renderStatGroup(otherStats, 'Other', COLORS.OTHER, LEFT_COLUMN_X, leftY)
-    
+    renderStatGroup(otherStats, 'Other', COLORS.OTHER, LEFT_COLUMN_X, leftY)
+
     // Right column: Abilities and ability-related
     let rightY = 20
-    
+
     // Helper function for right column ability rendering
     const renderAbilityItems = (items, title, color, x, y, showCount = false) => {
       if (items.length === 0) return y
-      
+
       // Group title
       const groupTitle = new Text({
         text: title,
@@ -201,7 +199,7 @@ class CharacterHud extends Container {
       })
       this.statContainer.addChild(groupTitle)
       y += 20
-      
+
       // Group items
       items.forEach(itemName => {
         const itemValue = this.stats[itemName]
@@ -213,7 +211,7 @@ class CharacterHud extends Container {
         } else {
           displayText = `${itemName}: ${itemValue}`
         }
-        
+
         const itemText = new Text({
           text: displayText,
           style: {
@@ -226,14 +224,14 @@ class CharacterHud extends Container {
         this.statContainer.addChild(itemText)
         y += STAT_SIZE + STAT_MARGIN
       })
-      
+
       return y + 5 // Add small spacing between groups
     }
-    
+
     // Render ability groups in right column
     rightY = renderAbilityItems(abilities, 'Abilities', COLORS.ABILITIES, RIGHT_COLUMN_X, rightY, true)
     rightY = renderAbilityItems(modifiers, 'Modifiers', COLORS.MODIFIERS, RIGHT_COLUMN_X, rightY, true)
-    rightY = renderAbilityItems(abilityAttributeStats, 'Ability Attributes', COLORS.ABILITY_ATTRS, RIGHT_COLUMN_X, rightY, false)
+    renderAbilityItems(abilityAttributeStats, 'Ability Attributes', COLORS.ABILITY_ATTRS, RIGHT_COLUMN_X, rightY, false)
   }
 }
 

@@ -28,10 +28,8 @@ class ExplorationState {
       for (let gridY = minGridY; gridY <= maxGridY; gridY++) {
         const cellCenterX = gridX * this.gridSize + this.gridSize / 2
         const cellCenterY = gridY * this.gridSize + this.gridSize / 2
-        
-        const distance = Math.sqrt(
-          (cellCenterX - playerX) ** 2 + (cellCenterY - playerY) ** 2
-        )
+
+        const distance = Math.sqrt((cellCenterX - playerX) ** 2 + (cellCenterY - playerY) ** 2)
 
         const key = `${gridX},${gridY}`
         const currentLevel = this.explorationGrid.get(key) || 0
@@ -67,10 +65,14 @@ class ExplorationState {
   getAlphaForPosition(x, y) {
     const level = this.getExplorationLevel(x, y)
     switch (level) {
-      case 0: return 0.1  // Unexplored - barely visible
-      case 1: return 0.5  // Partially explored
-      case 2: return 1.0  // Fully explored
-      default: return 0.1
+      case 0:
+        return 0.1 // Unexplored - barely visible
+      case 1:
+        return 0.5 // Partially explored
+      case 2:
+        return 1.0 // Fully explored
+      default:
+        return 0.1
     }
   }
 
@@ -78,7 +80,7 @@ class ExplorationState {
   serialize() {
     return {
       gridSize: this.gridSize,
-      explorationData: Array.from(this.explorationGrid.entries())
+      explorationData: Array.from(this.explorationGrid.entries()),
     }
   }
 
