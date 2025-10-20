@@ -94,7 +94,7 @@ const Abilities = {
     name: 'Heal',
     description: 'Restore health to yourself or an ally.',
     icon: Textures.particle.heal,
-    cooldown: source => source.isTurret ? 100 : 3000,
+    cooldown: (source, modifiers) => source.isTurret ? 100 : modifiers.includes(AbilityModifiers.Turret.id) ? 250 : 3000,
     color: 0x00cc00,
     targetAllies: true,
     onUse: (source, target, modifiers) => {
@@ -125,7 +125,7 @@ function useAbility(abilityId, source, target, modifiers = []) {
   }
 
   // Check if the ability should be cast as a turret
-  if (modifiers.includes('Turret')) {
+  if (modifiers.includes(AbilityModifiers.Turret.id)) {
     // Create a turret that will cast this ability
     createTurret(source, target, abilityId, ability, modifiers)
     return

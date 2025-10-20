@@ -23,7 +23,7 @@ class TurretState {
     this.modifiers = modifiers.filter(m => m !== 'Turret') // Remove Turret modifier to prevent recursion
     this.range = TURRET_DETECTION_RANGE // Turret detection range
     this.lastCastTime = 0
-    this.cooldown = abilityData.cooldown({ isTurret: true })
+    this.cooldown = abilityData.cooldown({ isTurret: true }, this.modifiers)
     this.createdAt = Date.now()
     this.lifetime = TURRET_LIFETIME
     this.active = true
