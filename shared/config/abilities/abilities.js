@@ -29,7 +29,7 @@ const Abilities = {
     sound: Sounds.abilities.Shoot,
     soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
     cooldown: 250,
-    color: 0xcc0000, // used for tinting turrets or pets
+    color: 0xcc0000,
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
         speed: 800,
@@ -37,7 +37,10 @@ const Abilities = {
         texture: Textures.particle.blaze,
         damage: 25 + (source.stats[ItemAttribute.FireDamage] || 0),
         damageType: DamageType.Fire,
-        radius: 40
+        radius: 40,
+        onHit: (projectile, hitEntity) => {
+          // TODO: leave burning effect? tint red? don't know
+        }
       })
     },
   },
@@ -46,11 +49,10 @@ const Abilities = {
     id: 'Frostbolt',
     name: 'Frostbolt',
     description: 'Launch a bolt of frost that slows enemies.',
-    icon: Textures.particle.cold, // Using sapphire gem as frost icon placeholder
+    icon: Textures.particle.cold,
     cooldown: 250,
-    color: 0x0000ee, // used for tinting turrets or pets
+    color: 0x0000ee,
     onUse: (source, target, modifiers) => {
-      // frost projectile attack helper - projectile that slows on hit
       createProjectile(source, target, {
         speed: 600,
         lifetime: 2000,
@@ -59,7 +61,7 @@ const Abilities = {
         damageType: DamageType.Cold,
         radius: 40,
         onHit: (projectile, hitEntity) => {
-          // TODO: apply slow effect to hitEntity that lasts 2 seconds ?
+          // TODO: apply slow effect? tint blue?
         }
       })
     },
@@ -69,9 +71,9 @@ const Abilities = {
     id: 'Lightning',
     name: 'Lightning Bolt',
     description: 'Strike enemies at range with an instant lightning bolt.',
-    icon: Textures.particle.lightning, // Using topaz gem as lightning icon placeholder
+    icon: Textures.particle.lightning,
     cooldown: 500,
-    color: 0xcccc00, // used for tinting turrets or pets
+    color: 0xcccc00,
     onUse: (source, target, modifiers) => {
       createProjectile(source, target, {
         speed: 2000,
@@ -81,7 +83,7 @@ const Abilities = {
         damageType: DamageType.Lightning,
         radius: 40,
         onHit: (projectile, hitEntity) => {
-          // TODO: apply slow effect to hitEntity that lasts 2 seconds ?
+          // TODO: apply stun effect? tint yellow?
         }
       })
     },
@@ -91,18 +93,19 @@ const Abilities = {
     id: 'Heal',
     name: 'Heal',
     description: 'Restore health to yourself or an ally.',
-    icon: Textures.particle.heal, // Using emerald gem as heal icon placeholder
+    icon: Textures.particle.heal,
     cooldown: 5000,
-    color: 0x00cc00, // used for tinting turrets or pets
+    color: 0x00cc00,
+    targetAllies: true,
     onUse: (source, target, modifiers) => {
-
-      try {
-
-      } catch {
+      if (target != null && typeof target.heal === 'function') {
+        target.heal(50)
+        console.log(`${target.label} healed for 50 HP (${target.currentHealth}/${target.maxHealth} HP)`)
+      } else if (source != null && typeof source.heal === 'function') {
         source.heal(50)
+        console.log(`${source.label} healed for 50 HP (${source.currentHealth}/${source.maxHealth} HP)`)
       }
-      console.log(`${source.label} healed for 50 HP (${source.currentHealth}/${source.maxHealth} HP)`)
-      return false // No movement required for heal
+      // todo: show heal effect animation on target?
     },
   },
 }
@@ -112,18 +115,16 @@ function useAbility(abilityId, source, target, modifiers = []) {
   const ability = Abilities[abilityId]
   if (!ability) {
     console.warn(`Unknown ability: ${abilityId}`)
-    return false
   }
 
   // Check if the ability should be cast as a turret
   if (modifiers.includes('Turret')) {
     // Create a turret that will cast this ability
     createTurret(source, target, abilityId, ability, modifiers)
-    return false // No movement required when placing a turret
   }
 
   // For other modifiers or normal casting, use the ability directly
-  return ability.onUse(source, target, modifiers)
+  ability.onUse(source, target, modifiers)
 }
 
 // Ability Modifiers

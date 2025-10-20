@@ -1,6 +1,9 @@
 import ItemAttribute from '../config/item-attribute.js'
 import { Textures } from '../config/textures.js'
 
+const TURRET_LIFETIME = 30000
+const TURRET_DETECTION_RANGE = 300
+
 class TurretState {
   constructor(id, source, position, abilityId, abilityData, modifiers = []) {
     // Required params validation
@@ -18,14 +21,15 @@ class TurretState {
     this.abilityId = abilityId
     this.abilityData = abilityData
     this.modifiers = modifiers.filter(m => m !== 'Turret') // Remove Turret modifier to prevent recursion
-    this.range = 300 // Turret detection range
+    this.range = TURRET_DETECTION_RANGE // Turret detection range
     this.lastCastTime = 0
     this.cooldown = abilityData.cooldown * 2 || 1000 // double ability base cooldown, they should shoot slower than normal ability
     this.createdAt = Date.now()
-    this.lifetime = 10000 // Turret lasts for 10 seconds by default
+    this.lifetime = TURRET_LIFETIME
     this.active = true
     this.texture = Textures.abilities.turret1 // Placeholder turret texture
     this.color = abilityData.color || 0xffffff // Use ability color for tinting
+    this.targetAllies = abilityData.targetAllies ? true : false
   }
 
   tick(deltaMS, players = []) {
@@ -49,9 +53,12 @@ class TurretState {
       return true // Turret should continue, but not cast yet
     }
 
-    // Find valid targets in range (enemies of the turret owner)
+    // Find valid targets in range (enemies of the turret owner, unless targeting allies)
     const validTargets = players.filter(player => {
-      if (!player.isConnected || player.id === this.ownerId) return false
+      const isValid = this.targetAllies 
+        ? (player.id !== this.ownerId) // todo: allies = owner only for now
+        : (player.id === this.ownerId) // todo: enemies = other players only for now
+      if (!player.isConnected || !isValid) return false
       
       const distance = Math.hypot(player.x - this.x, player.y - this.y)
       return distance <= this.range

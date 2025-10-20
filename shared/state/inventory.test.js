@@ -396,7 +396,7 @@ describe('Inventory', () => {
     expect(inv.equippedSequence).toBe(afterEquipSequence)
   })
 
-  it('calls onSequenceUpdated callback when sequence changes', () => {
+  it('calls onEquippedSequenceUpdated callback when equipped changes, not bags', () => {
     let callbacks = 0
     const invWithCallback = new Inventory({}, () => {
       callbacks++
@@ -409,6 +409,9 @@ describe('Inventory', () => {
     expect(callbacks).toBe(1)
 
     invWithCallback.setBagSlot(0, makeItem())
+    expect(callbacks).toBe(1)
+
+    invWithCallback.clearEquippedSlot(slot)
     expect(callbacks).toBe(2)
   })
 })

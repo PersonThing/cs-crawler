@@ -192,33 +192,31 @@ class ActionBarHud extends Container {
     if (sound) {
       soundManager.play(sound, soundOptions)
     }
-    
-    return true
   }
 
   // Methods to use specific slots from external code
   useSlot1(target) {
-    return this.useAbility(0, target)
+    this.useAbility(0, target)
   }
 
   useSlot2(target) {
-    return this.useAbility(1, target)
+    this.useAbility(1, target)
   }
 
   useSlot3(target) {
-    return this.useAbility(2, target)
+    this.useAbility(2, target)
   }
 
   useSlot4(target) {
-    return this.useAbility(3, target)
+    this.useAbility(3, target)
   }
 
   useSlot5(target) {
-    return this.useAbility(4, target)
+    this.useAbility(4, target)
   }
 
   useSlot6(target) {
-    return this.useAbility(5, target)
+    this.useAbility(5, target)
   }
 
   openAbilityMenu(slotIndex) {
