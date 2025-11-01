@@ -46,7 +46,7 @@ export default class EnemyState extends EntityState {
     })
 
     this.computeStats() // Recalculate with inventory items
-    
+
     // Set damage property for easy access
     this.damage = this.stats[ItemAttribute.Damage] || 10 // Default damage if not specified
   }
@@ -92,13 +92,13 @@ export default class EnemyState extends EntityState {
       if (distanceToTarget <= this.attackRange) {
         // Attack the player
         this.attack(closestPlayer)
-        
+
         // Deal damage to the player
         if (closestPlayer.takeDamage) {
           closestPlayer.takeDamage(this.damage, this)
-          console.log(`${this.label} dealt ${this.damage} damage to ${closestPlayer.label}`)
+          // console.log(`${this.label} dealt ${this.damage} damage to ${closestPlayer.label}`)
         }
-        
+
         this.lastAction = now
       } else {
         // Move toward the player
@@ -137,7 +137,6 @@ export default class EnemyState extends EntityState {
     this.currentHealth = Math.max(0, this.currentHealth - amount)
 
     if (this.currentHealth <= 0) {
-      console.log(`${this.label} was defeated by ${source?.label || 'unknown'}`)
       this.onDeath(source)
     }
 
@@ -146,7 +145,7 @@ export default class EnemyState extends EntityState {
 
   onDeath(killer = null) {
     // TODO: Drop loot, give experience, etc.
-    console.log(`${this.label} died`)
+    console.log(`${this.label} died, killer: ${killer?.label || 'unknown'}`)
   }
 
   isAlive() {

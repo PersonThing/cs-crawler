@@ -27,6 +27,8 @@ export default class PetState extends EntityState {
 
     // Pet-specific properties
     this.ownerId = source.id
+    this.isPlayerSourced = !source.isHostile // Determine faction - pets inherit owner's faction
+    this.isPet = true // Mark as pet for projectile source detection
     this.getStats = () => source.stats // Use owner's stats dynamically
     this.abilityId = abilityId
     this.abilityData = abilityData
@@ -49,7 +51,7 @@ export default class PetState extends EntityState {
     this.maxSpeed = 400 // Slightly slower than players
   }
 
-  tick(deltaMS, players = [], allPets = []) {
+  tick(deltaMS, players = [], allPets = [], enemies = []) {
     if (!this.active) {
       return false // Pet should be removed
     }
@@ -92,7 +94,7 @@ export default class PetState extends EntityState {
     }
 
     // Second priority: Look for targets and engage
-    this.findAndEngageTarget(deltaMS, players, owner)
+    this.findAndEngageTarget(deltaMS, players, enemies, owner)
 
     // Always move toward current target if we have one
     if (this.target) {
@@ -102,22 +104,57 @@ export default class PetState extends EntityState {
     return true // Pet should continue
   }
 
-  findAndEngageTarget(deltaMS, players, owner) {
+  findAndEngageTarget(deltaMS, players, enemies, owner) {
     const now = Date.now()
 
-    // Find valid targets
-    const validTargets = players.filter(player => {
-      const isValid =
-        player.currentHealth > 0 && // must be alive
-        this.targetAllies
-          ? player.id === this.ownerId && player.currentHealth < player.maxHealth // todo: allies = owner only for now, skip anyone at full health
-          : player.id !== this.ownerId // todo: enemies = other players only for now
+    // Find valid targets based on faction and ability type
+    let validTargets = []
 
-      if (!player.isConnected || !isValid) return false
+    if (this.targetAllies) {
+      // Healing/support pets target allies of the same faction
+      if (this.isPlayerSourced) {
+        // Player-sourced pets target players (healing abilities)
+        validTargets = players.filter(player => {
+          const isValid =
+            player.currentHealth > 0 && // must be alive
+            player.currentHealth < player.maxHealth // skip anyone at full health
 
-      const distance = Math.hypot(player.x - this.x, player.y - this.y)
-      return distance <= this.range
-    })
+          if (!player.isConnected || !isValid) return false
+
+          const distance = Math.hypot(player.x - this.x, player.y - this.y)
+          return distance <= this.range
+        })
+      } else {
+        // Enemy-sourced pets target enemies (healing abilities)
+        validTargets = enemies.filter(enemy => {
+          const isValid = enemy.isAlive() && enemy.currentHealth < enemy.maxHealth
+
+          if (!isValid) return false
+
+          const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y)
+          return distance <= this.range
+        })
+      }
+    } else {
+      // Offensive pets target enemies of the opposite faction
+      if (this.isPlayerSourced) {
+        // Player-sourced pets target enemies
+        validTargets = enemies.filter(enemy => {
+          if (!enemy.isAlive()) return false
+
+          const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y)
+          return distance <= this.range
+        })
+      } else {
+        // Enemy-sourced pets target players
+        validTargets = players.filter(player => {
+          if (!player.isConnected || player.currentHealth <= 0) return false
+
+          const distance = Math.hypot(player.x - this.x, player.y - this.y)
+          return distance <= this.range
+        })
+      }
+    }
 
     if (validTargets.length > 0) {
       // Get closest valid target
@@ -144,6 +181,7 @@ export default class PetState extends EntityState {
           label: this.label,
           stats: this.getStats() || {},
           isPet: true,
+          isPlayerSourced: this.isPlayerSourced, // Include faction information
         }
 
         if (this.abilityData.onUse) {
@@ -155,20 +193,35 @@ export default class PetState extends EntityState {
             modifiers: this.modifiers,
           }
           this.lastCastTime = now
-          console.log(`Pet ${this.id} wants to cast ${this.abilityId} at ${target.label}`)
+          // console.log(`Pet ${this.id} wants to cast ${this.abilityId} at ${target.label}`)
         }
       }
     } else {
       // No targets in range, look for targets to move toward
-      const allTargets = players.filter(player => {
-        const isValid =
-          player.currentHealth > 0 && // must be alive
-          this.targetAllies
-            ? player.id === this.ownerId && player.currentHealth < player.maxHealth
-            : player.id !== this.ownerId
+      let allTargets = []
 
-        return player.isConnected && isValid
-      })
+      if (this.targetAllies) {
+        // Look for allies to heal
+        if (this.isPlayerSourced) {
+          allTargets = players.filter(player => {
+            const isValid = player.currentHealth > 0 && player.id === this.ownerId && player.currentHealth < player.maxHealth
+            return player.isConnected && isValid
+          })
+        } else {
+          allTargets = enemies.filter(enemy => {
+            return enemy.isAlive() && enemy.currentHealth < enemy.maxHealth
+          })
+        }
+      } else {
+        // Look for enemies to attack
+        if (this.isPlayerSourced) {
+          allTargets = enemies.filter(enemy => enemy.isAlive())
+        } else {
+          allTargets = players.filter(player => {
+            return player.isConnected && player.currentHealth > 0
+          })
+        }
+      }
 
       if (allTargets.length > 0) {
         // Find closest target and move toward it (but stay within leash)
@@ -288,6 +341,6 @@ export default class PetState extends EntityState {
 
   static getMaxPets(source) {
     const plusMaxPets = source.stats && source.stats[ItemAttribute.MaxPets] ? source.stats[ItemAttribute.MaxPets] : 0
-    return 1 + plusMaxPets // everyone can spawn at least 1 pet, items can increase this
+    return 5 + plusMaxPets // everyone can spawn at least 1 pet, items can increase this
   }
 }

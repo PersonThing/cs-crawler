@@ -29,11 +29,24 @@ function createEnemy(enemyType, x, y, pather) {
 function updateEnemies(deltaMS, players = []) {
   for (let i = enemies.length - 1; i >= 0; i--) {
     const enemy = enemies[i]
-    const shouldContinue = enemy.tick(deltaMS, players)
-
-    if (!shouldContinue) {
-      console.log(`Removing enemy ${enemy.id}`)
-      enemies.splice(i, 1)
+    
+    // Only tick enemies within 1000px of any player
+    let shouldTick = false
+    for (const player of players) {
+      const dx = enemy.x - player.x
+      const dy = enemy.y - player.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      if (distance <= 1000) {
+        shouldTick = true
+        break
+      }
+    }
+    
+    if (shouldTick) {
+      const shouldContinue = enemy.tick(deltaMS, players)
+      if (!shouldContinue) {
+        enemies.splice(i, 1)
+      }
     }
   }
 }
@@ -41,6 +54,11 @@ function updateEnemies(deltaMS, players = []) {
 // Helper function to get all active enemies (for sending to clients)
 function getActiveEnemies() {
   return enemies.filter(e => e.isAlive()).map(e => e.serialize())
+}
+
+// Helper function to get raw enemy objects (for server-side logic)
+function getEnemyObjects() {
+  return enemies.filter(e => e.isAlive())
 }
 
 // Helper function to get enemy count
@@ -59,4 +77,4 @@ function getEnemyById(id) {
   return enemies.find(e => e.id === id)
 }
 
-export { createEnemy, updateEnemies, getActiveEnemies, getEnemyCount, clearEnemies, getEnemyById, EnemyTypes }
+export { createEnemy, updateEnemies, getActiveEnemies, getEnemyObjects, getEnemyCount, clearEnemies, getEnemyById, EnemyTypes }

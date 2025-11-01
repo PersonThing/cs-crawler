@@ -38,6 +38,7 @@ export default class ProjectileState {
     this.id = id
     this.sourceId = source.id
     this.sourceOwnerId = source.ownerId || null
+    this.isPlayerSourced = source.isPet ? source.isPlayerSourced : !source.isHostile // Pets inherit owner faction, others check isHostile
     this.x = source.x
     this.y = source.y
     this.targetX = target.x
@@ -55,7 +56,7 @@ export default class ProjectileState {
     this.active = true
   }
 
-  tick(deltaMS, players = [], pather = null) {
+  tick(deltaMS, players = [], pather = null, enemies = []) {
     if (!this.active) {
       return false // Projectile should be removed
     }
@@ -116,30 +117,59 @@ export default class ProjectileState {
     this.x = newX
     this.y = newY
 
-    // Check for collisions with players (excluding source)
-    for (const player of players) {
-      if (player.id === this.sourceId || player.id === this.sourceOwnerId || !player.isConnected) continue
+    // Check for collisions based on faction
+    if (this.isPlayerSourced) {
+      // Player-sourced projectiles damage enemies
+      for (const enemy of enemies) {
+        if (!enemy.isAlive()) continue
 
-      const distance = Math.hypot(player.x - this.x, player.y - this.y)
-      if (distance <= this.radius) {
-        // Hit detected
-        this.active = false // TODO: if pierce enabled and projectile has it, change this logic
+        const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y)
+        if (distance <= this.radius) {
+          // Hit detected
+          this.active = false
 
-        // Apply damage
-        const isDead = player.takeDamage(this.damage)
-        console.log(
-          `Projectile hit ${player.label} for ${this.damage} ${this.damageType} damage (${player.currentHealth}/${player.maxHealth} HP remaining)`
-        )
+          const isDead = enemy.takeDamage(this.damage, { id: this.sourceId })
+          // console.log(
+          //   `Player projectile hit ${enemy.label} for ${this.damage} ${this.damageType} damage (${enemy.currentHealth}/${enemy.maxHealth} HP remaining)`
+          // )
 
-        if (isDead) {
-          console.log(`${player.label} has been defeated!`)
+          if (isDead) {
+            console.log(`${enemy.label} has been defeated!`)
+          }
+
+          if (this.onHit) {
+            this.onHit(this, enemy)
+          }
+
+          return false
         }
+      }
+    } else {
+      // Enemy-sourced projectiles damage players
+      for (const player of players) {
+        if (player.id === this.sourceId || player.id === this.sourceOwnerId || !player.isConnected) continue
+        if (player.currentHealth <= 0) continue
 
-        if (this.onHit) {
-          this.onHit(this, player)
+        const distance = Math.hypot(player.x - this.x, player.y - this.y)
+        if (distance <= this.radius) {
+          // Hit detected
+          this.active = false
+
+          const isDead = player.takeDamage(this.damage, { id: this.sourceId })
+          // console.log(
+          //   `Enemy projectile hit ${player.label} for ${this.damage} ${this.damageType} damage (${player.currentHealth}/${player.maxHealth} HP remaining)`
+          // )
+
+          if (isDead) {
+            console.log(`${player.label} has been defeated!`)
+          }
+
+          if (this.onHit) {
+            this.onHit(this, player)
+          }
+
+          return false
         }
-
-        return false // Projectile should be removed
       }
     }
 

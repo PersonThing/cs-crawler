@@ -113,10 +113,10 @@ const Abilities = {
 
       if (target != null && typeof target.heal === 'function') {
         target.heal(healAmount)
-        console.log(`${target.label} healed for ${healAmount} HP (${target.currentHealth}/${target.maxHealth} HP)`)
+        // console.log(`${target.label} healed for ${healAmount} HP (${target.currentHealth}/${target.maxHealth} HP)`)
       } else if (source != null && typeof source.heal === 'function') {
         source.heal(healAmount)
-        console.log(`${source.label} healed for ${healAmount} HP (${source.currentHealth}/${source.maxHealth} HP)`)
+        // console.log(`${source.label} healed for ${healAmount} HP (${source.currentHealth}/${source.maxHealth} HP)`)
       }
       // todo: show heal effect animation on target?
     },
@@ -134,7 +134,6 @@ function useAbility(abilityId, source, target, modifiers = []) {
   // Check if the ability should be cast as a pet
   if (modifiers.includes(AbilityModifiers.Pet.id)) {
     // Create a pet that will cast this ability
-    console.log('creating pet for ability', source.id, abilityId, modifiers)
     createPet(source, target, abilityId, ability, modifiers)
     return
   }

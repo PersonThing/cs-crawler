@@ -137,7 +137,6 @@ class Minimap extends Sprite {
     Object.keys(this.remotePlayerMarkers)
       .filter(id => !connectedPlayerIds.includes(id))
       .forEach(id => {
-        console.log('removing player in minimap', id)
         this.map.removeChild(this.remotePlayerMarkers[id])
         delete this.remotePlayerMarkers[id]
       })

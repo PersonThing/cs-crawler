@@ -16,10 +16,11 @@ function createProjectile(source, target, options) {
 // deltaMS: milliseconds since last update
 // players: array of player objects to test hits against
 // pather (optional): instance of Pather to test collisions with the level (isWalkableAt)
-function updateProjectiles(deltaMS, players = [], pather = null) {
+// enemies (optional): array of enemies that projectiles can damage
+function updateProjectiles(deltaMS, players = [], pather = null, enemies = []) {
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const projectile = projectiles[i]
-    const shouldContinue = projectile.tick(deltaMS, players, pather)
+    const shouldContinue = projectile.tick(deltaMS, players, pather, enemies)
 
     if (!shouldContinue) {
       projectiles.splice(i, 1)

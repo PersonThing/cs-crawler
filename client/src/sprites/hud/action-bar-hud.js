@@ -144,13 +144,13 @@ class ActionBarHud extends Container {
     const unlockedAbilities = this.getUnlockedAbilities(localPlayer?.state?.stats || {})
 
     if (!unlockedAbilities.includes(config.abilityId)) {
-      console.log('Ability not unlocked:', ability.name)
+      // console.log('Ability not unlocked:', ability.name)
       return null
     }
 
     // Check if ability is on cooldown
     if (localPlayer?.state?.getAbilityCooldownRemaining && localPlayer.state.getAbilityCooldownRemaining(config.abilityId) > 0) {
-      console.log('Ability on cooldown:', ability.name)
+      // console.log('Ability on cooldown:', ability.name)
       return null
     }
 
@@ -161,7 +161,7 @@ class ActionBarHud extends Container {
     const unlockedModifiers = this.getUnlockedModifiers(localPlayer?.state?.stats || {})
     const activeModifiers = config.modifiers.filter(modId => unlockedModifiers.includes(modId))
 
-    console.log(`Using ability: ${ability.name} at`, targetPosition, 'with modifiers:', activeModifiers)
+    // console.log(`Using ability: ${ability.name} at`, targetPosition, 'with modifiers:', activeModifiers)
 
     // Emit to server to handle ability usage
     socket.emit('useAbility', {

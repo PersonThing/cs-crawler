@@ -6,7 +6,7 @@ import { Graphics } from 'pixi.js'
 
 export function getHealthBarColor(healthPercentage) {
   // Determine color based on health percentage
-  let color = 0x008800 // Green for high health
+  let color = 0x00ff00 // Green for high health
   if (healthPercentage < 0.6) {
     color = 0x999900 // Yellow for medium health
   }

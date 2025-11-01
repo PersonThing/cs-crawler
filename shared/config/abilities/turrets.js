@@ -24,10 +24,10 @@ function createTurret(source, position, abilityId, abilityData, modifiers = []) 
 }
 
 // Helper function to update all turrets
-function updateTurrets(deltaMS, players = []) {
+function updateTurrets(deltaMS, players = [], enemies = []) {
   for (let i = turrets.length - 1; i >= 0; i--) {
     const turret = turrets[i]
-    const shouldContinue = turret.tick(deltaMS, players)
+    const shouldContinue = turret.tick(deltaMS, players, enemies)
     if (!shouldContinue) {
       turrets.splice(i, 1)
     }

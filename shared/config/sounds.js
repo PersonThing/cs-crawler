@@ -3,15 +3,15 @@
 // Do not make changes here, they'll be blown away by the background watcher anyway
 
 export const Sounds = {
-  abilities: {
-    Pet: '/assets/sounds/abilities/Pet.m4a',
-    Shoot: '/assets/sounds/abilities/Shoot.m4a',
-    Turret: '/assets/sounds/abilities/Turret.m4a',
+  "abilities": {
+    "Pet": "/assets/sounds/abilities/Pet.m4a",
+    "Shoot": "/assets/sounds/abilities/Shoot.m4a",
+    "Turret": "/assets/sounds/abilities/Turret.m4a"
   },
-  item: {
-    ItemDrop: '/assets/sounds/item/ItemDrop.m4a',
-    ItemEquip: '/assets/sounds/item/ItemEquip.mp3',
-    ItemPickup: '/assets/sounds/item/ItemPickup.m4a',
+  "item": {
+    "ItemDrop": "/assets/sounds/item/ItemDrop.m4a",
+    "ItemEquip": "/assets/sounds/item/ItemEquip.mp3",
+    "ItemPickup": "/assets/sounds/item/ItemPickup.m4a"
   },
-  Stepping: '/assets/sounds/Stepping.mp3',
+  "Stepping": "/assets/sounds/Stepping.mp3"
 }

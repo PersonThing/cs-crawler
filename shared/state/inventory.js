@@ -358,11 +358,9 @@ export default class Inventory {
         // bonus item into bonus slot.. try to fill empty slots first
         if (this.isSlotFilled(possibleSlotName)) {
           if (k < possibleSlots.length - 1) {
-            console.log(possibleSlotName, 'filled, trying', possibleSlots[k + 1], bagItem.id)
             continue
           } else {
             // all possible slots are filled, try to swap with first eligible slot
-            console.log('all slots filled, trying to put into', possibleSlots[0], bagItem.id)
             return this.tryEquip(bagItem, possibleSlots[0])
           }
         }

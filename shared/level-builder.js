@@ -39,8 +39,8 @@ function findWalkablePositionInTile(tile, tileX, tileY) {
     const block = tile.blockGrid[localY] && tile.blockGrid[localY][localX]
     if (block && block.canWalk) {
       return {
-        x: tileWorldX + localX * BLOCK_SIZE + BLOCK_SIZE / 2,
-        y: tileWorldY + localY * BLOCK_SIZE + BLOCK_SIZE / 2,
+        x: (tileWorldX + localX * BLOCK_SIZE + BLOCK_SIZE / 2) * ART_SCALE,
+        y: (tileWorldY + localY * BLOCK_SIZE + BLOCK_SIZE / 2) * ART_SCALE,
       }
     }
   }
@@ -102,11 +102,12 @@ const generateLevel = async () => {
     y: 200 * ART_SCALE,
   }
 
-  // Generate enemy spawn points for each tile
+  // Generate enemy spawn points for each tile (1 enemy per walkable block)
   level.enemySpawns = []
   level.tileGrid.forEach((row, tileY) => {
     row.forEach((tile, tileX) => {
       if (!tile) return // Skip null tiles
+      if (tileX === 0 && tileY === 0) return // Skip first tile
 
       // Generate 0-5 enemies per tile
       const enemyCount = Math.floor(Math.random() * 6) // 0 to 5 enemies

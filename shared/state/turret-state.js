@@ -15,6 +15,7 @@ export default class TurretState {
     // Initialize turret properties
     this.id = id
     this.ownerId = source.id
+    this.isPlayerSourced = source.isPet ? source.isPlayerSourced : !source.isHostile // Pets inherit owner faction, others check isHostile
     this.getStats = () => source.stats // make it check source stats dynamically in case player changes items - so existing turrets should use updated stats
     this.x = position.x
     this.y = position.y
@@ -33,7 +34,7 @@ export default class TurretState {
     this.targetAllies = abilityData.targetAllies ? true : false
   }
 
-  tick(deltaMS, players = []) {
+  tick(deltaMS, players = [], enemies = []) {
     if (!this.active) {
       return false // Turret should be removed
     }
@@ -54,19 +55,54 @@ export default class TurretState {
       return true // Turret should continue, but not cast yet
     }
 
-    // Find valid targets in range (enemies of the turret owner, unless targeting allies)
-    const validTargets = players.filter(player => {
-      const isValid =
-        player.currentHealth > 0 && // must be alive
-        this.targetAllies
-          ? player.id === this.ownerId && player.currentHealth < player.maxHealth // todo: allies = owner only for now, skip anyone at full health
-          : player.id !== this.ownerId // todo: enemies = other players only for now
+    // Find valid targets in range based on faction and ability type
+    let validTargets = []
 
-      if (!player.isConnected || !isValid) return false
+    if (this.targetAllies) {
+      // Healing/support turrets target allies of the same faction
+      if (this.isPlayerSourced) {
+        // Player-sourced healing turrets target players
+        validTargets = players.filter(player => {
+          const isValid =
+            player.currentHealth > 0 && // must be alive
+            player.currentHealth < player.maxHealth // skip anyone at full health
 
-      const distance = Math.hypot(player.x - this.x, player.y - this.y)
-      return distance <= this.range
-    })
+          if (!player.isConnected || !isValid) return false
+
+          const distance = Math.hypot(player.x - this.x, player.y - this.y)
+          return distance <= this.range
+        })
+      } else {
+        // Enemy-sourced healing turrets target enemies
+        validTargets = enemies.filter(enemy => {
+          const isValid = enemy.isAlive() && enemy.currentHealth < enemy.maxHealth
+
+          if (!isValid) return false
+
+          const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y)
+          return distance <= this.range
+        })
+      }
+    } else {
+      // Offensive turrets target enemies of the opposite faction
+      if (this.isPlayerSourced) {
+        // Player-sourced turrets target enemies
+        validTargets = enemies.filter(enemy => {
+          if (!enemy.isAlive()) return false
+
+          const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y)
+          return distance <= this.range
+        })
+      } else {
+        // Enemy-sourced turrets target players
+        validTargets = players.filter(player => {
+          if (!player.isConnected || player.currentHealth <= 0) return false
+
+          const distance = Math.hypot(player.x - this.x, player.y - this.y)
+          return distance <= this.range
+        })
+      }
+    }
 
     if (validTargets.length > 0) {
       // Get closest valid target
@@ -95,7 +131,7 @@ export default class TurretState {
       if (this.abilityData.onUse) {
         this.abilityData.onUse(turretAsSource, target, this.modifiers)
         this.lastCastTime = now
-        console.log(`Turret ${this.id} cast ${this.abilityId} at ${target.label}`)
+        // console.log(`Turret ${this.id} cast ${this.abilityId} at ${target.label}`)
       }
     }
 

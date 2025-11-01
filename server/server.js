@@ -3,7 +3,7 @@ import { generateRandomItem } from '#shared/config/items.js'
 import { getActiveProjectiles, updateProjectiles } from '#shared/config/abilities/projectiles.js'
 import { getActiveTurrets, updateTurrets, getTurretCount } from '#shared/config/abilities/turrets.js'
 import { getActivePets, updatePets, getPetCount } from '#shared/config/abilities/pets.js'
-import { createEnemy, updateEnemies, getActiveEnemies, clearEnemies } from '#shared/config/enemies.js'
+import { createEnemy, updateEnemies, getActiveEnemies, getEnemyObjects, clearEnemies } from '#shared/config/enemies.js'
 import { Server } from 'socket.io'
 import { SERVER_FPS } from '#shared/config/constants.js'
 import db from './db.js'
@@ -75,20 +75,23 @@ function tick() {
   updateProjectiles(
     deltaMS,
     Object.values(players).filter(p => p && p.isConnected),
-    levelManager.getPather()
+    levelManager.getPather(),
+    getEnemyObjects()
   )
 
   // Update turrets
   updateTurrets(
     deltaMS,
-    Object.values(players).filter(p => p && p.isConnected)
+    Object.values(players).filter(p => p && p.isConnected),
+    getEnemyObjects()
   )
 
   // Update pets
   updatePets(
     deltaMS,
     Object.values(players).filter(p => p && p.isConnected),
-    useAbility
+    useAbility,
+    getEnemyObjects()
   )
 
   // Update enemies
