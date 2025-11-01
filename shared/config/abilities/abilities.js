@@ -3,7 +3,10 @@
 import ItemAttribute from '../item-attribute.js'
 import { Sounds } from '../sounds.js'
 import { Textures } from '../textures.js'
-import { createProjectile, createTurret, createPet } from './ability-helpers.js'
+import { createProjectile } from './projectiles.js'
+import { createTurret } from './turrets.js'
+import { createPet } from './pets.js'
+
 import DamageType from './damage-type.js'
 
 const Abilities = {
@@ -148,7 +151,7 @@ function useAbility(abilityId, source, target, modifiers = []) {
 }
 
 // Ability Modifiers
-// when assigning an ability to an action bar, you will be able to assign modifiers to the ability (for now, just allow assigning up to 2 modifiers)
+// when assigning an ability to an action bar, you will be able to assign modifiers to the ability (for now, just allow assigning up to 1 modifier)
 // these modifiers will change how the ability is used, e.g. cast on cooldown, cast on hit, summon a turret to use the ability, etc
 // when an ability is used, it will be passed the list of modifiers to determine how to handle the ability use
 // e.g. if the ability has the Turret modifier, it will summon a turret that uses the ability instead of the player using it directly

@@ -1,15 +1,8 @@
 import { Abilities, AbilityModifiers, useAbility } from '#shared/config/abilities/abilities.js'
 import { generateRandomItem } from '#shared/config/items.js'
-import {
-  getActiveProjectiles,
-  updateProjectiles,
-  getActiveTurrets,
-  updateTurrets,
-  getTurretCount,
-  getActivePets,
-  updatePets,
-  getPetCount,
-} from '#shared/config/abilities/ability-helpers.js'
+import { getActiveProjectiles, updateProjectiles } from '#shared/config/abilities/projectiles.js'
+import { getActiveTurrets, updateTurrets, getTurretCount } from '#shared/config/abilities/turrets.js'
+import { getActivePets, updatePets, getPetCount } from '#shared/config/abilities/pets.js'
 import { Server } from 'socket.io'
 import { SERVER_FPS } from '#shared/config/constants.js'
 import db from './db.js'

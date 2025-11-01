@@ -229,12 +229,10 @@ class AbilitySelectionMenu extends Container {
     const currentIndex = this.currentConfig.modifiers.indexOf(modifierKey)
 
     if (currentIndex === -1) {
-      // Add modifier (limit to 2)
-      if (this.currentConfig.modifiers.length < 2) {
-        this.currentConfig.modifiers.push(modifierKey)
-      }
+      // Replace current modifier with the new one (limit to 1)
+      this.currentConfig.modifiers = [modifierKey]
     } else {
-      // Remove modifier
+      // Remove modifier if clicking the same one
       this.currentConfig.modifiers.splice(currentIndex, 1)
     }
 
