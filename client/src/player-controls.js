@@ -73,15 +73,10 @@ class PlayerControls {
       b: () => this.hud.toggleInventory(),
       c: () => this.hud.toggleCharacterSheet(),
 
-      q: () => this.hud.actionBar.useSlot3(cursorPositionStore.get()),
-      w: () => this.hud.actionBar.useSlot4(cursorPositionStore.get()),
-      e: () => this.hud.actionBar.useSlot5(cursorPositionStore.get()),
-      r: event => {
-        this.hud.actionBar.useSlot6(cursorPositionStore.get())
-        if (event.ctrlKey) {
-          return true
-        }
-      },
+      1: () => this.hud.actionBar.useSlot3(cursorPositionStore.get()),
+      2: () => this.hud.actionBar.useSlot4(cursorPositionStore.get()),
+      3: () => this.hud.actionBar.useSlot5(cursorPositionStore.get()),
+      4: () => this.hud.actionBar.useSlot6(cursorPositionStore.get()),
 
       // temp debug methods for items
       n: () => socket.emit('pickupRandomItem'),
