@@ -2,13 +2,18 @@ import { Container, Graphics, Text } from 'pixi.js'
 import { renderHealthBar, createHealthBarGraphics } from '../utils/health-bar-renderer.js'
 import { LOCAL_PLAYER_COLOR, OTHER_PLAYER_COLOR } from '#shared/config/constants'
 
-const HEALTH_BAR_WIDTH = 90
-const HEALTH_BAR_HEIGHT = 8
-const HEALTH_BAR_OFFSET_Y = -40 // Position above the entity
+const DEFAULT_HEALTH_BAR_WIDTH = 90
+const DEFAULT_HEALTH_BAR_HEIGHT = 8
+const DEFAULT_HEALTH_BAR_OFFSET_Y = -40 // Position above the entity
 
 class HealthBar extends Container {
-  constructor() {
+  constructor(healthBarOptions) {
     super()
+    this.options = healthBarOptions || {}
+    this.options.width = this.options.width || DEFAULT_HEALTH_BAR_WIDTH
+    this.options.height = this.options.height || DEFAULT_HEALTH_BAR_HEIGHT
+    this.options.offsetY = this.options.offsetY || DEFAULT_HEALTH_BAR_OFFSET_Y
+    this.showName = this.options.showName !== undefined ? this.options.showName : true
 
     this.label = ''
     this.healthPercentage = 1.0
@@ -24,9 +29,9 @@ class HealthBar extends Container {
 
   createBackground() {
     this.background = new Graphics()
-    this.background.rect(0, 0, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT)
-    this.background.fill(0x330000) // Dark red background
-    this.background.stroke({ color: 0x000000, width: 1 })
+    this.background.roundRect(0, 0, this.options.width, this.options.height, 3)
+    this.background.fill(0x000000) // Dark background
+    this.background.alpha = 0.7
     this.addChild(this.background)
   }
 
@@ -36,6 +41,8 @@ class HealthBar extends Container {
   }
 
   createText() {
+    if (!this.showName) return
+
     this.healthText = new Text({
       text: '',
       style: {
@@ -49,8 +56,8 @@ class HealthBar extends Container {
       },
     })
     this.healthText.anchor.set(0.5, 0)
-    this.healthText.x = HEALTH_BAR_WIDTH / 2
-    this.healthText.y = HEALTH_BAR_HEIGHT
+    this.healthText.x = this.options.width / 2
+    this.healthText.y = this.options.height
     this.addChild(this.healthText)
   }
 
@@ -62,7 +69,7 @@ class HealthBar extends Container {
     this.healthPercentage = maxHealth > 0 ? currentHealth / maxHealth : 0
 
     // Show health bar if not at full health
-    this.visible = true //this.healthPercentage < 1.0
+    this.visible = this.healthPercentage < 1.0
 
     if (this.visible) {
       this.updateBar()
@@ -75,20 +82,22 @@ class HealthBar extends Container {
       this.foreground,
       this.currentHealth,
       this.maxHealth,
-      HEALTH_BAR_WIDTH,
-      HEALTH_BAR_HEIGHT,
+      this.options.width,
+      this.options.height,
       false // Don't render background since we have a separate background graphics
     )
   }
 
   updateText() {
+    if (!this.showName) return
+
     this.healthText.text = `${this.label} ${this.currentHealth}/${this.maxHealth}`
     this.healthText.style.fill = this.isLocalPlayer ? LOCAL_PLAYER_COLOR : OTHER_PLAYER_COLOR
   }
 
   setPosition(x, y) {
-    this.x = x - HEALTH_BAR_WIDTH / 2
-    this.y = y + HEALTH_BAR_OFFSET_Y
+    this.x = x - this.options.width / 2
+    this.y = y + this.options.offsetY
   }
 }
 

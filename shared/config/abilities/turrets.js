@@ -44,4 +44,10 @@ function getTurretCount(playerId, abilityId = null) {
   return turrets.filter(t => t.active && t.ownerId === playerId && (abilityId === null || t.abilityId === abilityId)).length
 }
 
-export { createTurret, updateTurrets, getActiveTurrets, getTurretCount }
+// Helper function to clear all turrets (for level resets)
+function clearTurrets() {
+  turrets.length = 0
+  turretIdCounter = 0
+}
+
+export { createTurret, updateTurrets, getActiveTurrets, getTurretCount, clearTurrets }

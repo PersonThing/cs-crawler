@@ -51,4 +51,10 @@ function getPetCount(playerId, abilityId = null) {
   return pets.filter(p => p.active && p.ownerId === playerId && (abilityId === null || p.abilityId === abilityId)).length
 }
 
-export { createPet, updatePets, getActivePets, getPetCount }
+// Helper function to clear all pets (for level resets)
+function clearPets() {
+  pets.length = 0
+  petIdCounter = 0
+}
+
+export { createPet, updatePets, getActivePets, getPetCount, clearPets }

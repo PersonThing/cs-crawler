@@ -29,7 +29,7 @@ function createEnemy(enemyType, x, y, pather) {
 function updateEnemies(deltaMS, players = []) {
   for (let i = enemies.length - 1; i >= 0; i--) {
     const enemy = enemies[i]
-    
+
     // Only tick enemies within 1000px of any player
     let shouldTick = false
     for (const player of players) {
@@ -41,7 +41,7 @@ function updateEnemies(deltaMS, players = []) {
         break
       }
     }
-    
+
     if (shouldTick) {
       const shouldContinue = enemy.tick(deltaMS, players)
       if (!shouldContinue) {

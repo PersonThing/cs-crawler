@@ -1,8 +1,8 @@
 import { Abilities, AbilityModifiers, useAbility } from '#shared/config/abilities/abilities.js'
 import { generateRandomItem } from '#shared/config/items.js'
-import { getActiveProjectiles, updateProjectiles } from '#shared/config/abilities/projectiles.js'
-import { getActiveTurrets, updateTurrets, getTurretCount } from '#shared/config/abilities/turrets.js'
-import { getActivePets, updatePets, getPetCount } from '#shared/config/abilities/pets.js'
+import { getActiveProjectiles, updateProjectiles, clearProjectiles } from '#shared/config/abilities/projectiles.js'
+import { getActiveTurrets, updateTurrets, getTurretCount, clearTurrets } from '#shared/config/abilities/turrets.js'
+import { getActivePets, updatePets, getPetCount, clearPets } from '#shared/config/abilities/pets.js'
 import { createEnemy, updateEnemies, getActiveEnemies, getEnemyObjects, clearEnemies } from '#shared/config/enemies.js'
 import { Server } from 'socket.io'
 import { SERVER_FPS } from '#shared/config/constants.js'
@@ -459,6 +459,35 @@ io.on('connection', async socket => {
     player.setPosition(position.x, position.y)
     player.setTarget(null)
     console.log(`Player ${player.username} teleported to (${position.x}, ${position.y})`)
+  })
+
+  // Reset current level
+  socket.on('resetLevel', () => {
+    if (!player?.isConnected) {
+      return
+    }
+
+    console.log(`Player ${player.username} requested level reset`)
+    
+    // Clear all enemies
+    clearEnemies()
+    
+    // Clear all turrets, pets, projectiles
+    clearTurrets()
+    clearPets()
+    clearProjectiles()
+    
+    // Reset player to start position
+    const levelConfig = levelManager.getLevel()
+    if (levelConfig && levelConfig.start) {
+      player.setPosition(levelConfig.start.x, levelConfig.start.y)
+      player.setTarget(null)
+    }
+    
+    // Regenerate level (this will create new enemies)
+    levelManager.requestLevelGeneration(playerId, socket, async () => {
+      console.log(`Level reset complete for player ${player.username}`)
+    })
   })
 
   // Remove player on disconnect

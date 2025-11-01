@@ -26,23 +26,39 @@ function findWalkablePositionInTile(tile, tileX, tileY) {
   // Get tile dimensions from blockGrid
   const tileHeight = tile.blockGrid.length
   if (tileHeight === 0) return null
-  const tileWidth = tile.blockGrid[0].length
+
+  // Find the actual width by checking the first non-empty row
+  let tileWidth = 0
+  for (let y = 0; y < tileHeight; y++) {
+    if (tile.blockGrid[y] && tile.blockGrid[y].length > tileWidth) {
+      tileWidth = tile.blockGrid[y].length
+    }
+  }
+  if (tileWidth === 0) return null
 
   const tileWorldX = tileX * tileWidth * BLOCK_SIZE
   const tileWorldY = tileY * tileHeight * BLOCK_SIZE
 
-  // Try to find a walkable block within the tile
-  for (let attempts = 0; attempts < 20; attempts++) {
-    const localX = Math.floor(Math.random() * tileWidth)
-    const localY = Math.floor(Math.random() * tileHeight)
-
-    const block = tile.blockGrid[localY] && tile.blockGrid[localY][localX]
-    if (block && block.canWalk) {
-      return {
-        x: (tileWorldX + localX * BLOCK_SIZE + BLOCK_SIZE / 2) * ART_SCALE,
-        y: (tileWorldY + localY * BLOCK_SIZE + BLOCK_SIZE / 2) * ART_SCALE,
+  // First, collect all walkable positions
+  const walkablePositions = []
+  for (let localY = 0; localY < tileHeight; localY++) {
+    for (let localX = 0; localX < tileWidth; localX++) {
+      const block = tile.blockGrid[localY] && tile.blockGrid[localY][localX]
+      if (block && block.canWalk) {
+        walkablePositions.push({
+          localX,
+          localY,
+          x: (tileWorldX + localX * BLOCK_SIZE + BLOCK_SIZE / 2) * ART_SCALE,
+          y: (tileWorldY + localY * BLOCK_SIZE + BLOCK_SIZE / 2) * ART_SCALE,
+        })
       }
     }
+  }
+
+  // Return a random walkable position if any exist
+  if (walkablePositions.length > 0) {
+    const randomIndex = Math.floor(Math.random() * walkablePositions.length)
+    return walkablePositions[randomIndex]
   }
 
   return null // No walkable position found
@@ -51,7 +67,7 @@ function findWalkablePositionInTile(tile, tileX, tileY) {
 const generateLevel = async () => {
   const level = new Level()
 
-  const notWalkableTiles = [1, 2]
+  const notWalkableTiles = [0, 1, 2] // 0=null, 1=stone, 2=rocks are not walkable
   const t = config => {
     const tile = new Tile(config.label)
     config.grid.forEach((row, y) => {

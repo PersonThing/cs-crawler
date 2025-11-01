@@ -97,6 +97,7 @@ class PlayerControls {
       },
       f5: () => socket.emit('debugTeleport', cursorPositionStore.get()),
       f6: () => explorationState.reset(),
+      f8: () => socket.emit('resetLevel'),
     }
 
     this.keyUpHandlers = {

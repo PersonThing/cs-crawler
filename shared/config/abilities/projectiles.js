@@ -33,4 +33,10 @@ function getActiveProjectiles() {
   return projectiles.filter(p => p.active).map(p => p.serialize())
 }
 
-export { createProjectile, updateProjectiles, getActiveProjectiles }
+// Helper function to clear all projectiles (for level resets)
+function clearProjectiles() {
+  projectiles.length = 0
+  projectileIdCounter = 0
+}
+
+export { createProjectile, updateProjectiles, getActiveProjectiles, clearProjectiles }

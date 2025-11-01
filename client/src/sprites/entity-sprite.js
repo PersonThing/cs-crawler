@@ -4,7 +4,7 @@ import InventorySlot from '#shared/config/inventory-slot'
 import HealthBar from './health-bar.js'
 
 class EntitySprite extends Container {
-  constructor(state, texture, world, pather, color) {
+  constructor(state, texture, world, pather, color, healthBarOptions = {}) {
     super()
 
     this.state = state
@@ -12,6 +12,7 @@ class EntitySprite extends Container {
     this.world = world
     this.pather = pather
     this.color = color || 0xffffff
+    this.healthBarOptions = healthBarOptions
 
     this.sprite = null
     this.healthBar = null
@@ -33,7 +34,7 @@ class EntitySprite extends Container {
     this.addChild(this.spriteContainer)
 
     // Create health bar
-    this.healthBar = new HealthBar()
+    this.healthBar = new HealthBar(this.healthBarOptions)
     this.healthBar.setPosition(0, 0) // Position relative to entity center
     this.addChild(this.healthBar)
 
