@@ -1,7 +1,6 @@
-import Inventory from './inventory.js'
 import { BLOCK_SIZE } from '../config/constants.js'
+import Inventory from './inventory.js'
 import InventoryStatCalculator from '../utils/inventory-stat-calculator.js'
-import { Abilities } from '#shared/config/abilities/abilities.js'
 import ItemAttribute from '#shared/config/item-attribute.js'
 
 export default class EntityState {
@@ -229,7 +228,7 @@ export default class EntityState {
 
   hasAbilityUnlocked(abilityId) {
     // BasicAttack is always available
-    if (abilityId === Abilities.BasicAttack.id) {
+    if (abilityId === 'BasicAttack') {
       return true
     }
 

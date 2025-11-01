@@ -7,6 +7,7 @@ import Pather from '#shared/pather.js'
 import GroundItemSprite from './sprites/ground-item-sprite.js'
 import TurretSprite from './sprites/turret-sprite.js'
 import PetSprite from './sprites/pet-sprite.js'
+import EnemySprite from './sprites/enemy-sprite.js'
 import ProjectileSprite from './sprites/projectile-sprite.js'
 import soundManager from './sound-manager.js'
 import { Sounds } from '#shared/config/sounds.js'
@@ -34,6 +35,9 @@ class World extends Container {
 
     this.petsContainer = new Container()
     this.addChild(this.petsContainer)
+
+    this.enemiesContainer = new Container()
+    this.addChild(this.enemiesContainer)
 
     this.pather = new Pather(levelConfig)
 
@@ -158,6 +162,32 @@ class World extends Container {
         // Update existing pet sprite
         petSprite.state = pet
         petSprite.updateFromState()
+      }
+    }
+  }
+
+  setEnemies(enemies) {
+    // Remove any enemies that are no longer active
+    for (const child of [...this.enemiesContainer.children]) {
+      const enemy = enemies.find(e => e.id === child.state?.id)
+      if (!enemy) {
+        this.enemiesContainer.removeChild(child)
+        child.destroy()
+      }
+    }
+
+    // Add or update enemies
+    for (const enemy of enemies) {
+      let enemySprite = this.enemiesContainer.children.find(child => child.state?.id === enemy.id)
+
+      if (!enemySprite) {
+        // Create new enemy sprite using EnemySprite class
+        enemySprite = new EnemySprite(enemy)
+        this.enemiesContainer.addChild(enemySprite)
+      } else {
+        // Update existing enemy sprite
+        enemySprite.state = enemy
+        enemySprite.updateFromState()
       }
     }
   }

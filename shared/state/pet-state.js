@@ -1,7 +1,6 @@
 import EntityState from './entity-state.js'
 import ItemAttribute from '../config/item-attribute.js'
 import { Textures } from '../config/textures.js'
-import { AbilityModifiers, useAbility } from '#shared/config/abilities/abilities.js'
 
 const PET_LIFETIME = 60000 // 60 seconds
 const PET_LEASH_DISTANCE = 200 // Stay near owner
@@ -31,7 +30,7 @@ export default class PetState extends EntityState {
     this.getStats = () => source.stats // Use owner's stats dynamically
     this.abilityId = abilityId
     this.abilityData = abilityData
-    this.modifiers = modifiers.filter(m => m !== AbilityModifiers.Pet.id) // Remove Pet modifier to prevent recursion
+    this.modifiers = modifiers.filter(m => m !== 'Pet') // Remove Pet modifier to prevent recursion
     this.range = PET_DETECTION_RANGE
     this.leashDistance = PET_LEASH_DISTANCE
     this.lastCastTime = 0
@@ -148,9 +147,15 @@ export default class PetState extends EntityState {
         }
 
         if (this.abilityData.onUse) {
-          useAbility(this.abilityId, petAsSource, target, this.modifiers)
+          // Store cast request to be handled by pet helpers
+          this.pendingCast = {
+            abilityId: this.abilityId,
+            source: petAsSource,
+            target: target,
+            modifiers: this.modifiers,
+          }
           this.lastCastTime = now
-          console.log(`Pet ${this.id} cast ${this.abilityId} at ${target.label}`)
+          console.log(`Pet ${this.id} wants to cast ${this.abilityId} at ${target.label}`)
         }
       }
     } else {

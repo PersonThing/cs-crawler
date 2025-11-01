@@ -1,9 +1,10 @@
 import { Textures } from '#shared/config/textures.js'
 import Block from './config/block.js'
-import { ART_SCALE } from './config/constants.js'
+import { ART_SCALE, BLOCK_SIZE } from './config/constants.js'
 import Level from './config/level.js'
 import Tile from './config/tile.js'
 import Tiles from './level-builder-tiles.js'
+import { EnemyTypes } from './config/enemies.js'
 
 const textureMap = {
   0: null,
@@ -18,6 +19,33 @@ const textureMap = {
   9: Textures.tiles.sprouts,
   10: Textures.object.bush,
   11: Textures.tiles.water,
+}
+
+// Helper function to find a walkable position within a tile
+function findWalkablePositionInTile(tile, tileX, tileY) {
+  // Get tile dimensions from blockGrid
+  const tileHeight = tile.blockGrid.length
+  if (tileHeight === 0) return null
+  const tileWidth = tile.blockGrid[0].length
+
+  const tileWorldX = tileX * tileWidth * BLOCK_SIZE
+  const tileWorldY = tileY * tileHeight * BLOCK_SIZE
+
+  // Try to find a walkable block within the tile
+  for (let attempts = 0; attempts < 20; attempts++) {
+    const localX = Math.floor(Math.random() * tileWidth)
+    const localY = Math.floor(Math.random() * tileHeight)
+
+    const block = tile.blockGrid[localY] && tile.blockGrid[localY][localX]
+    if (block && block.canWalk) {
+      return {
+        x: tileWorldX + localX * BLOCK_SIZE + BLOCK_SIZE / 2,
+        y: tileWorldY + localY * BLOCK_SIZE + BLOCK_SIZE / 2,
+      }
+    }
+  }
+
+  return null // No walkable position found
 }
 
 const generateLevel = async () => {
@@ -73,6 +101,35 @@ const generateLevel = async () => {
     x: 200 * ART_SCALE,
     y: 200 * ART_SCALE,
   }
+
+  // Generate enemy spawn points for each tile
+  level.enemySpawns = []
+  level.tileGrid.forEach((row, tileY) => {
+    row.forEach((tile, tileX) => {
+      if (!tile) return // Skip null tiles
+
+      // Generate 0-5 enemies per tile
+      const enemyCount = Math.floor(Math.random() * 6) // 0 to 5 enemies
+
+      for (let i = 0; i < enemyCount; i++) {
+        // Find a walkable position within the tile
+        const spawnPosition = findWalkablePositionInTile(tile, tileX, tileY)
+        if (spawnPosition) {
+          // Randomly choose enemy type
+          const enemyTypes = Object.keys(EnemyTypes)
+          const randomEnemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)]
+
+          level.enemySpawns.push({
+            enemyType: randomEnemyType,
+            x: spawnPosition.x,
+            y: spawnPosition.y,
+            tileX,
+            tileY,
+          })
+        }
+      }
+    })
+  })
 
   return level
 }

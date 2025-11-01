@@ -3,6 +3,7 @@ import { generateRandomItem } from '#shared/config/items.js'
 import { getActiveProjectiles, updateProjectiles } from '#shared/config/abilities/projectiles.js'
 import { getActiveTurrets, updateTurrets, getTurretCount } from '#shared/config/abilities/turrets.js'
 import { getActivePets, updatePets, getPetCount } from '#shared/config/abilities/pets.js'
+import { createEnemy, updateEnemies, getActiveEnemies, clearEnemies } from '#shared/config/enemies.js'
 import { Server } from 'socket.io'
 import { SERVER_FPS } from '#shared/config/constants.js'
 import db from './db.js'
@@ -87,7 +88,13 @@ function tick() {
   updatePets(
     deltaMS,
     Object.values(players).filter(p => p && p.isConnected),
-    levelManager.getPather()
+    useAbility
+  )
+
+  // Update enemies
+  updateEnemies(
+    deltaMS,
+    Object.values(players).filter(p => p && p.isConnected)
   )
 
   // Update turret and pet counts for all players
@@ -126,6 +133,7 @@ function tick() {
     projectiles: getActiveProjectiles(),
     turrets: getActiveTurrets(),
     pets: getActivePets(),
+    enemies: getActiveEnemies(),
   }
 
   // set groundItems in the state only if:
@@ -244,6 +252,17 @@ io.on('connection', async socket => {
   // ** uses client to do so since we need client-side canvas (for now)
   socket.on('setLevel', async levelConfig => {
     await levelManager.onLevelGenerated(levelConfig, playerId)
+
+    // Spawn enemies when level is generated
+    if (levelConfig.enemySpawns) {
+      clearEnemies() // Clear any existing enemies
+
+      levelConfig.enemySpawns.forEach(spawn => {
+        createEnemy(spawn.enemyType, spawn.x, spawn.y, levelManager.getPather())
+      })
+
+      console.log(`Spawned ${levelConfig.enemySpawns.length} enemies`)
+    }
   })
 
   socket.on('setUsername', newUsername => {
