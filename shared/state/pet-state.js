@@ -341,6 +341,6 @@ export default class PetState extends EntityState {
 
   static getMaxPets(source) {
     const plusMaxPets = source.stats && source.stats[ItemAttribute.MaxPets] ? source.stats[ItemAttribute.MaxPets] : 0
-    return 5 + plusMaxPets // everyone can spawn at least 1 pet, items can increase this
+    return 1 + plusMaxPets // everyone can spawn at least 1 pet, items can increase this
   }
 }

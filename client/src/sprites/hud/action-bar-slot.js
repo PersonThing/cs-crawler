@@ -3,7 +3,7 @@ import { Abilities, AbilityModifiers } from '#shared/config/abilities/abilities.
 import AbilityTooltip from './ability-tooltip.js'
 
 const SLOT_SIZE = 48
-const KEY_LABELS = ['Shift\nLClick', 'RClick', 'Q', 'W', 'E', 'R']
+const KEY_LABELS = ['Shift\nLClick', 'RClick', '1', '2', '3', '4']
 const BORDER_COLOR = 0x666666
 const FILL_COLOR = 0x222222
 const FILL_COLOR_LOCKED = 0x111111

@@ -213,6 +213,7 @@ export const Textures = {
     "chest": "/assets/textures/object/chest.png",
     "chestOpenCommon": "/assets/textures/object/chestOpenCommon.png",
     "chestOpenRare": "/assets/textures/object/chestOpenRare.png",
+    "dirt1": "/assets/textures/object/dirt1.png",
     "dropped": {
       "axe": "/assets/textures/object/dropped/axe.png",
       "bow": "/assets/textures/object/dropped/bow.png",
@@ -226,7 +227,11 @@ export const Textures = {
       "spear": "/assets/textures/object/dropped/spear.png",
       "sword": "/assets/textures/object/dropped/sword.png"
     },
-    "mushroom": "/assets/textures/object/mushroom.png"
+    "grass1": "/assets/textures/object/grass1.png",
+    "mushroom": "/assets/textures/object/mushroom.png",
+    "rocks1": "/assets/textures/object/rocks1.png",
+    "stone1": "/assets/textures/object/stone1.png",
+    "water1": "/assets/textures/object/water1.png"
   },
   "particle": {
     "blaze": "/assets/textures/particle/blaze.png",
