@@ -62,6 +62,7 @@ export default class ProjectileState {
     this.lastHomingUpdate = 0
     this.piercing = piercing
     this.hitTargets = new Set() // Track which entities have been hit
+    this.currentlyTouchingTargets = new Set() // Track which entities are currently being touched
     this.createdAt = Date.now()
     this.lifetime = lifetime
     this.active = true
@@ -142,13 +143,17 @@ export default class ProjectileState {
 
     // Check for collisions based on faction
     if (this.isPlayerSourced) {
+      // Track which enemies are currently being touched this frame
+      const currentlyTouchingEnemies = new Set()
+      
       // Player-sourced projectiles damage enemies
       for (const enemy of enemies) {
         if (!enemy.isAlive()) continue
 
         const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y)
         if (distance <= this.radius) {
-          // Hit detected
+          // Currently touching this enemy
+          currentlyTouchingEnemies.add(enemy.id)
           
           // For piercing projectiles, check if we've already hit this enemy
           if (this.piercing && this.hitTargets.has(enemy.id)) {
@@ -185,7 +190,23 @@ export default class ProjectileState {
           }
         }
       }
+      
+      // For piercing projectiles, remove enemies from hit list that are no longer being touched
+      if (this.piercing) {
+        // Find enemies that were touching last frame but not this frame
+        for (const enemyId of this.currentlyTouchingTargets) {
+          if (!currentlyTouchingEnemies.has(enemyId)) {
+            // Enemy is no longer being touched, remove from hit targets
+            this.hitTargets.delete(enemyId)
+          }
+        }
+        // Update currently touching targets
+        this.currentlyTouchingTargets = currentlyTouchingEnemies
+      }
     } else {
+      // Track which players are currently being touched this frame
+      const currentlyTouchingPlayers = new Set()
+      
       // Enemy-sourced projectiles damage players
       for (const player of players) {
         if (player.id === this.sourceId || player.id === this.sourceOwnerId || !player.isConnected) continue
@@ -193,7 +214,8 @@ export default class ProjectileState {
 
         const distance = Math.hypot(player.x - this.x, player.y - this.y)
         if (distance <= this.radius) {
-          // Hit detected
+          // Currently touching this player
+          currentlyTouchingPlayers.add(player.id)
           
           // For piercing projectiles, check if we've already hit this player
           if (this.piercing && this.hitTargets.has(player.id)) {
@@ -229,6 +251,19 @@ export default class ProjectileState {
             return false
           }
         }
+      }
+      
+      // For piercing projectiles, remove players from hit list that are no longer being touched
+      if (this.piercing) {
+        // Find players that were touching last frame but not this frame
+        for (const playerId of this.currentlyTouchingTargets) {
+          if (!currentlyTouchingPlayers.has(playerId)) {
+            // Player is no longer being touched, remove from hit targets
+            this.hitTargets.delete(playerId)
+          }
+        }
+        // Update currently touching targets
+        this.currentlyTouchingTargets = currentlyTouchingPlayers
       }
     }
 
