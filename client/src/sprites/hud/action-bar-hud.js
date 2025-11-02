@@ -230,6 +230,7 @@ class ActionBarHud extends Container {
       this.slotConfigs[slotIndex],
       this.getUnlockedAbilities(playerStats),
       this.getUnlockedModifiers(playerStats),
+      playerStats,
       config => this.onAbilitySelected(config)
     )
 
@@ -293,7 +294,7 @@ class ActionBarHud extends Container {
 
     // Update ability menu if open
     if (this.abilityMenu) {
-      this.abilityMenu.updateUnlockedState(this.getUnlockedAbilities(playerStats), this.getUnlockedModifiers(playerStats))
+      this.abilityMenu.updateUnlockedState(this.getUnlockedAbilities(playerStats), this.getUnlockedModifiers(playerStats), playerStats)
     }
   }
 

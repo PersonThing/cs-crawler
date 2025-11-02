@@ -1,7 +1,6 @@
 import { Container, Graphics, Text } from 'pixi.js'
 import AbilityTooltip from './ability-tooltip.js'
 
-const ITEM_HEIGHT = 32
 const BORDER_COLOR_NORMAL = 0x666666
 const BORDER_COLOR_SELECTED = 0x00ff00
 const BORDER_COLOR_LOCKED = 0x333333
@@ -10,13 +9,14 @@ const FILL_COLOR_SELECTED = 0x004400
 const FILL_COLOR_LOCKED = 0x111111
 
 class ModifierListItem extends Container {
-  constructor(modifier, isUnlocked, isSelected, width, tooltipContainer = null) {
+  constructor(modifier, isUnlocked, isSelected, width, height, tooltipContainer = null) {
     super()
 
     this.modifier = modifier
     this.isUnlocked = isUnlocked
     this.isSelected = isSelected
     this.ITEM_WIDTH = width
+    this.ITEM_HEIGHT = height
     this.tooltipContainer = tooltipContainer
 
     this.eventMode = 'static'
@@ -41,7 +41,7 @@ class ModifierListItem extends Container {
     const fillColor = this.isSelected ? FILL_COLOR_SELECTED : this.isUnlocked ? FILL_COLOR_NORMAL : FILL_COLOR_LOCKED
 
     this.bg = new Graphics()
-      .rect(0, 0, this.ITEM_WIDTH, ITEM_HEIGHT)
+      .rect(0, 0, this.ITEM_WIDTH, this.ITEM_HEIGHT)
       .fill(fillColor)
       .stroke({
         color: borderColor,
@@ -61,7 +61,7 @@ class ModifierListItem extends Container {
     })
 
     label.x = 8
-    label.y = (ITEM_HEIGHT - label.height) / 2
+    label.y = (this.ITEM_HEIGHT - label.height) / 2
 
     this.addChild(label)
   }

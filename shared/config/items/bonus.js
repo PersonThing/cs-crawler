@@ -99,13 +99,12 @@ export const bonusItems = [
     attributes: {
       [ItemAttribute.MaxAbilityModifiers]: 10, // Allow many modifiers
       [ItemAttribute.ExtraProjectiles]: 4, // For testing multi-projectiles
-      [ItemAttribute.AttackSpeedPercent]: 200, // Fast casting for testing
       [ItemAttribute.PhysicalDamage]: 50,
       [ItemAttribute.FireDamage]: 50,
       [ItemAttribute.ColdDamage]: 50,
       [ItemAttribute.LightningDamage]: 50,
     },
-    abilities: ['BasicAttack', 'Fireball', 'Frostbolt', 'Lightning'],
+    abilities: ['BasicAttack', 'Fireball', 'Frostbolt', 'Lightning', 'Heal'],
     abilityModifiers: [
       'Turret',
       'Pet',
@@ -115,7 +114,6 @@ export const bonusItems = [
       'CastOnLowHealth',
       'HomingProjectiles',
       'PiercingProjectiles',
-      'ExplodingProjectiles',
     ],
   }),
 ]

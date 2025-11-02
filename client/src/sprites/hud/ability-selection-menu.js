@@ -1,6 +1,7 @@
 import { Container, Graphics, Text } from 'pixi.js'
 import { HUD_BORDER_COLOR, HUD_FILL_COLOR } from '#shared/config/constants.js'
 import { Abilities, AbilityModifiers } from '#shared/config/abilities/abilities.js'
+import ItemAttribute from '#shared/config/item-attribute.js'
 import AbilityGridItem from './ability-grid-item.js'
 import ModifierListItem from './modifier-list-item.js'
 
@@ -12,15 +13,17 @@ const BUTTON_HEIGHT = 40
 const BUTTON_WIDTH = 120
 const MENU_HEIGHT = 380
 const MODIFIER_WIDTH = 120
+const MODIFIER_HEIGHT = 28
 const MENU_WIDTH = SECTION_PADDING * 2 + (ITEM_SIZE + ITEM_PADDING) * GRID_COLS + MODIFIER_WIDTH + SECTION_PADDING
 
 class AbilitySelectionMenu extends Container {
-  constructor(currentConfig, unlockedAbilities, unlockedModifiers, onSelectionChange) {
+  constructor(currentConfig, unlockedAbilities, unlockedModifiers, playerStats, onSelectionChange) {
     super()
 
     this.currentConfig = { ...currentConfig }
     this.unlockedAbilities = unlockedAbilities
     this.unlockedModifiers = unlockedModifiers
+    this.playerStats = playerStats || {}
     this.onSelectionChange = onSelectionChange
 
     this.abilityItems = []
@@ -112,9 +115,12 @@ class AbilitySelectionMenu extends Container {
     const startX = GRID_COLS * (ITEM_SIZE + ITEM_PADDING) + SECTION_PADDING * 2
     const startY = 50
 
-    // Section label
+    // Section label with count
+    const maxModifiers = 1 + ((this.playerStats && this.playerStats[ItemAttribute.MaxAbilityModifiers]) || 0)
+    const currentCount = this.currentConfig.modifiers.length
+    
     const label = new Text({
-      text: 'Modifiers',
+      text: `Modifiers (${currentCount}/${maxModifiers})`,
       style: {
         fontFamily: 'Arial',
         fontSize: 14,
@@ -126,6 +132,7 @@ class AbilitySelectionMenu extends Container {
     label.x = startX
     label.y = startY
     this.addChild(label)
+    this.modifierCountLabel = label
 
     // List container
     this.modifierList = new Container()
@@ -140,8 +147,8 @@ class AbilitySelectionMenu extends Container {
       const isUnlocked = this.unlockedModifiers.includes(modifierKey)
       const isSelected = this.currentConfig.modifiers.includes(modifierKey)
 
-      const item = new ModifierListItem(modifier, isUnlocked, isSelected, MODIFIER_WIDTH, this)
-      item.y = index * 34 // Add 2px spacing between items
+      const item = new ModifierListItem(modifier, isUnlocked, isSelected, MODIFIER_WIDTH, MODIFIER_HEIGHT, this)
+      item.y = index * (MODIFIER_HEIGHT + 2)
 
       item.on('toggle', () => this.onModifierToggle(modifierKey))
 
@@ -229,8 +236,9 @@ class AbilitySelectionMenu extends Container {
     const currentIndex = this.currentConfig.modifiers.indexOf(modifierKey)
 
     if (currentIndex === -1) {
-      // add modifier (limit to 2)
-      if (this.currentConfig.modifiers.length < 2) {
+      // Add modifier (limit based on MaxAbilityModifiers stat)
+      const maxModifiers = 1 + ((this.playerStats && this.playerStats[ItemAttribute.MaxAbilityModifiers]) || 0)
+      if (this.currentConfig.modifiers.length < maxModifiers) {
         this.currentConfig.modifiers.push(modifierKey)
       }
     } else {
@@ -253,11 +261,22 @@ class AbilitySelectionMenu extends Container {
       const modifierKey = Object.keys(AbilityModifiers)[index]
       item.setSelected(this.currentConfig.modifiers.includes(modifierKey))
     })
+
+    // Update modifier count label
+    if (this.modifierCountLabel) {
+      const maxModifiers = 1 + ((this.playerStats && this.playerStats[ItemAttribute.MaxAbilityModifiers]) || 0)
+      const currentCount = this.currentConfig.modifiers.length
+      this.modifierCountLabel.text = `Modifiers (${currentCount}/${maxModifiers})`
+    }
   }
 
-  updateUnlockedState(unlockedAbilities, unlockedModifiers) {
+  updateUnlockedState(unlockedAbilities, unlockedModifiers, playerStats) {
     this.unlockedAbilities = unlockedAbilities
     this.unlockedModifiers = unlockedModifiers
+    
+    if (playerStats) {
+      this.playerStats = playerStats
+    }
 
     // Update ability items
     this.abilityItems.forEach((item, index) => {
@@ -270,6 +289,9 @@ class AbilitySelectionMenu extends Container {
       const modifierKey = Object.keys(AbilityModifiers)[index]
       item.setUnlocked(this.unlockedModifiers.includes(modifierKey))
     })
+
+    // Update modifier count label if player stats changed
+    this.updateSelections()
   }
 }
 
