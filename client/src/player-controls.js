@@ -19,6 +19,14 @@ class PlayerControls {
     this.screenCursorX = 0
     this.screenCursorY = 0
 
+    // WASD movement tracking
+    this.wasdKeys = {
+      w: false,
+      a: false,
+      s: false,
+      d: false,
+    }
+
     this.player = playerSpriteStore.getLocalPlayer().state
     clientPrediction.setPlayer(this.player)
 
@@ -98,11 +106,39 @@ class PlayerControls {
       f5: () => socket.emit('debugTeleport', cursorPositionStore.get()),
       f6: () => explorationState.reset(),
       f8: () => socket.emit('resetLevel'),
+
+      // WASD movement
+      w: () => {
+        this.wasdKeys.w = true
+      },
+      a: () => {
+        this.wasdKeys.a = true
+      },
+      s: () => {
+        this.wasdKeys.s = true
+      },
+      d: () => {
+        this.wasdKeys.d = true
+      },
     }
 
     this.keyUpHandlers = {
       shift: () => {
         this.isShiftKeyDown = false
+      },
+
+      // WASD movement key releases
+      w: () => {
+        this.wasdKeys.w = false
+      },
+      a: () => {
+        this.wasdKeys.a = false
+      },
+      s: () => {
+        this.wasdKeys.s = false
+      },
+      d: () => {
+        this.wasdKeys.d = false
       },
     }
   }
@@ -166,6 +202,45 @@ class PlayerControls {
     // Create a visual indicator that the area cannot be accessed
     // This could be enhanced with a proper UI indicator later
     console.log(`⚠️ Area not explored: (${Math.round(position.x)}, ${Math.round(position.y)})`)
+  }
+
+  updateWASDMovement() {
+    if (!this.player) return
+
+    if (!this.wasdKeys.w && !this.wasdKeys.a && !this.wasdKeys.s && !this.wasdKeys.d) {
+      // No WASD keys pressed
+      return
+    }
+
+    // Calculate movement direction based on pressed keys
+    let deltaX = 0
+    let deltaY = 0
+    const moveDistance = 64 // Distance to move per key press (2 blocks at 32px each)
+
+    if (this.wasdKeys.a) deltaX -= moveDistance // Left
+    if (this.wasdKeys.d) deltaX += moveDistance // Right
+    if (this.wasdKeys.w) deltaY -= moveDistance // Up
+    if (this.wasdKeys.s) deltaY += moveDistance // Down
+
+    // If no keys are pressed, stop movement
+    if (deltaX === 0 && deltaY === 0) {
+      this.stopMovement()
+      return
+    }
+
+    // Calculate target position relative to current position
+    const targetX = this.player.x + deltaX
+    const targetY = this.player.y + deltaY
+
+    // Check if the target position has been explored
+    if (!explorationState.canPathTo(targetX, targetY)) {
+      console.log('Cannot move to unexplored area with WASD at', { x: targetX, y: targetY })
+      return
+    }
+
+    // Set the target position
+    const target = { x: targetX, y: targetY }
+    this.throttledSendTarget(target)
   }
 
   onKeyDown(event) {
@@ -234,6 +309,9 @@ class PlayerControls {
   tick() {
     // Always update cursor world position to account for world movement
     this.updateCursorWorldPosition()
+
+    // update WASD movement each tick
+    this.updateWASDMovement()
 
     if (this.isShiftKeyDown && this.player.target != null) {
       this.stopMovement()
