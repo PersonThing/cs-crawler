@@ -56,7 +56,7 @@ export default class ProjectileState {
     this.active = true
   }
 
-  tick(deltaMS, players = [], pather = null, enemies = []) {
+  tick(deltaMS, players = [], pather = null, enemies = [], effectDataCallback = null) {
     if (!this.active) {
       return false // Projectile should be removed
     }
@@ -68,7 +68,10 @@ export default class ProjectileState {
     if (age >= this.lifetime) {
       this.active = false
       if (this.onHit) {
-        this.onHit(this, null) // null target means expired
+        const effectData = this.onHit(this, null, enemies) // null target means expired, pass enemies array
+        if (effectData && effectDataCallback) {
+          effectDataCallback(effectData)
+        }
       }
       return false // Projectile should be removed
     }
@@ -105,7 +108,10 @@ export default class ProjectileState {
       this.active = false
       if (this.onHit) {
         try {
-          this.onHit(this, null) // null target indicates wall/hit by environment
+          const effectData = this.onHit(this, null, enemies) // null target indicates wall/hit by environment, pass enemies array
+          if (effectData && effectDataCallback) {
+            effectDataCallback(effectData)
+          }
         } catch (err) {
           console.error('Error in projectile onHit handler:', err)
         }
@@ -138,7 +144,10 @@ export default class ProjectileState {
           }
 
           if (this.onHit) {
-            this.onHit(this, enemy)
+            const effectData = this.onHit(this, enemy, enemies)
+            if (effectData && effectDataCallback) {
+              effectDataCallback(effectData)
+            }
           }
 
           return false
@@ -165,7 +174,10 @@ export default class ProjectileState {
           }
 
           if (this.onHit) {
-            this.onHit(this, player)
+            const effectData = this.onHit(this, player, enemies)
+            if (effectData && effectDataCallback) {
+              effectDataCallback(effectData)
+            }
           }
 
           return false

@@ -200,7 +200,9 @@ export default class EntityState {
 
     // Update maxHealth based on stats
     const healthFromStats = this.stats[ItemAttribute.Health] || 0
-    const newMaxHealth = 100 + healthFromStats
+    // Use baseMaxHealth if it exists (for enemies), otherwise default to 100 (for players)
+    const baseHealth = this.baseMaxHealth || 100
+    const newMaxHealth = baseHealth + healthFromStats
     if (newMaxHealth !== this.maxHealth) {
       this.maxHealth = newMaxHealth
       // Adjust current health proportionally to new max health

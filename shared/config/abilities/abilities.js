@@ -6,6 +6,7 @@ import { Textures } from '../textures.js'
 import { createProjectile } from './projectiles.js'
 import { createTurret } from './turrets.js'
 import { createPet } from './pets.js'
+import { applyAreaDamage } from '../../utils/damage-helper.js'
 
 import DamageType from './damage-type.js'
 
@@ -17,9 +18,20 @@ const Abilities = {
     icon: Textures.inventory.one_handed.sword, // for basic attack, this would change depending on equipped item
     cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
     color: 0xffffff,
-    onUse: (source, target, modifiers) => {
-      // melee attack helper here to do damage in a cone, or immediately where cursor is, etc
-      // need helpers to get entities in range, apply damage, healing, etc
+    onUse: (source, target, modifiers, enemies = []) => {
+      // Apply cone damage in front of the source
+      const damage = 20 + (source.stats[ItemAttribute.PhysicalDamage] || 0)
+      const result = applyAreaDamage(source, target, enemies, damage, 'cone', {
+        range: 100, // 100 pixel range
+        angle: (Math.PI / 3) * 2, // 120 degree cone
+        damageType: DamageType.Physical,
+      })
+
+      if (result.damagedTargets.length > 0) {
+        console.log(`${source.label} basic attack hit ${result.damagedTargets.length} enemies for ${damage} damage`)
+      }
+
+      return result.effectData // Return effect data for client visualization
     },
   },
 
@@ -32,16 +44,22 @@ const Abilities = {
     soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
     cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
     color: 0xcc0000,
-    onUse: (source, target, modifiers) => {
+    onUse: (source, target) => {
+      const damage = 25 + (source.stats[ItemAttribute.FireDamage] || 0)
       createProjectile(source, target, {
         speed: 800,
         lifetime: 2000,
         texture: Textures.particle.blaze,
-        damage: 25 + (source.stats[ItemAttribute.FireDamage] || 0),
+        damage: 0, // projectile does 0 damage itself, just triggers an explosion that does area damage instead
         damageType: DamageType.Fire,
         radius: 40,
-        onHit: (projectile, hitEntity) => {
-          // TODO: leave burning effect? tint red? don't know
+        onHit: (projectile, hitEntity, enemies) => {
+          // Create an explosion at the projectile's location
+          const result = applyAreaDamage(projectile, projectile, enemies, damage, 'radius', {
+            radius: 150,
+            damageType: DamageType.Fire,
+          })
+          return result.effectData // Return effect data for visualization
         },
       })
     },
@@ -54,16 +72,22 @@ const Abilities = {
     icon: Textures.particle.cold,
     cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
     color: 0x0000ee,
-    onUse: (source, target, modifiers) => {
+    onUse: (source, target, modifiers, enemies = []) => {
+      const damage = 25 + (source.stats[ItemAttribute.ColdDamage] || 0)
       createProjectile(source, target, {
         speed: 600,
         lifetime: 2000,
         texture: Textures.particle.cold,
-        damage: 25 + (source.stats[ItemAttribute.ColdDamage] || 0),
+        damage: 0,
         damageType: DamageType.Cold,
         radius: 40,
-        onHit: (projectile, hitEntity) => {
-          // TODO: apply slow effect? tint blue?
+        onHit: (projectile, hitEntity, enemies) => {
+          // Create an explosion at the projectile's location
+          const result = applyAreaDamage(projectile, projectile, enemies, damage, 'radius', {
+            radius: 50,
+            damageType: DamageType.Cold,
+          })
+          return result.effectData // Return effect data for visualization
         },
       })
     },
@@ -76,18 +100,23 @@ const Abilities = {
     icon: Textures.particle.lightning,
     cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
     color: 0xcccc00,
-    onUse: (source, target, modifiers) => {
-      createProjectile(source, target, {
-        speed: 2000,
-        lifetime: 500,
-        texture: Textures.particle.lightning,
-        damage: 25 + (source.stats[ItemAttribute.LightningDamage] || 0),
+    onUse: (source, target, modifiers, enemies = []) => {
+      // Apply cone damage in front of the source
+      const damage = 20 + (source.stats[ItemAttribute.LightningDamage] || 0)
+      const result = applyAreaDamage(source, target, enemies, damage, 'line', {
+        range: 400,
+        width: 30,
         damageType: DamageType.Lightning,
-        radius: 40,
-        onHit: (projectile, hitEntity) => {
+        onHit: (projectile, hitEntity, enemies) => {
           // TODO: apply stun effect? tint yellow?
         },
       })
+
+      if (result.damagedTargets.length > 0) {
+        console.log(`${source.label} basic attack hit ${result.damagedTargets.length} enemies for ${damage} damage`)
+      }
+
+      return result.effectData // Return effect data for client visualization
     },
   },
 
@@ -105,7 +134,7 @@ const Abilities = {
     },
     color: 0x00cc00,
     targetAllies: true,
-    onUse: (source, target, modifiers) => {
+    onUse: (source, target, modifiers, enemies = []) => {
       let healAmount = 50 + (source.stats[ItemAttribute.HealingPower] || 0)
       if (source.isTurret) {
         healAmount *= 0.2 // turrets heal much faster, but only 20% of normal amount
@@ -124,7 +153,7 @@ const Abilities = {
 }
 
 // Helper function to use an ability with modifiers
-function useAbility(abilityId, source, target, modifiers = []) {
+function useAbility(abilityId, source, target, modifiers = [], enemies = []) {
   const ability = Abilities[abilityId]
   if (!ability) {
     console.warn(`Unknown ability: ${abilityId}`)
@@ -146,7 +175,8 @@ function useAbility(abilityId, source, target, modifiers = []) {
   }
 
   // For other modifiers or normal casting, use the ability directly
-  ability.onUse(source, target, modifiers)
+  const effectData = ability.onUse(source, target, modifiers, enemies)
+  return effectData
 }
 
 // Ability Modifiers

@@ -112,6 +112,13 @@ socket.on('serverState', state => {
   lastServerState = state
 })
 
+socket.on('areaEffect', effectData => {
+  if (!initialized || !world) {
+    return
+  }
+  world.addAreaDamageEffect(effectData)
+})
+
 let lastAppliedGroundItemSequence = null
 
 function applyLastServerState(players) {

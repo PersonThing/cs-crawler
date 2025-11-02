@@ -24,14 +24,26 @@ function createPet(source, position, abilityId, abilityData, modifiers = []) {
 }
 
 // Helper function to update all pets
-function updatePets(deltaMS, players = [], useAbilityCallback = null, enemies = []) {
+function updatePets(deltaMS, players = [], useAbilityCallback = null, enemies = [], effectDataCallback = null) {
   for (let i = pets.length - 1; i >= 0; i--) {
     const pet = pets[i]
     const shouldContinue = pet.tick(deltaMS, players, pets, enemies)
 
     // Handle pending casts (to avoid circular dependency)
     if (pet.pendingCast && useAbilityCallback) {
-      useAbilityCallback(pet.pendingCast.abilityId, pet.pendingCast.source, pet.pendingCast.target, pet.pendingCast.modifiers)
+      const effectData = useAbilityCallback(
+        pet.pendingCast.abilityId,
+        pet.pendingCast.source,
+        pet.pendingCast.target,
+        pet.pendingCast.modifiers,
+        enemies
+      )
+
+      // Send effect data to server for broadcast
+      if (effectData && effectDataCallback) {
+        effectDataCallback(effectData)
+      }
+
       pet.pendingCast = null // Clear the pending cast
     }
 

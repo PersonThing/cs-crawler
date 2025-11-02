@@ -71,19 +71,28 @@ function tick() {
     }
   }
 
+  // Create effect data callback for broadcasting visual effects
+  const effectDataCallback = effectData => {
+    if (effectData) {
+      io.emit('areaEffect', effectData)
+    }
+  }
+
   // Update projectiles
   updateProjectiles(
     deltaMS,
     Object.values(players).filter(p => p && p.isConnected),
     levelManager.getPather(),
-    getEnemyObjects()
+    getEnemyObjects(),
+    effectDataCallback
   )
 
   // Update turrets
   updateTurrets(
     deltaMS,
     Object.values(players).filter(p => p && p.isConnected),
-    getEnemyObjects()
+    getEnemyObjects(),
+    effectDataCallback
   )
 
   // Update pets
@@ -91,7 +100,8 @@ function tick() {
     deltaMS,
     Object.values(players).filter(p => p && p.isConnected),
     useAbility,
-    getEnemyObjects()
+    getEnemyObjects(),
+    effectDataCallback
   )
 
   // Update enemies
@@ -339,8 +349,13 @@ io.on('connection', async socket => {
       return
     }
 
-    // Execute ability
-    useAbility(abilityId, player, target, modifiers)
+    // Execute ability and collect effect data
+    const effectData = useAbility(abilityId, player, target, modifiers, getEnemyObjects())
+
+    // Send effect data to all clients for visualization
+    if (effectData) {
+      io.emit('areaEffect', effectData)
+    }
 
     // Set ability cooldown
     if (ability.cooldown) {
@@ -468,22 +483,22 @@ io.on('connection', async socket => {
     }
 
     console.log(`Player ${player.username} requested level reset`)
-    
+
     // Clear all enemies
     clearEnemies()
-    
+
     // Clear all turrets, pets, projectiles
     clearTurrets()
     clearPets()
     clearProjectiles()
-    
+
     // Reset player to start position
     const levelConfig = levelManager.getLevel()
     if (levelConfig && levelConfig.start) {
       player.setPosition(levelConfig.start.x, levelConfig.start.y)
       player.setTarget(null)
     }
-    
+
     // Regenerate level (this will create new enemies)
     levelManager.requestLevelGeneration(playerId, socket, async () => {
       console.log(`Level reset complete for player ${player.username}`)

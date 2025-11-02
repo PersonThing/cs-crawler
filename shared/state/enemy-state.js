@@ -34,7 +34,8 @@ export default class EnemyState extends EntityState {
     this.actionCooldown = 1000 // Minimum time between actions
 
     // Apply enemy type configuration
-    this.maxHealth = enemyConfig.maxHealth || 100
+    this.baseMaxHealth = enemyConfig.maxHealth || 100 // Store base health for computeStats
+    this.maxHealth = this.baseMaxHealth
     this.currentHealth = this.maxHealth
     this.maxSpeed = enemyConfig.maxSpeed || 200
     this.texture = enemyConfig.texture
@@ -176,7 +177,7 @@ export const EnemyTypes = {
     name: 'Burning Zombie',
     texture: Textures.entity.hostile.burning_zombie.bzombie,
     color: 0x4d7c47,
-    maxHealth: 80,
+    maxHealth: 1000,
     maxSpeed: 150,
     baseStats: {
       [ItemAttribute.Damage]: 15,
@@ -189,7 +190,7 @@ export const EnemyTypes = {
     name: 'Burning Skeleton',
     texture: Textures.entity.hostile.burning_skeleton.bskeleton,
     color: 0x8b7355,
-    maxHealth: 60,
+    maxHealth: 600,
     maxSpeed: 200,
     baseStats: {
       [ItemAttribute.Damage]: 12,

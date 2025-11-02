@@ -9,6 +9,7 @@ import TurretSprite from './sprites/turret-sprite.js'
 import PetSprite from './sprites/pet-sprite.js'
 import EnemySprite from './sprites/enemy-sprite.js'
 import ProjectileSprite from './sprites/projectile-sprite.js'
+import AreaDamageEffectSprite from './sprites/area-damage-effect-sprite.js'
 import soundManager from './sound-manager.js'
 import { Sounds } from '#shared/config/sounds.js'
 
@@ -38,6 +39,9 @@ class World extends Container {
 
     this.enemiesContainer = new Container()
     this.addChild(this.enemiesContainer)
+
+    this.effectsContainer = new Container()
+    this.addChild(this.effectsContainer)
 
     this.pather = new Pather(levelConfig)
 
@@ -192,6 +196,11 @@ class World extends Container {
     }
   }
 
+  addAreaDamageEffect(damageData) {
+    const effectSprite = new AreaDamageEffectSprite(damageData)
+    this.effectsContainer.addChild(effectSprite)
+  }
+
   createLightRadiusMask() {
     const radius = 600
     const blurSize = 200
@@ -234,6 +243,15 @@ class World extends Container {
 
     // update the rendered level
     this.levelSprite.tick(screenWidth, screenHeight)
+
+    // update area damage effects
+    for (const effect of [...this.effectsContainer.children]) {
+      if (!effect.tick()) {
+        // Effect expired, remove it
+        this.effectsContainer.removeChild(effect)
+        effect.destroy()
+      }
+    }
   }
 
   addPlayer(player) {

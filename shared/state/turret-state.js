@@ -34,7 +34,7 @@ export default class TurretState {
     this.targetAllies = abilityData.targetAllies ? true : false
   }
 
-  tick(deltaMS, players = [], enemies = []) {
+  tick(deltaMS, players = [], enemies = [], effectDataCallback = null) {
     if (!this.active) {
       return false // Turret should be removed
     }
@@ -129,8 +129,14 @@ export default class TurretState {
       }
 
       if (this.abilityData.onUse) {
-        this.abilityData.onUse(turretAsSource, target, this.modifiers)
+        const effectData = this.abilityData.onUse(turretAsSource, target, this.modifiers, enemies)
         this.lastCastTime = now
+
+        // Send effect data to server for broadcast
+        if (effectData && effectDataCallback) {
+          effectDataCallback(effectData)
+        }
+
         // console.log(`Turret ${this.id} cast ${this.abilityId} at ${target.label}`)
       }
     }

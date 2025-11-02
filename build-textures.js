@@ -13,7 +13,7 @@ const generateTextureTree = (dir, basePath) => {
   const result = {}
   const items = fs.readdirSync(dir)
 
-  items.forEach((item) => {
+  items.forEach(item => {
     const itemPath = path.join(dir, item)
     const relativePath = path.join(basePath, item)
     const stat = fs.statSync(itemPath)

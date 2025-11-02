@@ -20,7 +20,8 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "coverage": "vitest run --coverage",
-    "lint": "eslint client/src shared server --ext .js"
+    "lint": "eslint client/src shared server --ext .js",
+    "format": "prettier --write ."
   },
   "author": "",
   "license": "ISC",
