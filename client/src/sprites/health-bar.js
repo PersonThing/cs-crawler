@@ -14,6 +14,7 @@ class HealthBar extends Container {
     this.options.height = this.options.height || DEFAULT_HEALTH_BAR_HEIGHT
     this.options.offsetY = this.options.offsetY || DEFAULT_HEALTH_BAR_OFFSET_Y
     this.showName = this.options.showName !== undefined ? this.options.showName : true
+    this.isEnemy = this.options.isEnemy || false
 
     this.label = ''
     this.healthPercentage = 1.0
@@ -84,7 +85,8 @@ class HealthBar extends Container {
       this.maxHealth,
       this.options.width,
       this.options.height,
-      false // Don't render background since we have a separate background graphics
+      false, // Don't render background since we have a separate background graphics
+      this.isEnemy
     )
   }
 

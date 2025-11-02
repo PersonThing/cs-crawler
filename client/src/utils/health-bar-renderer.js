@@ -4,8 +4,13 @@ import { Graphics } from 'pixi.js'
  * Utility functions for rendering health bars with consistent styling
  */
 
-export function getHealthBarColor(healthPercentage) {
-  // Determine color based on health percentage
+export function getHealthBarColor(healthPercentage, isEnemy = false) {
+  if (isEnemy) {
+    // Enemy health bars are always red regardless of health percentage
+    return 0x990000
+  }
+  
+  // Player health bars work like they used to - green at full health
   let color = 0x00ff00 // Green for high health
   if (healthPercentage < 0.6) {
     color = 0x999900 // Yellow for medium health
@@ -16,7 +21,7 @@ export function getHealthBarColor(healthPercentage) {
   return color
 }
 
-export function renderHealthBar(graphics, currentHealth, maxHealth, width, height, showBackground = true) {
+export function renderHealthBar(graphics, currentHealth, maxHealth, width, height, showBackground = true, isEnemy = false) {
   const healthPercentage = maxHealth > 0 ? currentHealth / maxHealth : 0
   const cornerRadius = 3 // Rounded corners like enemy health bars
 
@@ -31,7 +36,7 @@ export function renderHealthBar(graphics, currentHealth, maxHealth, width, heigh
 
   // Draw foreground health bar
   const barWidth = width * healthPercentage
-  const color = getHealthBarColor(healthPercentage)
+  const color = getHealthBarColor(healthPercentage, isEnemy)
 
   if (barWidth > 0) {
     graphics.roundRect(0, 0, barWidth, height, cornerRadius)

@@ -10,6 +10,7 @@ class EnemySprite extends EntitySprite {
       height: 6,
       offsetY: -30,
       showName: false,
+      isEnemy: true,
     }
     super(enemyData, enemyData.texture, null, null, 0xffffff, healthBarOptions)
 
