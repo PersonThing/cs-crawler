@@ -24,7 +24,7 @@ class HealthBar extends Container {
     this.createForeground()
     this.createText()
 
-    this.visible = false // Hidden by default, shown when damaged
+    this.visible = true //false // Hidden by default, shown when damaged
   }
 
   createBackground() {
@@ -69,7 +69,7 @@ class HealthBar extends Container {
     this.healthPercentage = maxHealth > 0 ? currentHealth / maxHealth : 0
 
     // Show health bar if not at full health
-    this.visible = this.healthPercentage < 1.0
+    this.visible = true //this.healthPercentage < 1.0
 
     if (this.visible) {
       this.updateBar()
