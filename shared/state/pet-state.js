@@ -36,7 +36,7 @@ export default class PetState extends EntityState {
     this.range = PET_DETECTION_RANGE
     this.leashDistance = PET_LEASH_DISTANCE
     this.lastCastTime = 0
-    this.cooldown = abilityData.cooldown({ isPet: true }, this.modifiers)
+    this.baseCooldown = abilityData.cooldown({ isPet: true }, this.modifiers) // Store base cooldown
     this.createdAt = Date.now()
     this.lifetime = PET_LIFETIME
     this.active = true
@@ -49,6 +49,14 @@ export default class PetState extends EntityState {
     this.maxHealth = 50
     this.currentHealth = 50
     this.maxSpeed = 400 // Slightly slower than players
+  }
+
+  // Get current cooldown with attack speed applied
+  getCurrentCooldown() {
+    const ownerStats = this.getStats() || {}
+    const attackSpeedPercent = ownerStats[ItemAttribute.AttackSpeedPercent] || 0
+    const cooldownMultiplier = 1 / (1 + attackSpeedPercent / 100)
+    return Math.max(50, Math.round(this.baseCooldown * cooldownMultiplier))
   }
 
   tick(deltaMS, players = [], allPets = [], enemies = []) {
@@ -182,7 +190,8 @@ export default class PetState extends EntityState {
 
       // Check if pet can cast (cooldown)
       const timeSinceLastCast = now - this.lastCastTime
-      if (timeSinceLastCast >= this.cooldown) {
+      const currentCooldown = this.getCurrentCooldown()
+      if (timeSinceLastCast >= currentCooldown) {
         // Cast the ability from the pet
         const petAsSource = {
           id: this.id,

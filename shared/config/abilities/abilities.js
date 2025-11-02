@@ -10,13 +10,21 @@ import { applyAreaDamage } from '../../utils/damage-helper.js'
 
 import DamageType from './damage-type.js'
 
+// Helper function to apply attack speed to cooldowns
+function applyCooldownReduction(baseCooldown, source) {
+  const attackSpeedPercent = (source.stats && source.stats[ItemAttribute.AttackSpeedPercent]) || 0
+  // Attack speed reduces cooldown: 100% attack speed = 2x attack rate = 0.5x cooldown
+  const cooldownMultiplier = 1 / (1 + attackSpeedPercent / 100)
+  return Math.max(50, Math.round(baseCooldown * cooldownMultiplier)) // Minimum 50ms cooldown
+}
+
 const Abilities = {
   BasicAttack: {
     id: 'BasicAttack',
     name: 'Basic Attack',
     description: 'A basic attack dealing physical damage.',
     icon: Textures.inventory.one_handed.sword, // for basic attack, this would change depending on equipped item
-    cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
+    cooldown: source => applyCooldownReduction(source.isTurret || source.isPet ? 500 : 250, source),
     range: 100, // Melee range in pixels
     color: 0xffffff,
     onUse: (source, target, modifiers, enemies = []) => {
@@ -27,10 +35,6 @@ const Abilities = {
         angle: (Math.PI / 3) * 2, // 120 degree cone
         damageType: DamageType.Physical,
       })
-
-      if (result.damagedTargets.length > 0) {
-        console.log(`${source.label} basic attack hit ${result.damagedTargets.length} enemies for ${damage} damage`)
-      }
 
       return result.effectData // Return effect data for client visualization
     },
@@ -43,7 +47,7 @@ const Abilities = {
     icon: Textures.particle.blaze,
     sound: Sounds.abilities.Shoot,
     soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
-    cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
+    cooldown: source => applyCooldownReduction(source.isTurret || source.isPet ? 500 : 250, source),
     range: 800, // Projectile range in pixels
     color: 0xcc0000,
     onUse: (source, target) => {
@@ -100,7 +104,7 @@ const Abilities = {
     name: 'Lightning Bolt',
     description: 'Strike enemies at range with an instant lightning bolt.',
     icon: Textures.particle.lightning,
-    cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
+    cooldown: source => applyCooldownReduction(source.isTurret || source.isPet ? 500 : 250, source),
     range: 400, // Lightning range in pixels
     color: 0xcccc00,
     onUse: (source, target, modifiers, enemies = []) => {
@@ -115,10 +119,6 @@ const Abilities = {
         },
       })
 
-      if (result.damagedTargets.length > 0) {
-        console.log(`${source.label} basic attack hit ${result.damagedTargets.length} enemies for ${damage} damage`)
-      }
-
       return result.effectData // Return effect data for client visualization
     },
   },
@@ -129,11 +129,12 @@ const Abilities = {
     description: 'Restore health to yourself or an ally.',
     icon: Textures.particle.heal,
     cooldown: (source, modifiers) => {
-      return source.isTurret || source.isPet
+      const baseCooldown = source.isTurret || source.isPet
         ? 250 // turrets and pets cast faster
         : modifiers.includes(AbilityModifiers.Turret.id) || modifiers.includes(AbilityModifiers.Pet.id)
           ? 250 // this ability will be placing a turret or pet, so let them cast it quickly, no need for big cd
           : 3000
+      return applyCooldownReduction(baseCooldown, source)
     },
     range: 200, // Heal range in pixels
     color: 0x00cc00,

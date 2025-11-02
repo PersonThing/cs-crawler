@@ -25,13 +25,21 @@ export default class TurretState {
     this.modifiers = modifiers.filter(m => m !== AbilityModifiers.Turret.id) // Remove Turret modifier to prevent recursion
     this.range = TURRET_DETECTION_RANGE // Turret detection range
     this.lastCastTime = 0
-    this.cooldown = abilityData.cooldown({ isTurret: true }, this.modifiers)
+    this.baseCooldown = abilityData.cooldown({ isTurret: true }, this.modifiers) // Store base cooldown
     this.createdAt = Date.now()
     this.lifetime = TURRET_LIFETIME
     this.active = true
     this.texture = Textures.abilities.turret1 // Placeholder turret texture
     this.color = abilityData.color || 0xffffff // Use ability color for tinting
     this.targetAllies = abilityData.targetAllies ? true : false
+  }
+
+  // Get current cooldown with attack speed applied
+  getCurrentCooldown() {
+    const ownerStats = this.getStats() || {}
+    const attackSpeedPercent = ownerStats[ItemAttribute.AttackSpeedPercent] || 0
+    const cooldownMultiplier = 1 / (1 + attackSpeedPercent / 100)
+    return Math.max(50, Math.round(this.baseCooldown * cooldownMultiplier))
   }
 
   tick(deltaMS, players = [], enemies = [], effectDataCallback = null) {
@@ -51,7 +59,8 @@ export default class TurretState {
 
     // Check if turret can cast (cooldown)
     const timeSinceLastCast = now - this.lastCastTime
-    if (timeSinceLastCast < this.cooldown) {
+    const currentCooldown = this.getCurrentCooldown()
+    if (timeSinceLastCast < currentCooldown) {
       return true // Turret should continue, but not cast yet
     }
 

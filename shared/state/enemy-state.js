@@ -187,7 +187,7 @@ export const EnemyTypes = {
     name: 'Burning Zombie',
     texture: Textures.entity.hostile.burning_zombie.bzombie,
     color: 0x4d7c47,
-    maxHealth: 1000,
+    maxHealth: 500,
     maxSpeed: 150,
     baseStats: {
       [ItemAttribute.Damage]: 15,
@@ -200,7 +200,7 @@ export const EnemyTypes = {
     name: 'Burning Skeleton',
     texture: Textures.entity.hostile.burning_skeleton.bskeleton,
     color: 0x8b7355,
-    maxHealth: 600,
+    maxHealth: 300,
     maxSpeed: 200,
     baseStats: {
       [ItemAttribute.Damage]: 12,
