@@ -1,4 +1,4 @@
-import { Container, BlurFilter, Rectangle, Graphics, Sprite } from 'pixi.js'
+import { Container, BlurFilter, Graphics, Sprite, Rectangle } from 'pixi.js'
 import LevelSprite from './sprites/level-sprite.js'
 import playerSpriteStore from './stores/player-sprite-store.js'
 import screenSizeStore from './stores/screen-size-store.js'
@@ -12,6 +12,7 @@ import ProjectileSprite from './sprites/projectile-sprite.js'
 import AreaDamageEffectSprite from './sprites/area-damage-effect-sprite.js'
 import soundManager from './sound-manager.js'
 import { Sounds } from '#shared/config/sounds.js'
+import DamageType from '#shared/config/abilities/damage-type.js'
 
 const PARALLAX_SCALE = 1.1
 
@@ -52,7 +53,7 @@ class World extends Container {
 
     this.addChild(this.levelSpriteParallax)
 
-    this.mask = this.createLightRadiusMask()
+    this.createLightRadiusMask()
 
     this.onItemClick = onItemClick
 
@@ -202,26 +203,137 @@ class World extends Container {
   }
 
   createLightRadiusMask() {
-    const radius = 600
-    const blurSize = 200
-    let circle = new Graphics().circle(radius + blurSize, radius + blurSize, radius).fill(0xff0000)
-    circle.alpha = 1
+    // Create a Graphics object to draw the combined light mask
+    this.lightGraphics = new Graphics()
 
+    // Apply blur filter for soft lighting effect
     const blurFilter = new BlurFilter()
-    blurFilter.strength = blurSize
+    blurFilter.strength = 100
     blurFilter.quality = 3
-    circle.filters = [blurFilter]
+    this.lightGraphics.filters = [blurFilter]
 
-    const bounds = new Rectangle(0, 0, (radius + blurSize) * 2, (radius + blurSize) * 2)
+    this.lastPlayerX = 0
+    this.lastPlayerY = 0
+    this.updateLightMask()
+  }
+
+  getProjectileLightIntensity(damageType) {
+    // Return light intensity based on damage type
+    switch (damageType) {
+      case DamageType.Lightning:
+        return 1.0
+      case DamageType.Fire:
+        return 0.8
+      case DamageType.Cold:
+        return 0.5
+      case DamageType.Physical:
+      case DamageType.Poison:
+      default:
+        return 0.25
+    }
+  }
+
+  updateLightMask() {
+    if (!this.lightGraphics) return
+
+    const localPlayer = playerSpriteStore.getLocalPlayer()
+    if (!localPlayer) return
+
+    // only update every 100ms
+    if (Date.now() - this.lastLightUpdate < 100) return
+    this.lastLightUpdate = Date.now()
+
+    this.lastPlayerX = localPlayer.x
+    this.lastPlayerY = localPlayer.y
+
+    // Clear previous graphics
+    this.lightGraphics.clear()
+
+    // Draw player light (larger radius)
+    const playerRadius = 300
+    this.lightGraphics.circle(0, 0, playerRadius).fill(0xff0000)
+
+    const maxDistance = 1500 // Only render lights within this distance from player
+
+    // Draw lights for each tile center (smaller radius)
+    // Only render tile lights within a reasonable distance from player for performance
+    // Get tile size from level sprite
+    // const tileSize = this.levelSprite.tileSize
+
+    // const tileRadius = 150
+
+    // this.levelConfig.tileGrid.forEach((tileRow, tileY) => {
+    //   tileRow.forEach((tile, tileX) => {
+    //     if (!tile) return
+
+    //     const tileCenterX = tileX * tileSize + tileSize / 2
+    //     const tileCenterY = tileY * tileSize + tileSize / 2
+
+    //     // Check distance from player
+    //     const distance = Math.sqrt((tileCenterX - localPlayer.x) ** 2 + (tileCenterY - localPlayer.y) ** 2)
+
+    //     if (distance <= maxDistance) {
+    //       // Draw tile light relative to player position
+    //       const relativeX = tileCenterX - localPlayer.x
+    //       const relativeY = tileCenterY - localPlayer.y
+    //       this.lightGraphics.circle(relativeX, relativeY, tileRadius).fill(0xff0000)
+    //     }
+    //   })
+    // })
+
+    // Draw lights for projectiles
+    this.projectilesContainer.children.forEach(projectileSprite => {
+      if (projectileSprite.state) {
+        const projectileDistance = Math.sqrt(
+          (projectileSprite.state.x - localPlayer.x) ** 2 + (projectileSprite.state.y - localPlayer.y) ** 2
+        )
+
+        if (projectileDistance <= maxDistance) {
+          const intensity = this.getProjectileLightIntensity(projectileSprite.state.damageType)
+          const projectileRadius = 200 * intensity // Base radius of 200, scaled by intensity
+          
+          // Draw projectile light relative to player position
+          const relativeX = projectileSprite.state.x - localPlayer.x
+          const relativeY = projectileSprite.state.y - localPlayer.y
+          this.lightGraphics.circle(relativeX, relativeY, projectileRadius).fill(0xff0000)
+        }
+      }
+    })
+
+    // Draw lights for area damage effects
+    this.effectsContainer.children.forEach(effectSprite => {
+      if (effectSprite.state) {
+        const effectDistance = Math.sqrt((effectSprite.state.x - localPlayer.x) ** 2 + (effectSprite.state.y - localPlayer.y) ** 2)
+
+        if (effectDistance <= maxDistance) {
+          const intensity = this.getProjectileLightIntensity(effectSprite.state.damageType)
+          const effectRadius = effectSprite.state.radius * intensity
+          // Draw effect light relative to player position
+          const relativeX = effectSprite.state.x - localPlayer.x
+          const relativeY = effectSprite.state.y - localPlayer.y
+          this.lightGraphics.circle(relativeX, relativeY, effectRadius).fill(0xff0000)
+        }
+      }
+    })
+
+    // Generate texture from graphics and create sprite
+    const bounds = new Rectangle(-maxDistance, -maxDistance, maxDistance * 2, maxDistance * 2)
     const texture = this.app.renderer.generateTexture({
-      target: circle,
+      target: this.lightGraphics,
       resolution: 1,
       frame: bounds,
     })
-    const focus = Sprite.from(texture)
-    focus.anchor.set(0.5)
-    this.addChild(focus)
-    return focus
+
+    // Remove old mask sprite if it exists
+    if (this.mask && this.mask.parent) {
+      this.mask.parent.removeChild(this.mask)
+      this.mask.destroy()
+    }
+
+    // Create new mask sprite
+    this.mask = Sprite.from(texture)
+    this.mask.anchor.set(0.5)
+    this.addChild(this.mask)
   }
 
   tick() {
@@ -233,8 +345,15 @@ class World extends Container {
     // move map around the player centered in the middle of the screen
     this.x = -localPlayer.x + screenWidth / 2
     this.y = -localPlayer.y + screenHeight / 2
-    this.mask.x = localPlayer.x
-    this.mask.y = localPlayer.y
+
+    // Update the light mask to reflect current player position
+    this.updateLightMask()
+
+    // Position the mask at the player's location
+    if (this.mask) {
+      this.mask.x = localPlayer.x
+      this.mask.y = localPlayer.y
+    }
 
     // update the parallax level - it needs to offset by the difference in level size and parallax size
     this.levelSpriteParallax.tick(screenWidth, screenHeight)

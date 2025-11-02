@@ -315,6 +315,7 @@ export default class ProjectileState {
       y: this.y,
       texture: this.texture,
       rotation: Math.atan2(this.velocityY, this.velocityX) - Math.PI / 2,
+      damageType: this.damageType,
     }
   }
 }
