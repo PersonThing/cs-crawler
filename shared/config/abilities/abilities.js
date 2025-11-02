@@ -50,7 +50,7 @@ const Abilities = {
     cooldown: source => applyCooldownReduction(source.isTurret || source.isPet ? 500 : 250, source),
     range: 800, // Projectile range in pixels
     color: 0xcc0000,
-    onUse: (source, target) => {
+    onUse: (source, target, limitedModifiers, enemies = []) => {
       const damage = 25 + (source.stats[ItemAttribute.FireDamage] || 0)
       createProjectiles(source, target, {
         speed: 800,
@@ -67,7 +67,7 @@ const Abilities = {
           })
           return result.effectData // Return effect data for visualization
         },
-      })
+      }, limitedModifiers)
     },
   },
 
@@ -96,7 +96,7 @@ const Abilities = {
           })
           return result.effectData // Return effect data for visualization
         },
-      })
+      }, modifiers)
     },
   },
 
@@ -167,22 +167,26 @@ function useAbility(abilityId, source, target, modifiers = [], enemies = []) {
     return
   }
 
+  // Limit modifiers based on MaxAbilityModifiers stat (1 + bonus)
+  const maxModifiers = 1 + ((source.stats && source.stats[ItemAttribute.MaxAbilityModifiers]) || 0)
+  const limitedModifiers = modifiers.slice(0, maxModifiers)
+
   // Check if the ability should be cast as a pet
-  if (modifiers.includes(AbilityModifiers.Pet.id)) {
+  if (limitedModifiers.includes(AbilityModifiers.Pet.id)) {
     // Create a pet that will cast this ability
-    createPet(source, target, abilityId, ability, modifiers)
+    createPet(source, target, abilityId, ability, limitedModifiers)
     return
   }
 
   // Check if the ability should be cast as a turret
-  if (modifiers.includes(AbilityModifiers.Turret.id)) {
+  if (limitedModifiers.includes(AbilityModifiers.Turret.id)) {
     // Create a turret that will cast this ability
-    createTurret(source, target, abilityId, ability, modifiers)
+    createTurret(source, target, abilityId, ability, limitedModifiers)
     return
   }
 
   // For other modifiers or normal casting, use the ability directly
-  const effectData = ability.onUse(source, target, modifiers, enemies)
+  const effectData = ability.onUse(source, target, limitedModifiers, enemies)
   return effectData
 }
 
@@ -235,11 +239,6 @@ const AbilityModifiers = {
     id: 'PiercingProjectiles',
     name: 'PiercingProjectiles',
     description: 'Makes projectiles pierce through enemies.',
-  },
-  ExplodingProjectiles: {
-    id: 'ExplodingProjectiles',
-    name: 'ExplodingProjectiles',
-    description: 'Makes projectiles explode on impact.',
   },
 }
 

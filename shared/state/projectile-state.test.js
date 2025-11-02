@@ -261,4 +261,128 @@ describe('ProjectileState Faction Logic', () => {
       expect(mockPlayers[0].takeDamage).not.toHaveBeenCalled()
     })
   })
+
+  describe('Piercing Projectiles', () => {
+    let mockEnemies
+    let playerSource
+
+    beforeEach(() => {
+      mockEnemies = [
+        {
+          id: 'enemy1',
+          x: 150,
+          y: 150,
+          currentHealth: 50,
+          maxHealth: 100,
+          isAlive: () => true,
+          takeDamage: vi.fn(() => false),
+          label: 'Test Enemy 1',
+        },
+        {
+          id: 'enemy2',
+          x: 200,
+          y: 150,
+          currentHealth: 30,
+          maxHealth: 100,
+          isAlive: () => true,
+          takeDamage: vi.fn(() => false),
+          label: 'Test Enemy 2',
+        },
+      ]
+
+      playerSource = {
+        id: 'player1',
+        x: 100,
+        y: 150,
+        isHostile: false,
+      }
+    })
+
+    it('should pierce through enemies and continue moving', () => {
+      const target = { x: 300, y: 150 }
+      const options = {
+        speed: 300,
+        lifetime: 1000,
+        texture: 'test_texture',
+        damage: 10,
+        damageType: 'physical',
+        radius: 10,
+        piercing: true,
+      }
+
+      const projectile = new ProjectileState('proj1', playerSource, target, options)
+      
+      // Position projectile to hit first enemy
+      projectile.x = 150
+      projectile.y = 150
+
+      const shouldContinue1 = projectile.tick(16, [], mockPather, mockEnemies)
+      expect(shouldContinue1).toBe(true) // Should continue after first hit
+      expect(mockEnemies[0].takeDamage).toHaveBeenCalledWith(10, { id: 'player1' })
+      expect(projectile.active).toBe(true) // Should still be active
+
+      // Move projectile to hit second enemy
+      projectile.x = 200
+      projectile.y = 150
+
+      const shouldContinue2 = projectile.tick(16, [], mockPather, mockEnemies)
+      expect(shouldContinue2).toBe(true) // Should continue after second hit
+      expect(mockEnemies[1].takeDamage).toHaveBeenCalledWith(10, { id: 'player1' })
+      expect(projectile.active).toBe(true) // Should still be active
+    })
+
+    it('should not damage the same enemy twice', () => {
+      const target = { x: 300, y: 150 }
+      const options = {
+        speed: 300,
+        lifetime: 1000,
+        texture: 'test_texture',
+        damage: 10,
+        damageType: 'physical',
+        radius: 10,
+        piercing: true,
+      }
+
+      const projectile = new ProjectileState('proj1', playerSource, target, options)
+      
+      // Position projectile to hit first enemy
+      projectile.x = 150
+      projectile.y = 150
+
+      // First hit
+      projectile.tick(16, [], mockPather, mockEnemies)
+      expect(mockEnemies[0].takeDamage).toHaveBeenCalledTimes(1)
+
+      // Reset takeDamage mock to track subsequent calls
+      mockEnemies[0].takeDamage.mockClear()
+
+      // Second tick in same position (should not damage again)
+      projectile.tick(16, [], mockPather, mockEnemies)
+      expect(mockEnemies[0].takeDamage).not.toHaveBeenCalled()
+    })
+
+    it('should stop on hit when not piercing', () => {
+      const target = { x: 300, y: 150 }
+      const options = {
+        speed: 300,
+        lifetime: 1000,
+        texture: 'test_texture',
+        damage: 10,
+        damageType: 'physical',
+        radius: 10,
+        piercing: false, // Explicitly not piercing
+      }
+
+      const projectile = new ProjectileState('proj1', playerSource, target, options)
+      
+      // Position projectile to hit first enemy
+      projectile.x = 150
+      projectile.y = 150
+
+      const shouldContinue = projectile.tick(16, [], mockPather, mockEnemies)
+      expect(shouldContinue).toBe(false) // Should stop after first hit
+      expect(mockEnemies[0].takeDamage).toHaveBeenCalledWith(10, { id: 'player1' })
+      expect(projectile.active).toBe(false) // Should be deactivated
+    })
+  })
 })

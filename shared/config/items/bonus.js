@@ -89,4 +89,33 @@ export const bonusItems = [
     abilities: ['Heal'],
     abilityModifiers: [],
   }),
+
+  // Ultimate Testing Orb - all ability modifiers for testing
+  new Item({
+    name: 'Ultimate Testing Orb',
+    itemType: ItemType.Bonus,
+    itemQuality: ItemQuality.Unique,
+    inventoryTexture: Textures.inventory.item.gems.diamond,
+    attributes: {
+      [ItemAttribute.MaxAbilityModifiers]: 10, // Allow many modifiers
+      [ItemAttribute.ExtraProjectiles]: 4, // For testing multi-projectiles
+      [ItemAttribute.AttackSpeedPercent]: 200, // Fast casting for testing
+      [ItemAttribute.PhysicalDamage]: 50,
+      [ItemAttribute.FireDamage]: 50,
+      [ItemAttribute.ColdDamage]: 50,
+      [ItemAttribute.LightningDamage]: 50,
+    },
+    abilities: ['BasicAttack', 'Fireball', 'Frostbolt', 'Lightning'],
+    abilityModifiers: [
+      'Turret',
+      'Pet',
+      'CastOnEnemyHit',
+      'CastOnSelfHit',
+      'CastOnCooldown',
+      'CastOnLowHealth',
+      'HomingProjectiles',
+      'PiercingProjectiles',
+      'ExplodingProjectiles',
+    ],
+  }),
 ]

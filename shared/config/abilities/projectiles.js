@@ -1,5 +1,6 @@
 import ProjectileState from '../../state/projectile-state.js'
 import ItemAttribute from '../item-attribute.js'
+import { AbilityModifiers } from './abilities.js'
 
 // Global projectiles array - managed by server
 let projectiles = []
@@ -14,13 +15,24 @@ function createProjectile(source, target, options) {
 }
 
 // Helper function to create multiple projectiles based on ExtraProjectiles stat
-function createProjectiles(source, target, options) {
+function createProjectiles(source, target, options, modifiers = []) {
   const extraProjectiles = (source.stats && source.stats[ItemAttribute.ExtraProjectiles]) || 0
   const totalProjectiles = 1 + extraProjectiles
   
+  // Add modifier behaviors if present
+  const projectileOptions = { ...options }
+  if (modifiers.includes(AbilityModifiers.HomingProjectiles.id)) {
+    projectileOptions.homing = true
+    projectileOptions.homingRange = 300 // Default homing range
+  }
+  
+  if (modifiers.includes(AbilityModifiers.PiercingProjectiles.id)) {
+    projectileOptions.piercing = true
+  }
+
   if (totalProjectiles === 1) {
     // Single projectile, use normal behavior
-    return [createProjectile(source, target, options)]
+    return [createProjectile(source, target, projectileOptions)]
   }
   
   // Multiple projectiles - spread them in a frontal cone
@@ -52,7 +64,7 @@ function createProjectiles(source, target, options) {
       y: source.y + Math.sin(angle) * distance,
     }
     
-    const projectile = createProjectile(source, projectileTarget, options)
+    const projectile = createProjectile(source, projectileTarget, projectileOptions)
     createdProjectiles.push(projectile)
   }
   

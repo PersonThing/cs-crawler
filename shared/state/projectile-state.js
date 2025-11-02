@@ -1,5 +1,10 @@
 export default class ProjectileState {
-  constructor(id, source, target, { speed, lifetime, texture, damage, damageType, radius = null, onHit = null }) {
+  constructor(
+    id,
+    source,
+    target,
+    { speed, lifetime, texture, damage, damageType, radius = null, onHit = null, homing = false, homingRange = 300, piercing = false }
+  ) {
     // Validate required options
     if (speed === undefined) {
       throw new Error('ProjectileState requires speed option')
@@ -51,6 +56,12 @@ export default class ProjectileState {
     this.damageType = damageType
     this.onHit = onHit
     this.radius = radius
+    this.homing = homing
+    this.homingRange = homingRange
+    this.currentTarget = null
+    this.lastHomingUpdate = 0
+    this.piercing = piercing
+    this.hitTargets = new Set() // Track which entities have been hit
     this.createdAt = Date.now()
     this.lifetime = lifetime
     this.active = true
@@ -74,6 +85,12 @@ export default class ProjectileState {
         }
       }
       return false // Projectile should be removed
+    }
+
+    // Handle homing behavior - update target every 100ms
+    if (this.homing && now - this.lastHomingUpdate > 100) {
+      this.updateHomingTarget(players, enemies)
+      this.lastHomingUpdate = now
     }
 
     // Move projectile, but first check collisions along the path to avoid tunneling
@@ -132,7 +149,19 @@ export default class ProjectileState {
         const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y)
         if (distance <= this.radius) {
           // Hit detected
-          this.active = false
+          
+          // For piercing projectiles, check if we've already hit this enemy
+          if (this.piercing && this.hitTargets.has(enemy.id)) {
+            continue // Skip this enemy, we've already hit them
+          }
+
+          // For non-piercing projectiles, deactivate on hit
+          if (!this.piercing) {
+            this.active = false
+          } else {
+            // For piercing projectiles, add to hit targets
+            this.hitTargets.add(enemy.id)
+          }
 
           const isDead = enemy.takeDamage(this.damage, { id: this.sourceId })
           // console.log(
@@ -150,7 +179,10 @@ export default class ProjectileState {
             }
           }
 
-          return false
+          // For non-piercing projectiles, return false to stop movement
+          if (!this.piercing) {
+            return false
+          }
         }
       }
     } else {
@@ -162,7 +194,19 @@ export default class ProjectileState {
         const distance = Math.hypot(player.x - this.x, player.y - this.y)
         if (distance <= this.radius) {
           // Hit detected
-          this.active = false
+          
+          // For piercing projectiles, check if we've already hit this player
+          if (this.piercing && this.hitTargets.has(player.id)) {
+            continue // Skip this player, we've already hit them
+          }
+
+          // For non-piercing projectiles, deactivate on hit
+          if (!this.piercing) {
+            this.active = false
+          } else {
+            // For piercing projectiles, add to hit targets
+            this.hitTargets.add(player.id)
+          }
 
           const isDead = player.takeDamage(this.damage, { id: this.sourceId })
           // console.log(
@@ -180,12 +224,53 @@ export default class ProjectileState {
             }
           }
 
-          return false
+          // For non-piercing projectiles, return false to stop movement
+          if (!this.piercing) {
+            return false
+          }
         }
       }
     }
 
     return true // Projectile should continue
+  }
+
+  updateHomingTarget(players, enemies) {
+    // Find valid targets based on projectile faction
+    let validTargets = []
+    
+    if (this.isPlayerSourced) {
+      // Player-sourced projectiles target enemies
+      validTargets = enemies.filter(enemy => enemy.isAlive && enemy.isAlive())
+    } else {
+      // Enemy-sourced projectiles target players
+      validTargets = players.filter(player => player.isConnected && player.currentHealth > 0)
+    }
+
+    // Find closest target within homing range
+    let closestTarget = null
+    let closestDistance = this.homingRange
+
+    for (const target of validTargets) {
+      const distance = Math.hypot(target.x - this.x, target.y - this.y)
+      if (distance < closestDistance) {
+        closestTarget = target
+        closestDistance = distance
+      }
+    }
+
+    // Update velocity to aim toward the new target
+    if (closestTarget) {
+      this.currentTarget = closestTarget
+      const dx = closestTarget.x - this.x
+      const dy = closestTarget.y - this.y
+      const distance = Math.hypot(dx, dy)
+      
+      if (distance > 0) {
+        this.velocityX = (dx / distance) * this.speed
+        this.velocityY = (dy / distance) * this.speed
+      }
+    }
   }
 
   serialize() {
