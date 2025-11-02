@@ -95,16 +95,14 @@ export default class PetState extends EntityState {
     // First priority: Stay leashed to owner
     const distanceToOwner = Math.hypot(owner.x - this.x, owner.y - this.y)
     if (distanceToOwner > this.leashDistance) {
-      // Move toward owner
+      // Move toward owner - override any other targets when leash is broken
       this.setTarget({ x: owner.x, y: owner.y })
-      this.moveTowardTarget(deltaMS)
-      return true // Pet should continue but focus on returning to owner
+    } else {
+      // Within leash range: Look for targets and engage
+      this.findAndEngageTarget(deltaMS, players, enemies, owner)
     }
 
-    // Second priority: Look for targets and engage
-    this.findAndEngageTarget(deltaMS, players, enemies, owner)
-
-    // Always move toward current target if we have one
+    // Always move toward current target if we have one (whether owner or combat target)
     if (this.target) {
       this.moveTowardTarget(deltaMS)
     }
@@ -182,16 +180,13 @@ export default class PetState extends EntityState {
       const abilityRange = this.abilityData.range || 100 // Default range if not specified
       const inRange = distanceToTarget <= abilityRange
 
-      if (!inRange) {
-        // Move closer to target if not in range
-        this.setTarget({ x: target.x, y: target.y })
-        return // Don't try to cast yet, just move closer
-      }
+      // Always move toward target to stay engaged
+      this.setTarget({ x: target.x, y: target.y })
 
-      // Check if pet can cast (cooldown)
+      // Check if pet can cast (cooldown and range)
       const timeSinceLastCast = now - this.lastCastTime
       const currentCooldown = this.getCurrentCooldown()
-      if (timeSinceLastCast >= currentCooldown) {
+      if (inRange && timeSinceLastCast >= currentCooldown) {
         // Cast the ability from the pet
         const petAsSource = {
           id: this.id,
@@ -217,14 +212,15 @@ export default class PetState extends EntityState {
         }
       }
     } else {
-      // No targets in range, look for targets to move toward
+      // No valid targets in casting range, look for potential targets to move toward
+      this.currentTarget = null
       let allTargets = []
 
       if (this.targetAllies) {
         // Look for allies to heal
         if (this.isPlayerSourced) {
           allTargets = players.filter(player => {
-            const isValid = player.currentHealth > 0 && player.id === this.ownerId && player.currentHealth < player.maxHealth
+            const isValid = player.currentHealth > 0 && player.currentHealth < player.maxHealth
             return player.isConnected && isValid
           })
         } else {
@@ -255,17 +251,14 @@ export default class PetState extends EntityState {
         const ownerToTargetDistance = Math.hypot(closestTarget.x - owner.x, closestTarget.y - owner.y)
         if (ownerToTargetDistance <= this.leashDistance) {
           this.setTarget({ x: closestTarget.x, y: closestTarget.y })
-          this.currentTarget = closestTarget
         } else {
-          // Target is too far, stay near owner
-          this.currentTarget = null
+          // Target is too far, stay near owner instead
           if (Math.hypot(owner.x - this.x, owner.y - this.y) > this.leashDistance * 0.5) {
             this.setTarget({ x: owner.x, y: owner.y })
           }
         }
       } else {
         // No targets at all, stay near owner
-        this.currentTarget = null
         if (Math.hypot(owner.x - this.x, owner.y - this.y) > this.leashDistance * 0.5) {
           this.setTarget({ x: owner.x, y: owner.y })
         }
