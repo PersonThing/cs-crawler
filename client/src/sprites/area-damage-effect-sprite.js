@@ -10,6 +10,8 @@ const DAMAGE_TYPE_COLORS = {
   [DamageType.Poison]: { fill: 0x44ff44, stroke: 0x00ff00 }, // Green
 }
 
+const STARTING_ALPHA = 0.15
+
 class AreaDamageEffectSprite extends Container {
   constructor(damageData) {
     super()
@@ -88,8 +90,8 @@ class AreaDamageEffectSprite extends Container {
     }
 
     this.indicator.lineTo(source.x, source.y)
-    this.indicator.fill({ color: colors.fill, alpha: 0.3 })
-    // this.indicator.stroke({ color: colors.stroke, width: 2, alpha: 0.8 })
+    this.indicator.fill({ color: colors.fill, alpha: STARTING_ALPHA })
+    // this.indicator.stroke({ color: colors.stroke, width: 2, alpha: STARTING_ALPHA })
   }
 
   createLineIndicator(source, target, options) {
@@ -131,8 +133,8 @@ class AreaDamageEffectSprite extends Container {
     this.indicator.lineTo(p3x, p3y)
     this.indicator.lineTo(p4x, p4y)
     this.indicator.lineTo(p1x, p1y)
-    this.indicator.fill({ color: colors.fill, alpha: 0.3 })
-    // this.indicator.stroke({ color: colors.stroke, width: 2, alpha: 0.8 })
+    this.indicator.fill({ color: colors.fill, alpha: STARTING_ALPHA })
+    // this.indicator.stroke({ color: colors.stroke, width: 2, alpha: STARTING_ALPHA })
   }
 
   createRadiusIndicator(source, options) {
@@ -141,8 +143,8 @@ class AreaDamageEffectSprite extends Container {
 
     // Draw circle
     this.indicator.circle(source.x, source.y, radius)
-    this.indicator.fill({ color: colors.fill, alpha: 0.3 })
-    // this.indicator.stroke({ color: colors.stroke, width: 2, alpha: 0.8 })
+    this.indicator.fill({ color: colors.fill, alpha: STARTING_ALPHA })
+    // this.indicator.stroke({ color: colors.stroke, width: 2, alpha: STARTING_ALPHA })
   }
 
   tick() {
