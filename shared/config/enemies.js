@@ -1,4 +1,5 @@
-import EnemyState, { EnemyTypes } from '../state/enemy-state.js'
+import EnemyState from '../state/enemy-state.js'
+import EnemyType from './enemy-type.js'
 
 // Global enemies array - managed by server
 let enemies = []
@@ -6,7 +7,7 @@ let enemyIdCounter = 0
 
 // Helper function to create enemies
 function createEnemy(enemyType, x, y, pather) {
-  if (!EnemyTypes[enemyType]) {
+  if (!EnemyType[enemyType]) {
     console.warn(`Unknown enemy type: ${enemyType}`)
     return null
   }
@@ -77,4 +78,4 @@ function getEnemyById(id) {
   return enemies.find(e => e.id === id)
 }
 
-export { createEnemy, updateEnemies, getActiveEnemies, getEnemyObjects, getEnemyCount, clearEnemies, getEnemyById, EnemyTypes }
+export { createEnemy, updateEnemies, getActiveEnemies, getEnemyObjects, getEnemyCount, clearEnemies, getEnemyById, EnemyType }

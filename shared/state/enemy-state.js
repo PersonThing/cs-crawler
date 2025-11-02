@@ -1,14 +1,14 @@
 import EntityState from './entity-state.js'
-import { Textures } from '#shared/config/textures.js'
 import ItemAttribute from '#shared/config/item-attribute.js'
 import { useAbility } from '../config/abilities/abilities.js'
+import { EnemyType } from '#shared/config/enemies.js'
 
 const ENEMY_DETECTION_RANGE = 300 // Range to detect players
 const ENEMY_ATTACK_RANGE = 50 // Range to attack players
 
 export default class EnemyState extends EntityState {
   constructor({ id, enemyType, x, y, pather }) {
-    const enemyConfig = EnemyTypes[enemyType]
+    const enemyConfig = EnemyType[enemyType]
     if (!enemyConfig) {
       throw new Error(`Unknown enemy type: ${enemyType}`)
     }
@@ -179,34 +179,4 @@ export default class EnemyState extends EntityState {
       inventory: this.inventory.serialize(),
     }
   }
-}
-
-// Enemy type definitions
-export const EnemyTypes = {
-  burning_zombie: {
-    name: 'Burning Zombie',
-    texture: Textures.entity.hostile.burning_zombie.bzombie,
-    color: 0x4d7c47,
-    maxHealth: 500,
-    maxSpeed: 150,
-    baseStats: {
-      [ItemAttribute.Damage]: 15,
-      [ItemAttribute.Defense]: 5,
-    },
-    defaultInventory: [],
-  },
-
-  burning_skeleton: {
-    name: 'Burning Skeleton',
-    texture: Textures.entity.hostile.burning_skeleton.bskeleton,
-    color: 0x8b7355,
-    maxHealth: 300,
-    maxSpeed: 200,
-    baseStats: {
-      [ItemAttribute.Damage]: 12,
-      [ItemAttribute.Defense]: 3,
-      [ItemAttribute.CriticalChance]: 0.15,
-    },
-    defaultInventory: [],
-  },
 }

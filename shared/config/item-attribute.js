@@ -40,10 +40,8 @@ const OnHitAttributes = {
 const AbilityAttributes = {
   MaxAbilityModifiers: 'MaxAbilityModifiers', // increases the max number of ability modifiers you can have on an ability
   ExtraProjectiles: 'ExtraProjectiles', // modifier on an ability, adds # extra projectiles to projectile abilities
-  HomingProjectiles: 'HomingProjectiles', // modifier on an ability, makes projectiles home in on enemies
-  PiercingProjectiles: 'PiercingProjectiles', // modifier on an ability, makes projectiles pierce through enemies
-  ExplodingProjectiles: 'ExplodingProjectiles', // modifier on an ability, makes projectiles explode on impact
-  ChainProjectiles: 'ChainProjectiles', // modifier on an ability, makes projectiles chain between enemies
+  ChainProjectiles: 'ChainProjectiles', // modifier on an ability, makes projectiles chain up to this many times
+  SplitProjectiles: 'SplitProjectiles', // modifier on an ability, makes projectiles split into this many smaller projectiles
   MaxTurrets: 'MaxTurrets', // increases the max number of turrets you can have out at a time
   MaxPets: 'MaxPets', // increases the max number of pets you can have out at a time
 }

@@ -1,10 +1,10 @@
+import { ART_SCALE, BLOCK_SIZE } from './config/constants.js'
+import { EnemyType } from '#shared/config/enemies.js'
 import { Textures } from '#shared/config/textures.js'
 import Block from './config/block.js'
-import { ART_SCALE, BLOCK_SIZE } from './config/constants.js'
 import Level from './config/level.js'
 import Tile from './config/tile.js'
 import Tiles from './level-builder-tiles.js'
-import { EnemyTypes } from './config/enemies.js'
 
 const textureMap = {
   0: null,
@@ -133,7 +133,7 @@ const generateLevel = async () => {
         const spawnPosition = findWalkablePositionInTile(tile, tileX, tileY)
         if (spawnPosition) {
           // Randomly choose enemy type
-          const enemyTypes = Object.keys(EnemyTypes)
+          const enemyTypes = Object.keys(EnemyType)
           const randomEnemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)]
 
           level.enemySpawns.push({
