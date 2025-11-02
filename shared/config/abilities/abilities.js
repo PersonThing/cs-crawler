@@ -17,6 +17,7 @@ const Abilities = {
     description: 'A basic attack dealing physical damage.',
     icon: Textures.inventory.one_handed.sword, // for basic attack, this would change depending on equipped item
     cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
+    range: 100, // Melee range in pixels
     color: 0xffffff,
     onUse: (source, target, modifiers, enemies = []) => {
       // Apply cone damage in front of the source
@@ -43,6 +44,7 @@ const Abilities = {
     sound: Sounds.abilities.Shoot,
     soundOptions: { volume: 0.6, start: 0.2, end: 0.9 },
     cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
+    range: 800, // Projectile range in pixels
     color: 0xcc0000,
     onUse: (source, target) => {
       const damage = 25 + (source.stats[ItemAttribute.FireDamage] || 0)
@@ -99,6 +101,7 @@ const Abilities = {
     description: 'Strike enemies at range with an instant lightning bolt.',
     icon: Textures.particle.lightning,
     cooldown: source => (source.isTurret || source.isPet ? 500 : 250),
+    range: 400, // Lightning range in pixels
     color: 0xcccc00,
     onUse: (source, target, modifiers, enemies = []) => {
       // Apply cone damage in front of the source
@@ -132,6 +135,7 @@ const Abilities = {
           ? 250 // this ability will be placing a turret or pet, so let them cast it quickly, no need for big cd
           : 3000
     },
+    range: 200, // Heal range in pixels
     color: 0x00cc00,
     targetAllies: true,
     onUse: (source, target, modifiers, enemies = []) => {

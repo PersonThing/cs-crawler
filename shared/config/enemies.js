@@ -26,7 +26,7 @@ function createEnemy(enemyType, x, y, pather) {
 }
 
 // Helper function to update all enemies
-function updateEnemies(deltaMS, players = []) {
+function updateEnemies(deltaMS, players = [], effectDataCallback = null) {
   for (let i = enemies.length - 1; i >= 0; i--) {
     const enemy = enemies[i]
 
@@ -43,7 +43,7 @@ function updateEnemies(deltaMS, players = []) {
     }
 
     if (shouldTick) {
-      const shouldContinue = enemy.tick(deltaMS, players)
+      const shouldContinue = enemy.tick(deltaMS, players, enemies, effectDataCallback)
       if (!shouldContinue) {
         enemies.splice(i, 1)
       }

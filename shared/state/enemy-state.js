@@ -1,6 +1,7 @@
 import EntityState from './entity-state.js'
 import { Textures } from '#shared/config/textures.js'
 import ItemAttribute from '#shared/config/item-attribute.js'
+import { useAbility } from '../config/abilities/abilities.js'
 
 const ENEMY_DETECTION_RANGE = 300 // Range to detect players
 const ENEMY_ATTACK_RANGE = 50 // Range to attack players
@@ -58,7 +59,7 @@ export default class EnemyState extends EntityState {
     this.damage = this.stats[ItemAttribute.Damage] || 10
   }
 
-  tick(deltaMS, players = []) {
+  tick(deltaMS, players = [], enemies = [], effectDataCallback = null) {
     const now = Date.now()
 
     // Don't act too frequently
@@ -91,13 +92,22 @@ export default class EnemyState extends EntityState {
       const distanceToTarget = Math.hypot(closestPlayer.x - this.x, closestPlayer.y - this.y)
 
       if (distanceToTarget <= this.attackRange) {
-        // Attack the player
-        this.attack(closestPlayer)
-
-        // Deal damage to the player
-        if (closestPlayer.takeDamage) {
-          closestPlayer.takeDamage(this.damage, this)
-          // console.log(`${this.label} dealt ${this.damage} damage to ${closestPlayer.label}`)
+        // Use BasicAttack ability for now
+        this.rotateToward(closestPlayer)
+        
+        const enemyAsSource = {
+          id: this.id,
+          label: this.label,
+          x: this.x,
+          y: this.y,
+          stats: this.stats,
+          isHostile: true,
+        }
+        
+        const effectData = useAbility('BasicAttack', enemyAsSource, closestPlayer, [], players)
+        
+        if (effectData && effectDataCallback) {
+          effectDataCallback(effectData)
         }
 
         this.lastAction = now

@@ -169,6 +169,17 @@ export default class PetState extends EntityState {
       // Rotate to face target
       this.rotateToward(target)
 
+      // Check if pet is in range for this ability
+      const distanceToTarget = Math.hypot(target.x - this.x, target.y - this.y)
+      const abilityRange = this.abilityData.range || 100 // Default range if not specified
+      const inRange = distanceToTarget <= abilityRange
+
+      if (!inRange) {
+        // Move closer to target if not in range
+        this.setTarget({ x: target.x, y: target.y })
+        return // Don't try to cast yet, just move closer
+      }
+
       // Check if pet can cast (cooldown)
       const timeSinceLastCast = now - this.lastCastTime
       if (timeSinceLastCast >= this.cooldown) {

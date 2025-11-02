@@ -107,7 +107,8 @@ function tick() {
   // Update enemies
   updateEnemies(
     deltaMS,
-    Object.values(players).filter(p => p && p.isConnected)
+    Object.values(players).filter(p => p && p.isConnected),
+    effectDataCallback
   )
 
   // Update turret and pet counts for all players
