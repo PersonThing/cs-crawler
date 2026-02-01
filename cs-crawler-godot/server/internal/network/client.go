@@ -202,7 +202,13 @@ func (c *Client) handleMove(msg map[string]interface{}) {
 		Z: getFloat64(velocityMap, "z"),
 	}
 
-	log.Printf("[MOVE] Player %s velocity: (%.2f, %.2f, %.2f)", c.playerID, velocity.X, velocity.Y, velocity.Z)
+	// Parse rotation (optional, defaults to 0)
+	rotation := 0.0
+	if rotationVal, ok := msg["rotation"].(float64); ok {
+		rotation = rotationVal
+	}
+
+	// log.Printf("[MOVE] Player %s velocity: (%.2f, %.2f, %.2f), rotation: %.2f", c.playerID, velocity.X, velocity.Y, velocity.Z, rotation)
 
 	// Get world and player
 	world, ok := c.server.gameServer.GetWorld(c.worldID)
@@ -218,8 +224,9 @@ func (c *Client) handleMove(msg map[string]interface{}) {
 		return
 	}
 
-	// Update player velocity (server will update position in game loop)
+	// Update player velocity and rotation (server will update position in game loop)
 	player.SetVelocity(velocity)
+	player.Rotation = rotation
 	log.Printf("[MOVE] Player %s position: (%.2f, %.2f, %.2f)", c.playerID, player.Position.X, player.Position.Y, player.Position.Z)
 }
 

@@ -20,6 +20,7 @@ type Player struct {
 	Username string
 	Position Vector3
 	Velocity Vector3
+	Rotation float64 // Y-axis rotation in radians
 	Health   float64
 	MaxHealth float64
 
@@ -69,11 +70,12 @@ func (p *Player) SetVelocity(v Vector3) {
 // Serialize converts player to JSON-friendly format
 func (p *Player) Serialize() map[string]interface{} {
 	return map[string]interface{}{
-		"id":       p.ID,
-		"username": p.Username,
-		"position": p.Position,
-		"velocity": p.Velocity,
-		"health":   p.Health,
+		"id":        p.ID,
+		"username":  p.Username,
+		"position":  p.Position,
+		"velocity":  p.Velocity,
+		"rotation":  p.Rotation,
+		"health":    p.Health,
 		"maxHealth": p.MaxHealth,
 	}
 }

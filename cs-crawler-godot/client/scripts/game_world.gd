@@ -184,6 +184,11 @@ func _handle_world_state(state: Dictionary) -> void:
 	# Handle enemies
 	var enemies_data = state.get("enemies", [])
 	var current_enemy_ids = []
+
+	# Debug: Log enemy count changes
+	if enemies_data.size() != enemies.size():
+		print("[WORLD] Enemy count changed: ", enemies.size(), " -> ", enemies_data.size())
+
 	for enemy_data in enemies_data:
 		var eid = enemy_data.get("id", "")
 		current_enemy_ids.append(eid)
@@ -195,7 +200,15 @@ func _handle_world_state(state: Dictionary) -> void:
 			enemy.enemy_id = eid
 			enemy.enemy_type = enemy_data.get("type", "basic")
 			enemies[eid] = enemy
+
+			# Add to scene tree first so _ready() gets called
 			enemies_container.add_child(enemy)
+
+			# Force setup appearance if _ready() didn't run properly
+			if not enemy.mesh_instance:
+				enemy._setup_appearance()
+
+			print("[WORLD] Created new enemy: ", eid, " type: ", enemy.enemy_type, " mesh: ", enemy.mesh_instance != null)
 
 			# Register with UI manager
 			if enemy_ui_manager:
@@ -214,9 +227,10 @@ func _handle_world_state(state: Dictionary) -> void:
 	# Remove enemies that no longer exist on server
 	for eid in enemies.keys():
 		if not eid in current_enemy_ids:
+			print("[WORLD] Removing enemy: ", eid)
 			if enemy_ui_manager:
 				enemy_ui_manager.unregister_enemy(eid)
-			if enemies[eid]:
+			if is_instance_valid(enemies[eid]):
 				enemies[eid].queue_free()
 			enemies.erase(eid)
 
@@ -282,15 +296,20 @@ func _handle_world_state(state: Dictionary) -> void:
 	for death_event in death_events:
 		_handle_death_event(death_event)
 
+	# Handle ability cast events (from minions)
+	var ability_cast_events = state.get("abilityCastEvents", [])
+	for cast_event in ability_cast_events:
+		_handle_minion_ability_cast(cast_event)
+
 func _handle_ability_cast(message: Dictionary) -> void:
 	var player_id = message.get("playerID", "")
 	var ability_type = message.get("abilityType", "")
-	var position = message.get("position", {})
+	var pos_data = message.get("position", {})
 	var direction = message.get("direction", {})
 
 	print("[WORLD] Ability cast: ", ability_type, " by player ", player_id)
 
-	var cast_pos = Vector3(position.get("x", 0.0), position.get("y", 0.0), position.get("z", 0.0))
+	var cast_pos = Vector3(pos_data.get("x", 0.0), pos_data.get("y", 0.0), pos_data.get("z", 0.0))
 	var cast_dir = Vector3(direction.get("x", 0.0), direction.get("y", 0.0), direction.get("z", 0.0))
 
 	# Create visual effects for instant/melee abilities
@@ -302,13 +321,33 @@ func _handle_ability_cast(message: Dictionary) -> void:
 
 	# Projectile abilities (fireball, frostbolt) will be created by world_state update
 
+func _handle_minion_ability_cast(event: Dictionary) -> void:
+	var caster_id = event.get("casterID", "")
+	var ability_type = event.get("abilityType", "")
+	var pos_data = event.get("position", {})
+	var direction = event.get("direction", {})
+
+	print("[WORLD] Minion ability cast: ", ability_type, " by minion ", caster_id)
+
+	var cast_pos = Vector3(pos_data.get("x", 0.0), pos_data.get("y", 0.0), pos_data.get("z", 0.0))
+	var cast_dir = Vector3(direction.get("x", 0.0), direction.get("y", 0.0), direction.get("z", 0.0))
+
+	# Create visual effects for instant/melee abilities
+	match ability_type:
+		"lightning":
+			_create_lightning_effect(cast_pos, cast_dir)
+		"basic_attack":
+			_create_melee_cone_effect(cast_pos, cast_dir)
+
+	# Projectile abilities (fireball, frostbolt) are already handled by projectile rendering
+
 func _handle_damage_event(damage_event: Dictionary) -> void:
 	var target_id = damage_event.get("targetID", "")
 	var damage = damage_event.get("damage", 0.0)
 	var damage_type = damage_event.get("type", "physical")
 
-	# Apply damage to enemy if it exists
-	if enemies.has(target_id):
+	# Apply damage to enemy if it exists and is still valid
+	if enemies.has(target_id) and is_instance_valid(enemies[target_id]):
 		enemies[target_id].take_damage(damage, damage_type)
 
 		# Spawn damage number

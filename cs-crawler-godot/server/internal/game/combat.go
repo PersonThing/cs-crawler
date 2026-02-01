@@ -36,6 +36,18 @@ type DeathEvent struct {
 	KillerID   string
 }
 
+// AbilityCastEvent represents an ability cast by a minion to broadcast
+type AbilityCastEvent struct {
+	CasterID     string  // Minion ID
+	CasterType   string  // "pet" or "turret"
+	OwnerID      string  // Player who owns the minion
+	AbilityType  string  // Type of ability
+	Position     Vector3 // Cast position
+	Direction    Vector3 // Cast direction
+	HitTargets   []string // IDs of enemies hit (for instant/melee)
+}
+
+
 // Damageable interface for entities that can take damage
 type Damageable interface {
 	TakeDamage(damage DamageInfo) bool // Returns true if entity died

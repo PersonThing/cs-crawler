@@ -194,6 +194,7 @@ func _send_move_input(direction: Vector3) -> void:
 			"y": 0.0,
 			"z": direction.z
 		},
+		"rotation": rotation.y,
 		"timestamp": Time.get_ticks_msec()
 	}
 
@@ -307,6 +308,11 @@ func apply_server_state(state: Dictionary) -> void:
 	else:
 		# Smooth interpolation for remote players
 		global_position = global_position.lerp(target_position, 0.2)
+
+		# Apply rotation for remote players
+		if state.has("rotation"):
+			var server_rotation = state.get("rotation", 0.0)
+			rotation.y = server_rotation
 
 	# Update other stats
 	if state.has("health"):
