@@ -165,10 +165,14 @@ func _follow_navigation_path(_delta: float) -> void:
 		_apply_movement(direction.normalized(), _delta)
 		_send_move_input(direction.normalized())
 
-func _apply_movement(direction: Vector3, _delta: float) -> void:
+func _apply_movement(direction: Vector3, delta: float) -> void:
 	if direction.length() > 0.1:
 		velocity.x = direction.x * move_speed
 		velocity.z = direction.z * move_speed
+
+		# Rotate player to face movement direction
+		var target_rotation = atan2(direction.x, direction.z)
+		rotation.y = lerp_angle(rotation.y, target_rotation, delta * 10.0)
 	else:
 		velocity.x = 0
 		velocity.z = 0
