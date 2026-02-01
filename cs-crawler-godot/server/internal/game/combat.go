@@ -88,3 +88,90 @@ func ApplyDamage(target Damageable, damage DamageInfo) bool {
 	damage.Amount = finalDamage
 	return target.TakeDamage(damage)
 }
+
+// Normalize2D normalizes a 2D vector (X,Z plane)
+func Normalize2D(v Vector3) Vector3 {
+	length := math.Sqrt(v.X*v.X + v.Z*v.Z)
+	if length == 0 {
+		return v
+	}
+	return Vector3{X: v.X / length, Y: v.Y, Z: v.Z / length}
+}
+
+// Dot2D calculates the dot product of two 2D vectors (X,Z plane)
+func Dot2D(a, b Vector3) float64 {
+	return a.X*b.X + a.Z*b.Z
+}
+
+// CheckLineCollision checks if an enemy is hit by a line-based ability (like Lightning)
+// Returns true if the enemy is within range and close to the line
+func CheckLineCollision(origin, direction Vector3, maxRange, lineWidth float64, enemy *Enemy) bool {
+	if enemy.IsDead() {
+		return false
+	}
+
+	// Vector from origin to enemy
+	toEnemy := Vector3{
+		X: enemy.Position.X - origin.X,
+		Y: 0,
+		Z: enemy.Position.Z - origin.Z,
+	}
+
+	// Normalize direction (2D)
+	dir := Normalize2D(direction)
+
+	// Distance along the direction
+	distanceAlong := Dot2D(toEnemy, dir)
+
+	// Check if enemy is within range
+	if distanceAlong < 0 || distanceAlong > maxRange {
+		return false
+	}
+
+	// Calculate perpendicular distance from line
+	projectedPoint := Vector3{
+		X: origin.X + dir.X*distanceAlong,
+		Y: 0,
+		Z: origin.Z + dir.Z*distanceAlong,
+	}
+
+	perpDistance := Distance2D(enemy.Position, projectedPoint)
+
+	// Check if within line width
+	return perpDistance <= lineWidth
+}
+
+// CheckConeCollision checks if an enemy is hit by a cone-based ability (like BasicAttack)
+// Returns true if the enemy is within range and within the cone angle
+func CheckConeCollision(origin, direction Vector3, maxRange, coneAngleDegrees float64, enemy *Enemy) bool {
+	if enemy.IsDead() {
+		return false
+	}
+
+	// Vector from origin to enemy
+	toEnemy := Vector3{
+		X: enemy.Position.X - origin.X,
+		Y: 0,
+		Z: enemy.Position.Z - origin.Z,
+	}
+
+	// Check if enemy is within range
+	distance := math.Sqrt(toEnemy.X*toEnemy.X + toEnemy.Z*toEnemy.Z)
+	if distance > maxRange {
+		return false
+	}
+
+	// Normalize both vectors
+	dir := Normalize2D(direction)
+	toEnemyNorm := Normalize2D(toEnemy)
+
+	// Calculate angle between direction and toEnemy
+	dotProduct := Dot2D(dir, toEnemyNorm)
+
+	// Convert cone angle to radians and calculate half angle
+	halfAngleRad := (coneAngleDegrees / 2.0) * (math.Pi / 180.0)
+	cosHalfAngle := math.Cos(halfAngleRad)
+
+	// Check if enemy is within cone
+	return dotProduct >= cosHalfAngle
+}

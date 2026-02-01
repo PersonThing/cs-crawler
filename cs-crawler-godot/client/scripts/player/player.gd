@@ -18,7 +18,10 @@ var is_following_path: bool = false
 
 # Ability cooldowns (client-side tracking for hold-to-cast)
 var ability_cooldowns: Dictionary = {
-	"fireball": 0.0
+	"fireball": 0.0,
+	"frostbolt": 0.0,
+	"lightning": 0.0,
+	"basic_attack": 0.0
 }
 var ability_cooldown_times: Dictionary = {}  # Loaded from config
 
@@ -39,14 +42,19 @@ func _load_ability_configs() -> void:
 	var config_loader = get_node_or_null("/root/ConfigLoader")
 	if not config_loader:
 		push_warning("[PLAYER] ConfigLoader not found, using defaults")
-		ability_cooldown_times["fireball"] = 0.5
+		ability_cooldown_times["fireball"] = 0.2
+		ability_cooldown_times["frostbolt"] = 0.8
+		ability_cooldown_times["lightning"] = 1.0
+		ability_cooldown_times["basic_attack"] = 0.3
 		return
 
-	# Load cooldowns from config
-	var fireball_config = config_loader.get_ability("fireball")
-	if fireball_config.has("cooldown"):
-		ability_cooldown_times["fireball"] = fireball_config["cooldown"]
-		print("[PLAYER] Loaded fireball cooldown: ", fireball_config["cooldown"])
+	# Load cooldowns from config for all abilities
+	var ability_types = ["fireball", "frostbolt", "lightning", "basic_attack"]
+	for ability_type in ability_types:
+		var ability_config = config_loader.get_ability(ability_type)
+		if ability_config and ability_config.has("cooldown"):
+			ability_cooldown_times[ability_type] = ability_config["cooldown"]
+			print("[PLAYER] Loaded %s cooldown: %s" % [ability_type, ability_config["cooldown"]])
 
 func _on_message_received(message: Dictionary) -> void:
 	if not is_local:
@@ -214,9 +222,15 @@ func _handle_abilities(delta: float) -> void:
 		if ability_cooldowns[ability_type] > 0:
 			ability_cooldowns[ability_type] -= delta
 
-	# Cast Fireball with "1" key (hold to continuously cast)
+	# Cast abilities with keys 1-4 (hold to continuously cast)
 	if Input.is_action_pressed("ability_1"):
 		_try_cast_ability("fireball")
+	elif Input.is_action_pressed("ability_2"):
+		_try_cast_ability("frostbolt")
+	elif Input.is_action_pressed("ability_3"):
+		_try_cast_ability("lightning")
+	elif Input.is_action_pressed("ability_4"):
+		_try_cast_ability("basic_attack")
 
 func _try_cast_ability(ability_type: String) -> void:
 	# Check client-side cooldown
@@ -253,6 +267,10 @@ func _cast_ability(ability_type: String) -> void:
 	else:
 		# Default to forward direction
 		direction = -transform.basis.z
+
+	# Rotate player to face cast direction (subtract PI/2 to correct model orientation)
+	var target_rotation = atan2(direction.x, direction.z) - PI / 2.0
+	rotation.y = target_rotation  # Instant rotation for ability casting
 
 	# Send ability use message to server
 	var msg = {

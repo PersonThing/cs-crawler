@@ -20,6 +20,7 @@ type World struct {
 	players     map[string]*Player
 	enemies     map[string]*Enemy
 	projectiles map[string]*Projectile
+	minions     map[string]*Minion
 
 	// Events (for broadcasting)
 	damageEvents []DamageEvent
@@ -34,6 +35,7 @@ func NewWorld(id string) *World {
 		players:      make(map[string]*Player),
 		enemies:      make(map[string]*Enemy),
 		projectiles:  make(map[string]*Projectile),
+		minions:      make(map[string]*Minion),
 		damageEvents: make([]DamageEvent, 0),
 		deathEvents:  make([]DeathEvent, 0),
 	}
@@ -139,10 +141,36 @@ func (w *World) Update(delta time.Duration) {
 
 	// Update projectiles and check collisions
 	for id, projectile := range w.projectiles {
+		// Update homing projectiles
+		if projectile.IsHoming {
+			// Find nearest enemy
+			var nearest *Enemy
+			minDistance := 100.0 // Max homing range
+			for _, enemy := range w.enemies {
+				if enemy.IsDead() {
+					continue
+				}
+				distance := Distance2D(projectile.Position, enemy.Position)
+				if distance < minDistance {
+					minDistance = distance
+					nearest = enemy
+				}
+			}
+
+			if nearest != nil {
+				projectile.UpdateHoming(nearest.Position, deltaSeconds)
+			}
+		}
+
 		projectile.Update(deltaSeconds)
 
 		// Check collision with enemies
 		if enemy := CheckProjectileCollision(projectile, w.enemies, projectile.Radius); enemy != nil {
+			// Skip if already hit this enemy (for piercing projectiles)
+			if projectile.HasHitEnemy(enemy.ID) {
+				continue
+			}
+
 			// Apply damage
 			damageInfo := DamageInfo{
 				Amount:   projectile.Damage,
@@ -152,6 +180,17 @@ func (w *World) Update(delta time.Duration) {
 			}
 
 			died := ApplyDamage(enemy, damageInfo)
+
+			// Apply status effect if projectile has one
+			if projectile.StatusEffectInfo != nil {
+				statusEffect := NewStatusEffect(
+					projectile.StatusEffectInfo.Type,
+					projectile.StatusEffectInfo.Duration,
+					projectile.StatusEffectInfo.Magnitude,
+					projectile.OwnerID,
+				)
+				enemy.ApplyStatusEffect(statusEffect)
+			}
 
 			// Record damage event
 			w.damageEvents = append(w.damageEvents, DamageEvent{
@@ -169,14 +208,77 @@ func (w *World) Update(delta time.Duration) {
 				})
 			}
 
-			// Destroy projectile on hit
-			delete(w.projectiles, id)
+			// Handle piercing
+			if projectile.IsPiercing {
+				projectile.MarkEnemyHit(enemy.ID)
+				if !projectile.CanPierce() {
+					delete(w.projectiles, id)
+				}
+			} else {
+				// Destroy projectile on hit (non-piercing)
+				delete(w.projectiles, id)
+			}
 			continue
 		}
 
 		// Destroy projectile if lifetime expired
 		if projectile.ShouldDestroy() {
 			delete(w.projectiles, id)
+		}
+	}
+
+	// Update minions
+	for id, minion := range w.minions {
+		// Get owner position
+		owner, ownerExists := w.players[minion.OwnerID]
+		if !ownerExists {
+			// Owner disconnected, remove minion
+			delete(w.minions, id)
+			continue
+		}
+
+		// Update minion (movement for pets)
+		minion.Update(deltaSeconds, owner.Position)
+
+		// Check if minion can cast
+		if minion.CanCast() {
+			// Find nearest enemy
+			target := minion.FindNearestEnemy(w.enemies, minion.Ability.Range)
+			if target != nil {
+				// Minion casts ability towards target
+				direction := minion.GetDirectionTo(target.Position)
+
+				// Create projectile from minion
+				if minion.Ability.Category == AbilityCategoryProjectile {
+					projectileID := fmt.Sprintf("proj-minion-%s-%d", id, time.Now().UnixNano())
+					spawnPosition := minion.Position
+					spawnPosition.Y = 0.5 // Lower than player projectiles
+
+					minionProjectile := NewProjectile(
+						projectileID,
+						minion.OwnerID, // Credit owner for damage
+						spawnPosition,
+						Vector3{
+							X: direction.X * minion.Ability.Speed,
+							Y: 0,
+							Z: direction.Z * minion.Ability.Speed,
+						},
+						minion.Ability.Damage,
+						minion.Ability.DamageType,
+						string(minion.AbilityType),
+					)
+
+					minionProjectile.StatusEffectInfo = minion.Ability.StatusEffect
+					w.projectiles[projectileID] = minionProjectile
+				}
+
+				minion.MarkCasted()
+			}
+		}
+
+		// Remove minion if expired
+		if minion.ShouldDestroy() {
+			delete(w.minions, id)
 		}
 	}
 
@@ -222,6 +324,14 @@ func (w *World) AddProjectile(projectile *Projectile) {
 	defer w.mu.Unlock()
 
 	w.projectiles[projectile.ID] = projectile
+}
+
+// AddMinion adds a minion to the world
+func (w *World) AddMinion(minion *Minion) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	w.minions[minion.ID] = minion
 }
 
 // GetEnemies returns all enemies (thread-safe copy)
@@ -270,6 +380,11 @@ func (w *World) GetWorldState() map[string]interface{} {
 		projectiles = append(projectiles, proj.Serialize())
 	}
 
+	minions := make([]map[string]interface{}, 0, len(w.minions))
+	for _, minion := range w.minions {
+		minions = append(minions, minion.Serialize())
+	}
+
 	// Include events
 	damageEvents := make([]map[string]interface{}, 0, len(w.damageEvents))
 	for _, event := range w.damageEvents {
@@ -293,6 +408,7 @@ func (w *World) GetWorldState() map[string]interface{} {
 		"players":      players,
 		"enemies":      enemies,
 		"projectiles":  projectiles,
+		"minions":      minions,
 		"damageEvents": damageEvents,
 		"deathEvents":  deathEvents,
 	}

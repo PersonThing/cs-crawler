@@ -17,7 +17,7 @@
     "frostbolt": {
       "name": "Frostbolt",
       "type": "projectile",
-      "cooldown": 0.8,
+      "cooldown": 0.2,
       "damage": 20.0,
       "damageType": "cold",
       "range": 30.0,

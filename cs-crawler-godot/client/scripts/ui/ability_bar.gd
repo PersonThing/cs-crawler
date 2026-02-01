@@ -25,24 +25,25 @@ func _load_ability_configs() -> void:
 	var config_loader = get_node_or_null("/root/ConfigLoader")
 	if not config_loader:
 		push_warning("[ABILITY_BAR] ConfigLoader not found, using defaults")
-		abilities["fireball"] = {
-			"name": "Fireball",
-			"cooldown": 0.5,
-			"icon": null,
-			"keybind": "1"
-		}
+		abilities["fireball"] = {"name": "Fireball", "cooldown": 0.2, "icon": null, "keybind": "1"}
+		abilities["frostbolt"] = {"name": "Frostbolt", "cooldown": 0.8, "icon": null, "keybind": "2"}
+		abilities["lightning"] = {"name": "Lightning", "cooldown": 1.0, "icon": null, "keybind": "3"}
+		abilities["basic_attack"] = {"name": "Basic Attack", "cooldown": 0.3, "icon": null, "keybind": "4"}
 		return
 
-	# Load fireball from config
-	var fireball_config = config_loader.get_ability("fireball")
-	if fireball_config:
-		abilities["fireball"] = {
-			"name": fireball_config.get("name", "Fireball"),
-			"cooldown": fireball_config.get("cooldown", 0.5),
-			"icon": null,
-			"keybind": "1"
-		}
-		print("[ABILITY_BAR] Loaded fireball config: ", abilities["fireball"])
+	# Load all abilities from config
+	var ability_types = ["fireball", "frostbolt", "lightning", "basic_attack"]
+	for i in range(ability_types.size()):
+		var ability_type = ability_types[i]
+		var ability_config = config_loader.get_ability(ability_type)
+		if ability_config:
+			abilities[ability_type] = {
+				"name": ability_config.get("name", ability_type.capitalize()),
+				"cooldown": ability_config.get("cooldown", 1.0),
+				"icon": null,
+				"keybind": str(i + 1)
+			}
+			print("[ABILITY_BAR] Loaded %s config: %s" % [ability_type, abilities[ability_type]])
 
 func _setup_ability_buttons() -> void:
 	# Create ability slots
@@ -109,10 +110,10 @@ func _setup_ability_buttons() -> void:
 		ability_4 = get_node("HBoxContainer/Ability4")
 
 		# Set ability info
-		ability_1.text = "Fireball"
-		ability_2.text = "Empty"
-		ability_3.text = "Empty"
-		ability_4.text = "Empty"
+		ability_1.text = abilities.get("fireball", {}).get("name", "Fireball")
+		ability_2.text = abilities.get("frostbolt", {}).get("name", "Frostbolt")
+		ability_3.text = abilities.get("lightning", {}).get("name", "Lightning")
+		ability_4.text = abilities.get("basic_attack", {}).get("name", "Basic Attack")
 
 func _process(delta: float) -> void:
 	# Update cooldown displays
@@ -134,6 +135,12 @@ func _get_ability_type_for_slot(slot: int) -> String:
 	match slot:
 		0:
 			return "fireball"
+		1:
+			return "frostbolt"
+		2:
+			return "lightning"
+		3:
+			return "basic_attack"
 		_:
 			return ""
 
@@ -141,6 +148,12 @@ func _get_slot_for_ability(ability_type: String) -> int:
 	match ability_type:
 		"fireball":
 			return 0
+		"frostbolt":
+			return 1
+		"lightning":
+			return 2
+		"basic_attack":
+			return 3
 		_:
 			return -1
 
@@ -187,8 +200,9 @@ func _handle_ability_cast(message: Dictionary) -> void:
 	# Only track cooldowns for local player
 	if player_id == GameManager.local_player_id:
 		var ability_data = abilities.get(ability_type, {})
-		var cooldown_time = ability_data.get("cooldown", 3.0)
+		var cooldown_time = ability_data.get("cooldown", 1.0)
 		cooldowns[ability_type] = cooldown_time
+		print("[ABILITY_BAR] Started cooldown for %s: %.2fs (data: %s)" % [ability_type, cooldown_time, ability_data])
 
 func _handle_ability_failed(message: Dictionary) -> void:
 	var reason = message.get("reason", "Unknown error")

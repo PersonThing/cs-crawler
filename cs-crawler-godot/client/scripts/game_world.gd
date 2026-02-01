@@ -5,6 +5,7 @@ extends Node3D
 @onready var players_container: Node3D = $Players
 @onready var enemies_container: Node3D = $Enemies
 @onready var projectiles_container: Node3D = $Projectiles
+@onready var minions_container: Node3D = null  # Created dynamically if doesn't exist
 
 # Screen shake
 var screen_shake_amount: float = 0.0
@@ -23,11 +24,13 @@ var projectile_script = preload("res://scripts/projectile/projectile.gd")
 var damage_number_script = preload("res://scripts/ui/damage_number.gd")
 var ability_bar_script = preload("res://scripts/ui/ability_bar.gd")
 var enemy_ui_manager_script = preload("res://scripts/ui/enemy_ui_manager.gd")
+var modifier_panel_script = preload("res://scripts/ui/modifier_panel.gd")
 
 var local_player: Node3D = null
 var remote_players: Dictionary = {}
 var enemies: Dictionary = {}
 var projectiles: Dictionary = {}
+var minions: Dictionary = {}
 var enemy_ui_manager: Control = null
 
 func _ready() -> void:
@@ -37,6 +40,8 @@ func _ready() -> void:
 	_setup_navigation_mesh()
 	_setup_enemy_ui_manager()
 	_setup_ability_bar()
+	_setup_modifier_panel()
+	_setup_minions_container()
 
 	# Check if we're already joined (main menu handled the join)
 	if GameManager.local_player_id != "":
@@ -44,6 +49,15 @@ func _ready() -> void:
 		_spawn_local_player(GameManager.local_player_id)
 	else:
 		print("[WORLD] Waiting for joined message...")
+
+func _setup_minions_container() -> void:
+	# Create minions container if it doesn't exist
+	if not has_node("Minions"):
+		minions_container = Node3D.new()
+		minions_container.name = "Minions"
+		add_child(minions_container)
+	else:
+		minions_container = get_node("Minions")
 
 func _load_camera_config() -> void:
 	var config_loader = get_node_or_null("/root/ConfigLoader")
@@ -94,6 +108,19 @@ func _setup_ability_bar() -> void:
 		ability_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Don't block mouse input
 
 		add_child(ability_bar)
+
+func _setup_modifier_panel() -> void:
+	# Create modifier panel UI if it doesn't exist
+	if not has_node("ModifierPanel"):
+		var modifier_panel = Control.new()
+		modifier_panel.name = "ModifierPanel"
+		modifier_panel.set_script(modifier_panel_script)
+
+		# Make it fill the screen
+		modifier_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+		modifier_panel.mouse_filter = Control.MOUSE_FILTER_PASS  # Allow mouse interaction
+
+		add_child(modifier_panel)
 
 func _on_message_received(message: Dictionary) -> void:
 	var msg_type = message.get("type", "")
@@ -220,6 +247,31 @@ func _handle_world_state(state: Dictionary) -> void:
 				projectiles[proj_id].queue_free()
 			projectiles.erase(proj_id)
 
+	# Handle minions
+	var minions_data = state.get("minions", [])
+	var current_minion_ids = []
+
+	for minion_data in minions_data:
+		var minion_id = minion_data.get("id", "")
+		current_minion_ids.append(minion_id)
+
+		if not minions.has(minion_id):
+			# Create new minion
+			var minion = _create_minion(minion_data)
+			minions[minion_id] = minion
+			minions_container.add_child(minion)
+
+		# Update minion state
+		if is_instance_valid(minions[minion_id]):
+			_update_minion_state(minions[minion_id], minion_data)
+
+	# Remove minions that no longer exist on server
+	for minion_id in minions.keys():
+		if not minion_id in current_minion_ids:
+			if minions[minion_id]:
+				minions[minion_id].queue_free()
+			minions.erase(minion_id)
+
 	# Handle damage events
 	var damage_events = state.get("damageEvents", [])
 	for damage_event in damage_events:
@@ -233,11 +285,22 @@ func _handle_world_state(state: Dictionary) -> void:
 func _handle_ability_cast(message: Dictionary) -> void:
 	var player_id = message.get("playerID", "")
 	var ability_type = message.get("abilityType", "")
+	var position = message.get("position", {})
+	var direction = message.get("direction", {})
 
 	print("[WORLD] Ability cast: ", ability_type, " by player ", player_id)
 
-	# Projectile will be created by world_state update
-	# This message is for immediate visual feedback
+	var cast_pos = Vector3(position.get("x", 0.0), position.get("y", 0.0), position.get("z", 0.0))
+	var cast_dir = Vector3(direction.get("x", 0.0), direction.get("y", 0.0), direction.get("z", 0.0))
+
+	# Create visual effects for instant/melee abilities
+	match ability_type:
+		"lightning":
+			_create_lightning_effect(cast_pos, cast_dir)
+		"basic_attack":
+			_create_melee_cone_effect(cast_pos, cast_dir)
+
+	# Projectile abilities (fireball, frostbolt) will be created by world_state update
 
 func _handle_damage_event(damage_event: Dictionary) -> void:
 	var target_id = damage_event.get("targetID", "")
@@ -342,6 +405,157 @@ func _create_explosion_effect(spawn_pos: Vector3, damage_type: String) -> void:
 	await get_tree().create_timer(2.0).timeout
 	explosion.queue_free()
 
+func _create_lightning_effect(origin: Vector3, direction: Vector3) -> void:
+	# Create a line/beam effect for lightning ability
+	var beam_length = 20.0  # Lightning range from config
+	var beam_width = 1.0    # Width of the beam (line width from config)
+
+	# Calculate end point
+	var dir_normalized = direction.normalized()
+	var end_point = origin + dir_normalized * beam_length
+
+	# Create a cylinder mesh to represent the beam
+	var mesh_instance = MeshInstance3D.new()
+	add_child(mesh_instance)
+
+	var cylinder = CylinderMesh.new()
+	cylinder.top_radius = beam_width * 0.5
+	cylinder.bottom_radius = beam_width * 0.5
+	cylinder.height = beam_length
+	mesh_instance.mesh = cylinder
+
+	# Position and rotate the cylinder to align with direction
+	mesh_instance.global_position = origin + dir_normalized * (beam_length * 0.5)
+	mesh_instance.look_at(end_point, Vector3.UP)
+	mesh_instance.rotate_object_local(Vector3.RIGHT, PI / 2)  # Rotate to align with direction
+
+	# Create lightning material (bright yellow/white)
+	var material = StandardMaterial3D.new()
+	material.albedo_color = Color(1.0, 1.0, 0.3, 0.7)
+	material.emission_enabled = true
+	material.emission = Color(1.0, 1.0, 0.5)
+	material.emission_energy_multiplier = 4.0
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mesh_instance.material_override = material
+
+	# Add a glow light
+	var light = OmniLight3D.new()
+	light.light_color = Color(1.0, 1.0, 0.5)
+	light.light_energy = 3.0
+	light.omni_range = 10.0
+	mesh_instance.add_child(light)
+	light.global_position = origin + dir_normalized * (beam_length * 0.5)
+
+	# Add particles along the beam
+	var particles = GPUParticles3D.new()
+	mesh_instance.add_child(particles)
+	particles.emitting = true
+	particles.one_shot = true
+	particles.amount = 50
+	particles.lifetime = 0.3
+	particles.explosiveness = 1.0
+
+	var particle_mat = ParticleProcessMaterial.new()
+	particle_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	particle_mat.emission_box_extents = Vector3(beam_width, beam_length * 0.5, beam_width)
+	particle_mat.direction = Vector3(0, 0, 0)
+	particle_mat.spread = 180.0
+	particle_mat.initial_velocity_min = 2.0
+	particle_mat.initial_velocity_max = 4.0
+	particle_mat.gravity = Vector3(0, 0, 0)
+	particle_mat.color = Color(1.0, 1.0, 0.8, 1.0)
+	particle_mat.scale_min = 0.1
+	particle_mat.scale_max = 0.3
+	particles.process_material = particle_mat
+
+	var particle_mesh = QuadMesh.new()
+	particle_mesh.size = Vector2(0.2, 0.2)
+	particles.draw_pass_1 = particle_mesh
+
+	# Fade out and remove
+	var tween = create_tween()
+	tween.tween_property(material, "albedo_color:a", 0.0, 0.2)
+	await tween.finished
+	mesh_instance.queue_free()
+
+func _create_melee_cone_effect(origin: Vector3, direction: Vector3) -> void:
+	# Create a cone visualization for melee attack
+	var cone_range = 2.0   # BasicAttack range from config
+	var cone_angle = 90.0  # BasicAttack angle from config (degrees)
+
+	# Calculate cone parameters
+	var dir_normalized = direction.normalized()
+	var cone_radius = cone_range * tan(deg_to_rad(cone_angle / 2.0))
+
+	# Create a cone mesh
+	var mesh_instance = MeshInstance3D.new()
+	add_child(mesh_instance)
+
+	# Use a cylinder with one end smaller to approximate a cone
+	var cone_mesh = CylinderMesh.new()
+	cone_mesh.top_radius = 0.1
+	cone_mesh.bottom_radius = cone_radius
+	cone_mesh.height = cone_range
+	mesh_instance.mesh = cone_mesh
+
+	# Position the cone center between player and max range
+	var cone_center = origin + dir_normalized * (cone_range * 0.5)
+	cone_center.y = 0.5  # Raise slightly above ground
+	mesh_instance.global_position = cone_center
+
+	# Orient the cone: Y-axis should point along attack direction
+	# The cylinder's Y-axis is the height, we want it along the attack direction
+	# Build a transform basis with Y pointing along dir_normalized
+	var up_vector = dir_normalized  # This will be the cone's Y axis (along its height)
+	var right_vector = Vector3.UP.cross(up_vector).normalized()
+	if right_vector.length() < 0.001:  # Handle edge case when direction is straight up/down
+		right_vector = Vector3.RIGHT
+	var forward_vector = up_vector.cross(right_vector).normalized()
+
+	mesh_instance.global_transform.basis = Basis(right_vector, up_vector, forward_vector)
+
+	# Create semi-transparent red material for melee attack
+	var material = StandardMaterial3D.new()
+	material.albedo_color = Color(1.0, 0.3, 0.3, 0.4)
+	material.emission_enabled = true
+	material.emission = Color(1.0, 0.5, 0.5)
+	material.emission_energy_multiplier = 2.0
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED  # Show both sides
+	mesh_instance.material_override = material
+
+	# Add slash particles
+	var particles = GPUParticles3D.new()
+	mesh_instance.add_child(particles)
+	particles.emitting = true
+	particles.one_shot = true
+	particles.amount = 30
+	particles.lifetime = 0.2
+	particles.explosiveness = 1.0
+
+	var particle_mat = ParticleProcessMaterial.new()
+	particle_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	particle_mat.emission_box_extents = Vector3(cone_radius, 0.5, cone_range * 0.5)
+	particle_mat.direction = Vector3(0, 1, 0)
+	particle_mat.spread = 45.0
+	particle_mat.initial_velocity_min = 3.0
+	particle_mat.initial_velocity_max = 5.0
+	particle_mat.gravity = Vector3(0, -5, 0)
+	particle_mat.color = Color(1.0, 0.8, 0.8, 0.9)
+	particle_mat.scale_min = 0.15
+	particle_mat.scale_max = 0.3
+	particles.process_material = particle_mat
+
+	var particle_mesh = QuadMesh.new()
+	particle_mesh.size = Vector2(0.25, 0.25)
+	particles.draw_pass_1 = particle_mesh
+
+	# Quick fade out and remove
+	var tween = create_tween()
+	tween.tween_property(material, "albedo_color:a", 0.0, 0.15)
+	await tween.finished
+	mesh_instance.queue_free()
+
 func _handle_death_event(death_event: Dictionary) -> void:
 	var entity_id = death_event.get("entityID", "")
 	var entity_type = death_event.get("entityType", "")
@@ -349,6 +563,103 @@ func _handle_death_event(death_event: Dictionary) -> void:
 	print("[WORLD] Entity died: ", entity_id, " (", entity_type, ")")
 
 	# Death animation is handled by the entity itself via server state
+
+func _create_minion(minion_data: Dictionary) -> Node3D:
+	var minion_type = minion_data.get("type", "pet")
+	var ability_type = minion_data.get("abilityType", "fireball")
+
+	var minion = Node3D.new()
+
+	# Create visual representation based on minion type
+	if minion_type == "pet":
+		# Create a small animated pet (smaller sphere that follows the player)
+		var mesh_instance = MeshInstance3D.new()
+		var sphere = SphereMesh.new()
+		sphere.radius = 0.3
+		sphere.height = 0.6
+		mesh_instance.mesh = sphere
+
+		# Color based on ability type
+		var material = StandardMaterial3D.new()
+		match ability_type:
+			"fireball":
+				material.albedo_color = Color(1.0, 0.5, 0.2, 0.9)
+				material.emission = Color(1.0, 0.5, 0.0)
+			"frostbolt":
+				material.albedo_color = Color(0.4, 0.8, 1.0, 0.9)
+				material.emission = Color(0.5, 0.8, 1.0)
+			_:
+				material.albedo_color = Color(0.8, 0.8, 0.2, 0.9)
+				material.emission = Color(1.0, 1.0, 0.5)
+
+		material.emission_enabled = true
+		material.emission_energy_multiplier = 1.5
+		mesh_instance.material_override = material
+
+		minion.add_child(mesh_instance)
+
+		# Add a small glow
+		var light = OmniLight3D.new()
+		light.light_energy = 0.8
+		light.omni_range = 2.0
+		light.light_color = material.emission
+		minion.add_child(light)
+
+	elif minion_type == "turret":
+		# Create a stationary turret (cone/pyramid shape)
+		var mesh_instance = MeshInstance3D.new()
+		var cone = CylinderMesh.new()
+		cone.top_radius = 0.1
+		cone.bottom_radius = 0.4
+		cone.height = 0.8
+		mesh_instance.mesh = cone
+
+		# Color based on ability type
+		var material = StandardMaterial3D.new()
+		match ability_type:
+			"fireball":
+				material.albedo_color = Color(0.8, 0.3, 0.1)
+				material.emission = Color(1.0, 0.4, 0.0)
+			"frostbolt":
+				material.albedo_color = Color(0.3, 0.6, 0.9)
+				material.emission = Color(0.4, 0.7, 1.0)
+			_:
+				material.albedo_color = Color(0.7, 0.7, 0.2)
+				material.emission = Color(0.9, 0.9, 0.4)
+
+		material.emission_enabled = true
+		material.emission_energy_multiplier = 2.0
+		material.metallic = 0.6
+		mesh_instance.material_override = material
+
+		minion.add_child(mesh_instance)
+
+		# Add a glow
+		var light = OmniLight3D.new()
+		light.light_energy = 1.0
+		light.omni_range = 3.0
+		light.light_color = material.emission
+		minion.add_child(light)
+
+	return minion
+
+func _update_minion_state(minion: Node3D, state: Dictionary) -> void:
+	# Update position
+	var server_pos = state.get("position", {})
+	var target_position = Vector3(
+		server_pos.get("x", 0.0),
+		server_pos.get("y", 0.5),  # Raise minions slightly above ground
+		server_pos.get("z", 0.0)
+	)
+
+	# Smooth interpolation for minion position
+	minion.global_position = minion.global_position.lerp(target_position, 0.3)
+
+	# For pets, add a bobbing animation
+	var minion_type = state.get("type", "pet")
+	if minion_type == "pet":
+		var time = Time.get_ticks_msec() / 1000.0
+		minion.position.y = target_position.y + sin(time * 3.0) * 0.1  # Bob up and down
 
 func _on_disconnected() -> void:
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
