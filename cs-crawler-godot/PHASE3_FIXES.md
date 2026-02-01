@@ -111,8 +111,26 @@ If cooldown is still wrong after checking console output:
 3. Pet/Turret modifiers create minions that cast the same ability used
 4. Homing/Piercing modifiers enhance projectile abilities (Fireball, Frostbolt)
 
+## 5. ✅ Local Network Multiplayer Support
+**Feature**: Connect multiple computers to the same game server
+
+**Implementation**:
+- Server binds to all network interfaces (0.0.0.0:7000) by default
+- Added server IP input field in main menu ([main_menu.gd](client/scripts/ui/main_menu.gd))
+- Server IP saved to `user://server_settings.cfg` for persistence
+- Supports both localhost and LAN connections (e.g., `192.168.1.100:7000`)
+
+**How to Use**:
+1. Start the server on one computer: `./gameserver.exe`
+2. Find the server's local IP address (`ipconfig` on Windows, `ifconfig` on Linux/Mac)
+3. On client computers, enter the server IP in the main menu (e.g., `192.168.1.100:7000`)
+4. Click Connect and play together!
+
+**See [MULTIPLAYER_SETUP.md](MULTIPLAYER_SETUP.md) for detailed setup instructions and troubleshooting.**
+
 ## Server Status
 
 ✅ Server compiles successfully with no errors
 ✅ All backend functionality for Phase 3 is complete and working
 ✅ Modifier system fully integrated and functional
+✅ Local network multiplayer ready for testing
