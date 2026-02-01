@@ -2,6 +2,7 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -117,8 +118,21 @@ func (c *Client) handleMessage(data []byte) {
 
 // handleJoin processes a player join request
 func (c *Client) handleJoin(msg map[string]interface{}) {
+	log.Printf("[JOIN] Received join request")
 	username, _ := msg["username"].(string)
 	worldID, _ := msg["worldID"].(string)
+
+	log.Printf("[JOIN] Username: %s, WorldID: %s", username, worldID)
+
+	if username == "" {
+		log.Printf("[JOIN] ERROR: Empty username")
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "INVALID_USERNAME",
+			"message": "Username is required",
+		})
+		return
+	}
 
 	if worldID == "" {
 		worldID = "default"
@@ -127,29 +141,79 @@ func (c *Client) handleJoin(msg map[string]interface{}) {
 	// Get or create world
 	world, ok := c.server.gameServer.GetWorld(worldID)
 	if !ok {
+		log.Printf("[JOIN] Creating new world: %s", worldID)
 		world = c.server.gameServer.CreateWorld(worldID)
 	}
+
+	// Generate unique player ID
+	c.playerID = generatePlayerID()
+	log.Printf("[JOIN] Generated player ID: %s", c.playerID)
 
 	// Create player
 	player := game.NewPlayer(c.playerID, username)
 	world.AddPlayer(player)
 
-	c.playerID = player.ID
 	c.worldID = worldID
 
-	// Send join confirmation
-	c.Send(map[string]interface{}{
+	// Send join confirmation with initial state
+	joinResponse := map[string]interface{}{
 		"type":     "joined",
 		"playerID": player.ID,
 		"worldID":  worldID,
-	})
+		"position": player.Position,
+		"stats": map[string]interface{}{
+			"health":    player.Health,
+			"maxHealth": player.MaxHealth,
+			"moveSpeed": player.MoveSpeed,
+		},
+	}
 
-	log.Printf("Player %s joined world %s", username, worldID)
+	log.Printf("[JOIN] Sending join confirmation: %+v", joinResponse)
+	c.Send(joinResponse)
+	log.Printf("[JOIN] Join confirmation sent")
+
+	log.Printf("Player %s (%s) joined world %s", username, c.playerID, worldID)
 }
 
 // handleMove processes player movement input
 func (c *Client) handleMove(msg map[string]interface{}) {
-	// TODO: Implement movement handling
+	if c.playerID == "" || c.worldID == "" {
+		log.Printf("[MOVE] Player not joined yet, ignoring move message")
+		return // Not joined yet
+	}
+
+	// Parse velocity
+	velocityMap, ok := msg["velocity"].(map[string]interface{})
+	if !ok {
+		log.Printf("[MOVE] Invalid velocity format in move message")
+		return
+	}
+
+	velocity := game.Vector3{
+		X: getFloat64(velocityMap, "x"),
+		Y: getFloat64(velocityMap, "y"),
+		Z: getFloat64(velocityMap, "z"),
+	}
+
+	log.Printf("[MOVE] Player %s velocity: (%.2f, %.2f, %.2f)", c.playerID, velocity.X, velocity.Y, velocity.Z)
+
+	// Get world and player
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		log.Printf("[MOVE] World %s not found", c.worldID)
+		return
+	}
+
+	players := world.GetPlayers()
+	player, ok := players[c.playerID]
+	if !ok {
+		log.Printf("[MOVE] Player %s not found in world", c.playerID)
+		return
+	}
+
+	// Update player velocity (server will update position in game loop)
+	player.SetVelocity(velocity)
+	log.Printf("[MOVE] Player %s position: (%.2f, %.2f, %.2f)", c.playerID, player.Position.X, player.Position.Y, player.Position.Z)
 }
 
 // handleUseAbility processes ability usage
@@ -175,4 +239,24 @@ func (c *Client) Send(message map[string]interface{}) {
 // Close gracefully closes the client connection
 func (c *Client) Close() {
 	close(c.send)
+
+	// Remove player from world
+	if c.worldID != "" && c.playerID != "" {
+		if world, ok := c.server.gameServer.GetWorld(c.worldID); ok {
+			world.RemovePlayer(c.playerID)
+			log.Printf("Player %s removed from world %s", c.playerID, c.worldID)
+		}
+	}
+}
+
+// Helper functions
+func generatePlayerID() string {
+	return fmt.Sprintf("p-%d", time.Now().UnixNano())
+}
+
+func getFloat64(m map[string]interface{}, key string) float64 {
+	if val, ok := m[key].(float64); ok {
+		return val
+	}
+	return 0.0
 }

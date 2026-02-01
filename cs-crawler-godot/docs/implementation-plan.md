@@ -47,13 +47,18 @@ This document outlines the complete implementation plan for rebuilding CS Crawle
      - Unit test: GameManager state transitions
      - Unit test: NetworkManager connection logic
 
-2. **Player Movement**
+2. **Player Movement** *(UPDATED - Point-and-Click)*
    - Create player scene with low-poly capsule model
-   - Implement WASD movement with client prediction
+   - Implement point-and-click movement with pathfinding
+   - Integrate Godot NavigationAgent3D for path calculation
+   - Support WASD as override (cancels pathfinding on key press)
    - Add basic animation state machine (idle, walk, run)
    - **Tests**:
-     - Unit test: Input handling
+     - Unit test: NavigationAgent setup and configuration
+     - Unit test: Click detection via raycast
+     - Unit test: WASD override cancels pathfinding
      - Integration test: Movement synchronization with server
+     - Manual test: Visual smoothness and responsiveness
 
 3. **Camera System**
    - Fixed top-down camera with angle (60-70° from vertical)
@@ -63,7 +68,18 @@ This document outlines the complete implementation plan for rebuilding CS Crawle
      - Unit test: Camera follow logic
      - Manual test: Visual validation of camera behavior
 
-4. **Server Synchronization**
+4. **Ground Plane & Navigation** *(NEW)*
+   - Fix invisible ground mesh (add PlaneMesh + material)
+   - Add StaticBody3D collision for mouse picking/raycasting
+   - Setup NavigationRegion3D with simple NavMesh (100x100)
+   - Configure for raycasting (Layer 4: Environment)
+   - Click indicator visual feedback (green ring, fades out)
+   - **Tests**:
+     - Manual test: Ground visibility and appearance
+     - Manual test: Click detection accuracy
+     - Manual test: NavMesh coverage
+
+5. **Server Synchronization**
    - Implement client prediction for movement
    - Server reconciliation (apply corrections smoothly)
    - Interpolation for other players
@@ -73,7 +89,9 @@ This document outlines the complete implementation plan for rebuilding CS Crawle
 
 ### Deliverables
 - ✅ Players can connect to server
-- ✅ Players can move with WASD
+- ✅ Players can move with point-and-click OR WASD
+- ✅ Pathfinding navigates to clicked location
+- ✅ Visual feedback for clicks (indicator)
 - ✅ Camera follows player
 - ✅ Multiple players visible in same world
 - ✅ Movement feels responsive (client prediction working)

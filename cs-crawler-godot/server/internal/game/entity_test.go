@@ -26,9 +26,10 @@ func TestPlayerUpdate(t *testing.T) {
 
 	player.Update(1.0) // 1 second delta
 
-	assert.Equal(t, 10.0, player.Position.X)
+	// Position = velocity * moveSpeed * delta = 10 * 5.0 * 1.0 = 50
+	assert.Equal(t, 50.0, player.Position.X)
 	assert.Equal(t, 0.0, player.Position.Y)
-	assert.Equal(t, 5.0, player.Position.Z)
+	assert.Equal(t, 25.0, player.Position.Z)
 }
 
 func TestPlayerSerialize(t *testing.T) {

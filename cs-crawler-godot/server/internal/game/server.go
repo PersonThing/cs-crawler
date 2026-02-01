@@ -72,6 +72,18 @@ func (s *Server) tick() {
 	}
 }
 
+// GetWorlds returns all active worlds (thread-safe copy)
+func (s *Server) GetWorlds() map[string]*World {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	worlds := make(map[string]*World, len(s.worlds))
+	for k, v := range s.worlds {
+		worlds[k] = v
+	}
+	return worlds
+}
+
 // CreateWorld creates a new game world
 func (s *Server) CreateWorld(worldID string) *World {
 	s.mu.Lock()

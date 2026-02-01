@@ -17,7 +17,7 @@ var (
 	dbPort     = flag.String("db-port", "7001", "Database port")
 	dbUser     = flag.String("db-user", "crawler", "Database user")
 	dbPassword = flag.String("db-password", "crawler", "Database password")
-	dbName     = flag.String("db-name", "cs_crawler", "Database name")
+	dbName     = flag.String("db-name", "crawler", "Database name")
 	tickRate   = flag.Int("tick-rate", 60, "Game loop ticks per second")
 )
 

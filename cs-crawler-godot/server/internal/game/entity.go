@@ -41,12 +41,17 @@ func NewPlayer(id, username string) *Player {
 
 // Update processes player logic
 func (p *Player) Update(delta float64) {
-	// Update position based on velocity
-	p.Position.X += p.Velocity.X * delta
-	p.Position.Y += p.Velocity.Y * delta
-	p.Position.Z += p.Velocity.Z * delta
+	// Update position based on velocity and move speed
+	p.Position.X += p.Velocity.X * p.MoveSpeed * delta
+	p.Position.Y += p.Velocity.Y * p.MoveSpeed * delta
+	p.Position.Z += p.Velocity.Z * p.MoveSpeed * delta
 
 	p.LastUpdate = time.Now()
+}
+
+// SetVelocity updates player velocity (normalized by client)
+func (p *Player) SetVelocity(v Vector3) {
+	p.Velocity = v
 }
 
 // Serialize converts player to JSON-friendly format

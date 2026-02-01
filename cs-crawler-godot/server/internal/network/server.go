@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/yourusername/cs-crawler-godot/server/internal/game"
@@ -27,11 +28,16 @@ type Server struct {
 
 // NewServer creates a new network server
 func NewServer(addr string, gameServer *game.Server) *Server {
-	return &Server{
+	s := &Server{
 		addr:       addr,
 		gameServer: gameServer,
 		clients:    make(map[*Client]bool),
 	}
+
+	// Start broadcast loop
+	go s.broadcastLoop()
+
+	return s
 }
 
 // Start begins listening for connections
@@ -119,5 +125,28 @@ func (s *Server) BroadcastToWorld(worldID string, message map[string]interface{}
 		if client.worldID == worldID {
 			client.Send(message)
 		}
+	}
+}
+
+// broadcastLoop continuously broadcasts world state to all clients
+func (s *Server) broadcastLoop() {
+	ticker := time.NewTicker(time.Second / 60) // 60 broadcasts per second
+	defer ticker.Stop()
+
+	for range ticker.C {
+		s.broadcastWorldStates()
+	}
+}
+
+// broadcastWorldStates sends current state to all connected clients
+func (s *Server) broadcastWorldStates() {
+	worlds := s.gameServer.GetWorlds()
+
+	for worldID, world := range worlds {
+		state := world.GetWorldState()
+		state["type"] = "world_state"
+		state["timestamp"] = time.Now().UnixMilli()
+
+		s.BroadcastToWorld(worldID, state)
 	}
 }

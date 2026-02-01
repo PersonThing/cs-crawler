@@ -48,6 +48,7 @@ func send_message(message: Dictionary) -> void:
 		return
 
 	var json_string = JSON.stringify(message)
+	print("[NET] Sending: ", message.get("type", "unknown"), " | ", json_string)
 	var err = _client.send_text(json_string)
 
 	if err != OK:
@@ -72,11 +73,13 @@ func _process(_delta: float) -> void:
 			while _client.get_available_packet_count() > 0:
 				var packet = _client.get_packet()
 				var json_string = packet.get_string_from_utf8()
+				#print("[NET] Received raw: ", json_string)
 				var json = JSON.new()
 				var parse_result = json.parse(json_string)
 
 				if parse_result == OK:
 					var message = json.data
+					#print("[NET] Parsed message type: ", message.get("type", "UNKNOWN"))
 					message_received.emit(message)
 				else:
 					push_error("Failed to parse JSON: " + json_string)
