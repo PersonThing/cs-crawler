@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/yourusername/cs-crawler-godot/server/internal/config"
 	"github.com/yourusername/cs-crawler-godot/server/internal/game"
 )
 
@@ -19,19 +20,22 @@ var upgrader = websocket.Upgrader{
 
 // Server handles WebSocket connections
 type Server struct {
-	addr       string
-	gameServer *game.Server
-	clients    map[*Client]bool
-	mu         sync.RWMutex
-	httpServer *http.Server
+	addr              string
+	gameServer        *game.Server
+	clients           map[*Client]bool
+	mu                sync.RWMutex
+	httpServer        *http.Server
+	worldShutdownTimers map[string]*time.Timer
+	shutdownMu        sync.Mutex
 }
 
 // NewServer creates a new network server
 func NewServer(addr string, gameServer *game.Server) *Server {
 	s := &Server{
-		addr:       addr,
-		gameServer: gameServer,
-		clients:    make(map[*Client]bool),
+		addr:                addr,
+		gameServer:          gameServer,
+		clients:             make(map[*Client]bool),
+		worldShutdownTimers: make(map[string]*time.Timer),
 	}
 
 	// Start broadcast loop
@@ -107,12 +111,20 @@ func (s *Server) registerClient(client *Client) {
 // unregisterClient removes a client from the server
 func (s *Server) unregisterClient(client *Client) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	worldID := client.worldID
+	s.mu.Unlock()
 
+	s.mu.Lock()
 	if _, ok := s.clients[client]; ok {
 		delete(s.clients, client)
 		client.Close()
 		log.Printf("Client disconnected: %s", client.playerID)
+	}
+	s.mu.Unlock()
+
+	// Check if world is now empty and schedule shutdown
+	if worldID != "" {
+		s.checkWorldEmpty(worldID)
 	}
 }
 
@@ -149,4 +161,68 @@ func (s *Server) broadcastWorldStates() {
 
 		s.BroadcastToWorld(worldID, state)
 	}
+}
+
+// checkWorldEmpty checks if a world has no players and schedules shutdown
+func (s *Server) checkWorldEmpty(worldID string) {
+	s.mu.RLock()
+	hasPlayers := false
+	for client := range s.clients {
+		if client.worldID == worldID {
+			hasPlayers = true
+			break
+		}
+	}
+	s.mu.RUnlock()
+
+	if !hasPlayers {
+		s.scheduleWorldShutdown(worldID)
+	} else {
+		s.cancelWorldShutdown(worldID)
+	}
+}
+
+// scheduleWorldShutdown schedules a world to be destroyed after delay
+func (s *Server) scheduleWorldShutdown(worldID string) {
+	s.shutdownMu.Lock()
+	defer s.shutdownMu.Unlock()
+
+	// Cancel existing timer if any
+	if timer, exists := s.worldShutdownTimers[worldID]; exists {
+		timer.Stop()
+	}
+
+	// Get shutdown delay from config
+	delay := time.Duration(config.Server.ShutdownDelaySeconds) * time.Second
+
+	log.Printf("[WORLD] Scheduling shutdown for world %s in %v", worldID, delay)
+
+	// Schedule new timer
+	timer := time.AfterFunc(delay, func() {
+		s.shutdownWorld(worldID)
+	})
+
+	s.worldShutdownTimers[worldID] = timer
+}
+
+// cancelWorldShutdown cancels a scheduled world shutdown
+func (s *Server) cancelWorldShutdown(worldID string) {
+	s.shutdownMu.Lock()
+	defer s.shutdownMu.Unlock()
+
+	if timer, exists := s.worldShutdownTimers[worldID]; exists {
+		timer.Stop()
+		delete(s.worldShutdownTimers, worldID)
+		log.Printf("[WORLD] Cancelled shutdown for world %s (players rejoined)", worldID)
+	}
+}
+
+// shutdownWorld destroys a world and cleans up resources
+func (s *Server) shutdownWorld(worldID string) {
+	s.shutdownMu.Lock()
+	delete(s.worldShutdownTimers, worldID)
+	s.shutdownMu.Unlock()
+
+	s.gameServer.DestroyWorld(worldID)
+	log.Printf("[WORLD] World %s shut down due to no players", worldID)
 }

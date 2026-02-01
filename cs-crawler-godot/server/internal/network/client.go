@@ -143,6 +143,9 @@ func (c *Client) handleJoin(msg map[string]interface{}) {
 	if !ok {
 		log.Printf("[JOIN] Creating new world: %s", worldID)
 		world = c.server.gameServer.CreateWorld(worldID)
+	} else {
+		// Cancel shutdown timer if world was scheduled for shutdown
+		c.server.cancelWorldShutdown(worldID)
 	}
 
 	// Generate unique player ID

@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "shutdownDelaySeconds": 3,
+  "tickRate": 60,
+  "broadcastRate": 60,
+  "maxPlayers": 100,
+  "debug": {
+    "logPlayerMovement": false,
+    "logAbilityCasts": true,
+    "logWorldState": false
+  }
+}

@@ -15,6 +15,7 @@ var (
 	Player    PlayerData
 	Combat    CombatData
 	Spawning  SpawningData
+	Server    ServerData
 )
 
 // AbilityConfig represents a single ability's configuration
@@ -127,6 +128,23 @@ type SpawningData struct {
 	SpawnPatterns map[string]SpawnPattern `json:"spawnPatterns"`
 }
 
+// DebugConfig represents debug settings
+type DebugConfig struct {
+	LogPlayerMovement bool `json:"logPlayerMovement"`
+	LogAbilityCasts   bool `json:"logAbilityCasts"`
+	LogWorldState     bool `json:"logWorldState"`
+}
+
+// ServerData represents the server.json structure
+type ServerData struct {
+	Version               string      `json:"version"`
+	ShutdownDelaySeconds  int         `json:"shutdownDelaySeconds"`
+	TickRate              int         `json:"tickRate"`
+	BroadcastRate         int         `json:"broadcastRate"`
+	MaxPlayers            int         `json:"maxPlayers"`
+	Debug                 DebugConfig `json:"debug"`
+}
+
 // LoadAll loads all configuration files from the config directory
 func LoadAll(configDir string) error {
 	log.Println("[CONFIG] Loading configuration files...")
@@ -157,6 +175,11 @@ func LoadAll(configDir string) error {
 		return fmt.Errorf("failed to load spawning: %w", err)
 	}
 	log.Printf("[CONFIG] Loaded %d spawn patterns (version %s)", len(Spawning.SpawnPatterns), Spawning.Version)
+
+	if err := loadJSON(filepath.Join(configDir, "server", "server.json"), &Server); err != nil {
+		return fmt.Errorf("failed to load server: %w", err)
+	}
+	log.Printf("[CONFIG] Loaded server config (version %s, shutdown delay: %ds)", Server.Version, Server.ShutdownDelaySeconds)
 
 	log.Println("[CONFIG] All configuration files loaded successfully")
 	return nil
