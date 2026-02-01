@@ -1,0 +1,63 @@
+{
+  "version": "1.0",
+  "enemyTypes": {
+    "basic": {
+      "name": "Basic Enemy",
+      "health": 100,
+      "maxHealth": 100,
+      "moveSpeed": 0,
+      "damage": 10,
+      "xpReward": 5,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.8, 0.2, 0.2],
+        "scale": [1.0, 1.0, 1.0],
+        "height": 1.8,
+        "radius": 0.4
+      },
+      "ai": {
+        "type": "idle",
+        "aggroRange": 0
+      }
+    },
+    "fast": {
+      "name": "Fast Enemy",
+      "health": 50,
+      "maxHealth": 50,
+      "moveSpeed": 8.0,
+      "damage": 5,
+      "xpReward": 8,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.2, 0.8, 0.2],
+        "scale": [0.7, 1.0, 0.7],
+        "height": 1.5,
+        "radius": 0.3
+      },
+      "ai": {
+        "type": "chase",
+        "aggroRange": 15.0,
+        "chaseSpeed": 8.0
+      }
+    },
+    "tank": {
+      "name": "Tank Enemy",
+      "health": 300,
+      "maxHealth": 300,
+      "moveSpeed": 2.0,
+      "damage": 20,
+      "xpReward": 15,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.5, 0.5, 0.5],
+        "scale": [1.5, 1.2, 1.5],
+        "height": 2.0,
+        "radius": 0.6
+      },
+      "ai": {
+        "type": "idle",
+        "aggroRange": 0
+      }
+    }
+  }
+}

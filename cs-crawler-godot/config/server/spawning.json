@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "spawnPatterns": {
+    "default": {
+      "pattern": "circle",
+      "enemyType": "basic",
+      "count": 5,
+      "radius": 10.0,
+      "centerPosition": [0, 0, 0]
+    },
+    "arena": {
+      "pattern": "grid",
+      "enemyTypes": ["basic", "fast", "tank"],
+      "spacing": 5.0,
+      "rows": 3,
+      "columns": 3
+    }
+  }
+}

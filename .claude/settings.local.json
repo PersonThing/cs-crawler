@@ -1,5 +1,11 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(python:*)",
+      "Bash(./validate_configs.exe:*)",
+      "Bash(git checkout:*)"
+    ],
     "additionalDirectories": [
       "c:\\dev\\cs-crawler\\cs-crawler-godot\\server\\{cmd",
       "c:\\dev\\cs-crawler\\cs-crawler-godot\\server\\internal",

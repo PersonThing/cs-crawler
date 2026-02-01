@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "camera": {
+    "baseOffset": [0, 20, 7.3],
+    "deadzone": 3.0,
+    "followSpeed": 4.0,
+    "angle": 70,
+    "fov": 70
+  },
+  "screenShake": {
+    "amount": 0.1,
+    "decay": 5.0
+  }
+}

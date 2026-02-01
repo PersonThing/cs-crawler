@@ -41,6 +41,7 @@ services:
         condition: service_healthy
     volumes:
       - ./server:/app
+      - ./config:/app/config
     networks:
       - crawler_network
     restart: unless-stopped

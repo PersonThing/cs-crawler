@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "collisionRadii": {
+    "projectile": 0.5,
+    "melee": 1.5,
+    "aoe": 5.0
+  },
+  "damageMultipliers": {
+    "fire": {
+      "vs_cold": 1.5,
+      "vs_fire": 0.5,
+      "vs_lightning": 1.0,
+      "vs_physical": 1.0
+    },
+    "cold": {
+      "vs_fire": 0.5,
+      "vs_cold": 0.5,
+      "vs_lightning": 1.0,
+      "vs_physical": 1.0
+    },
+    "lightning": {
+      "vs_fire": 1.0,
+      "vs_cold": 1.0,
+      "vs_lightning": 0.5,
+      "vs_physical": 1.0
+    },
+    "physical": {
+      "vs_fire": 1.0,
+      "vs_cold": 1.0,
+      "vs_lightning": 1.0,
+      "vs_physical": 1.0
+    }
+  },
+  "statusEffects": {
+    "slow": {
+      "maxStacks": 1,
+      "defaultDuration": 2.0,
+      "defaultMagnitude": 0.5
+    },
+    "stun": {
+      "maxStacks": 1,
+      "defaultDuration": 1.0
+    },
+    "burn": {
+      "maxStacks": 3,
+      "defaultDuration": 3.0,
+      "damagePerSecond": 5.0
+    }
+  }
+}

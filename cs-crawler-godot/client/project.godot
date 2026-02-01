@@ -18,10 +18,10 @@ config/name="CS Crawler Godot"
 config/description="Multiplayer top-down action RPG with procedural skills and items"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
 
 [autoload]
 
+ConfigLoader="*res://scripts/config/config_loader.gd"
 GameManager="*res://scripts/autoload/game_manager.gd"
 NetworkManager="*res://scripts/autoload/network_manager.gd"
 

@@ -16,14 +16,66 @@ var navigation_agent: NavigationAgent3D = null
 var move_target: Vector3 = Vector3.ZERO
 var is_following_path: bool = false
 
+# Ability cooldowns (client-side tracking for hold-to-cast)
+var ability_cooldowns: Dictionary = {
+	"fireball": 0.0
+}
+var ability_cooldown_times: Dictionary = {}  # Loaded from config
+
 func _ready() -> void:
 	print("[PLAYER] _ready called - is_local: ", is_local, " player_id: ", player_id)
 	if is_local:
 		name_label.text = "You"
 		_setup_navigation()
+		_load_ability_configs()
 		print("[PLAYER] Navigation setup complete for local player")
+
+		# Connect to network messages for ability feedback
+		NetworkManager.message_received.connect(_on_message_received)
 	else:
 		name_label.text = "Player"
+
+func _load_ability_configs() -> void:
+	var config_loader = get_node_or_null("/root/ConfigLoader")
+	if not config_loader:
+		push_warning("[PLAYER] ConfigLoader not found, using defaults")
+		ability_cooldown_times["fireball"] = 0.5
+		return
+
+	# Load cooldowns from config
+	var fireball_config = config_loader.get_ability("fireball")
+	if fireball_config.has("cooldown"):
+		ability_cooldown_times["fireball"] = fireball_config["cooldown"]
+		print("[PLAYER] Loaded fireball cooldown: ", fireball_config["cooldown"])
+
+func _on_message_received(message: Dictionary) -> void:
+	if not is_local:
+		return
+
+	var msg_type = message.get("type", "")
+
+	match msg_type:
+		"ability_cast":
+			_on_ability_cast_confirmed(message)
+		"ability_failed":
+			_on_ability_failed(message)
+
+func _on_ability_cast_confirmed(message: Dictionary) -> void:
+	var player_id_msg = message.get("playerID", "")
+	if player_id_msg != player_id:
+		return  # Not our ability
+
+	var ability_type = message.get("abilityType", "")
+
+	# Reset cooldown to full (server confirmed the cast)
+	if ability_cooldowns.has(ability_type):
+		ability_cooldowns[ability_type] = ability_cooldown_times.get(ability_type, 1.0)
+
+func _on_ability_failed(message: Dictionary) -> void:
+	# Server rejected the ability cast, reset cooldown to allow retry
+	var ability_type = message.get("ability", "")
+	if ability_cooldowns.has(ability_type):
+		ability_cooldowns[ability_type] = 0.0
 
 func _setup_navigation() -> void:
 	navigation_agent = NavigationAgent3D.new()
@@ -64,6 +116,7 @@ func _physics_process(delta: float) -> void:
 
 	if is_local:
 		_handle_local_movement(delta)
+		_handle_abilities(delta)
 	else:
 		_handle_remote_movement(delta)
 
@@ -92,10 +145,11 @@ func _handle_local_movement(delta: float) -> void:
 		_follow_navigation_path(delta)
 
 	else:
-		# Decelerate to stop
-		velocity.x = move_toward(velocity.x, 0, move_speed * delta * 5)
-		velocity.z = move_toward(velocity.z, 0, move_speed * delta * 5)
+		# Stop movement completely
+		velocity.x = 0
+		velocity.z = 0
 		move_and_slide()
+		_send_move_input(Vector3.ZERO)
 
 func _follow_navigation_path(_delta: float) -> void:
 	if navigation_agent.is_navigation_finished():
@@ -149,6 +203,67 @@ func _handle_remote_movement(_delta: float) -> void:
 	# Remote players are interpolated based on server state
 	# Position is set in apply_server_state()
 	pass
+
+func _handle_abilities(delta: float) -> void:
+	# Update cooldowns
+	for ability_type in ability_cooldowns.keys():
+		if ability_cooldowns[ability_type] > 0:
+			ability_cooldowns[ability_type] -= delta
+
+	# Cast Fireball with "1" key (hold to continuously cast)
+	if Input.is_action_pressed("ability_1"):
+		_try_cast_ability("fireball")
+
+func _try_cast_ability(ability_type: String) -> void:
+	# Check client-side cooldown
+	if ability_cooldowns.get(ability_type, 0.0) > 0:
+		return  # Still on cooldown
+
+	# Cast the ability
+	_cast_ability(ability_type)
+
+	# Start cooldown timer
+	ability_cooldowns[ability_type] = ability_cooldown_times.get(ability_type, 1.0)
+
+func _cast_ability(ability_type: String) -> void:
+	# Calculate direction from mouse position (raycast to ground)
+	var mouse_pos = get_viewport().get_mouse_position()
+	var camera = get_viewport().get_camera_3d()
+
+	if not camera:
+		return
+
+	var from = camera.project_ray_origin(mouse_pos)
+	var to = from + camera.project_ray_normal(mouse_pos) * 1000.0
+
+	var space_state = get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 1 << 3  # Layer 4: Environment
+
+	var result = space_state.intersect_ray(query)
+	var direction: Vector3
+
+	if result:
+		# Aim towards mouse position on ground
+		direction = (result.position - global_position).normalized()
+	else:
+		# Default to forward direction
+		direction = -transform.basis.z
+
+	# Send ability use message to server
+	var msg = {
+		"type": "use_ability",
+		"abilityType": ability_type,
+		"direction": {
+			"x": direction.x,
+			"y": direction.y,
+			"z": direction.z
+		},
+		"timestamp": Time.get_ticks_msec()
+	}
+
+	NetworkManager.send_message(msg)
+	print("[PLAYER] Cast ability: ", ability_type, " in direction: ", direction)
 
 func apply_server_state(state: Dictionary) -> void:
 	var server_pos = state.get("position", {})

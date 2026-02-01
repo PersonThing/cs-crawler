@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "baseStats": {
+    "health": 100,
+    "maxHealth": 100,
+    "moveSpeed": 5.0,
+    "mana": 100,
+    "maxMana": 100,
+    "manaRegen": 5.0
+  },
+  "visual": {
+    "meshType": "capsule",
+    "color": [0.3, 0.3, 0.8],
+    "height": 1.8,
+    "radius": 0.4
+  },
+  "startingAbilities": [
+    "fireball"
+  ]
+}
