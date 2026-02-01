@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "c:\\dev\\cs-crawler\\cs-crawler-godot\\server\\{cmd",
+      "c:\\dev\\cs-crawler\\cs-crawler-godot\\server\\internal",
+      "c:\\dev\\cs-crawler\\cs-crawler-godot\\server\\pkg"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: cs-crawler-db
+    ports:
+      - "7001:5432"
+    environment:
+      POSTGRES_USER: crawler
+      POSTGRES_PASSWORD: crawler
+      POSTGRES_DB: cs_crawler
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crawler"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - crawler_network
+
+  # Game server
+  gameserver:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: cs-crawler-server
+    ports:
+      - "7000:7000"
+    environment:
+      - SERVER_ADDR=:7000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=crawler
+      - DB_PASSWORD=crawler
+      - DB_NAME=cs_crawler
+      - TICK_RATE=60
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+    networks:
+      - crawler_network
+    restart: unless-stopped
+
+  # Optional: Redis for session caching (future use)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: cs-crawler-redis
+  #   ports:
+  #     - "7002:6379"
+  #   networks:
+  #     - crawler_network
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  crawler_network:
+    driver: bridge
