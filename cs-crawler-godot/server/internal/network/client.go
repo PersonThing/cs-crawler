@@ -218,7 +218,101 @@ func (c *Client) handleMove(msg map[string]interface{}) {
 
 // handleUseAbility processes ability usage
 func (c *Client) handleUseAbility(msg map[string]interface{}) {
-	// TODO: Implement ability handling
+	if c.playerID == "" || c.worldID == "" {
+		log.Printf("[ABILITY] Player not joined yet, ignoring ability message")
+		return
+	}
+
+	// Parse ability type
+	abilityTypeStr, ok := msg["abilityType"].(string)
+	if !ok {
+		log.Printf("[ABILITY] Invalid ability type in message")
+		return
+	}
+	abilityType := game.AbilityType(abilityTypeStr)
+
+	// Parse target direction
+	directionMap, ok := msg["direction"].(map[string]interface{})
+	if !ok {
+		log.Printf("[ABILITY] Invalid direction in message")
+		return
+	}
+
+	direction := game.Vector3{
+		X: getFloat64(directionMap, "x"),
+		Y: getFloat64(directionMap, "y"),
+		Z: getFloat64(directionMap, "z"),
+	}
+
+	log.Printf("[ABILITY] Player %s using ability %s in direction (%.2f, %.2f, %.2f)",
+		c.playerID, abilityType, direction.X, direction.Y, direction.Z)
+
+	// Get world and player
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		log.Printf("[ABILITY] World %s not found", c.worldID)
+		return
+	}
+
+	players := world.GetPlayers()
+	player, ok := players[c.playerID]
+	if !ok {
+		log.Printf("[ABILITY] Player %s not found in world", c.playerID)
+		return
+	}
+
+	// Try to use ability
+	ability, err := player.Abilities.UseAbility(abilityType)
+	if err != nil {
+		log.Printf("[ABILITY] Cannot use ability: %v", err)
+		c.Send(map[string]interface{}{
+			"type":    "ability_failed",
+			"reason":  err.Error(),
+			"ability": string(abilityType),
+		})
+		return
+	}
+
+	log.Printf("[ABILITY] Ability %s used successfully", abilityType)
+
+	// Create projectile based on ability
+	// Spawn projectile at player height (0.9 units above ground, which is half player height of 1.8)
+	projectileID := generateProjectileID()
+	spawnPosition := player.Position
+	spawnPosition.Y = 0.9 // Half of player height (1.8 / 2)
+
+	projectile := game.NewProjectile(
+		projectileID,
+		player.ID,
+		spawnPosition,
+		game.Vector3{
+			X: direction.X * ability.Speed,
+			Y: direction.Y * ability.Speed,
+			Z: direction.Z * ability.Speed,
+		},
+		ability.Damage,
+		ability.DamageType,
+		string(abilityType),
+	)
+
+	world.AddProjectile(projectile)
+
+	// Broadcast ability cast to all clients in world
+	c.server.BroadcastToWorld(c.worldID, map[string]interface{}{
+		"type":        "ability_cast",
+		"playerID":    player.ID,
+		"abilityType": string(abilityType),
+		"position":    player.Position,
+		"direction":   direction,
+		"projectileID": projectileID,
+	})
+
+	log.Printf("[ABILITY] Projectile %s created for player %s", projectileID, c.playerID)
+}
+
+// generateProjectileID creates a unique projectile ID
+func generateProjectileID() string {
+	return fmt.Sprintf("proj-%d", time.Now().UnixNano())
 }
 
 // Send queues a message to be sent to the client

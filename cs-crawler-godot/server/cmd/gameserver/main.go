@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/yourusername/cs-crawler-godot/server/internal/config"
 	"github.com/yourusername/cs-crawler-godot/server/internal/game"
 	"github.com/yourusername/cs-crawler-godot/server/internal/network"
 )
@@ -27,6 +28,12 @@ func main() {
 	log.Printf("CS Crawler Game Server starting...")
 	log.Printf("Server address: %s", *addr)
 	log.Printf("Tick rate: %d TPS", *tickRate)
+
+	// Load configuration files
+	configDir := "./config"
+	if err := config.LoadAll(configDir); err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
 
 	// Initialize game server
 	gameServer := game.NewServer(*tickRate)
