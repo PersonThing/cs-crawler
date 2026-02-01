@@ -170,8 +170,8 @@ func _apply_movement(direction: Vector3, delta: float) -> void:
 		velocity.x = direction.x * move_speed
 		velocity.z = direction.z * move_speed
 
-		# Rotate player to face movement direction
-		var target_rotation = atan2(direction.x, direction.z)
+		# Rotate player to face movement direction (add PI/2 to correct model orientation)
+		var target_rotation = atan2(direction.x, direction.z) + PI / 2.0
 		rotation.y = lerp_angle(rotation.y, target_rotation, delta * 10.0)
 	else:
 		velocity.x = 0
