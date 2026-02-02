@@ -37,6 +37,7 @@ var minions: Dictionary = {}
 var ground_items: Dictionary = {}
 var enemy_ui_manager: Control = null
 var inventory_panel: Control = null
+var cursor_indicator: MeshInstance3D = null
 
 # Pending pickup target (ground item ID to pick up when in range)
 var pending_pickup_target: String = ""
@@ -54,6 +55,7 @@ func _ready() -> void:
 	_setup_minions_container()
 	_setup_ground_items_container()
 	_setup_inventory_panel()
+	_setup_cursor_indicator()
 
 	# Check if we're already joined (main menu handled the join)
 	if GameManager.local_player_id != "":
@@ -893,12 +895,57 @@ func _handle_ground_click(screen_pos: Vector2) -> void:
 		local_player.set_move_target(result.position)
 		_show_click_indicator(result.position)
 
+func _setup_cursor_indicator() -> void:
+	cursor_indicator = MeshInstance3D.new()
+	var sphere = SphereMesh.new()
+	sphere.radius = 0.15
+	sphere.height = 0.3
+	cursor_indicator.mesh = sphere
+
+	var material = StandardMaterial3D.new()
+	material.albedo_color = Color(0.9, 0.9, 0.9, 0.6)
+	material.emission_enabled = true
+	material.emission = Color(1.0, 1.0, 1.0)
+	material.emission_energy_multiplier = 4.0
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	cursor_indicator.material_override = material
+
+	var light = OmniLight3D.new()
+	light.light_color = Color(1.0, 1.0, 1.0)
+	light.light_energy = 0.5
+	light.omni_range = 2.0
+	cursor_indicator.add_child(light)
+
+	cursor_indicator.visible = false
+	add_child(cursor_indicator)
+
+func _update_cursor_indicator() -> void:
+	if not camera or not cursor_indicator:
+		return
+
+	var mouse_pos = get_viewport().get_mouse_position()
+	var from = camera.project_ray_origin(mouse_pos)
+	var to = from + camera.project_ray_normal(mouse_pos) * 1000.0
+
+	var space_state = get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 1 << 3  # Layer 4: Environment
+
+	var result = space_state.intersect_ray(query)
+	if result:
+		cursor_indicator.global_position = result.position + Vector3(0, 0.05, 0)
+		cursor_indicator.visible = true
+	else:
+		cursor_indicator.visible = false
+
 func _show_click_indicator(pos: Vector3) -> void:
 	var indicator = click_indicator_scene.instantiate()
 	add_child(indicator)
 	indicator.global_position = pos
 
 func _process(delta: float) -> void:
+	_update_cursor_indicator()
+
 	if is_instance_valid(local_player):
 		# Update camera with deadzone and separation
 		_update_camera_with_deadzone(delta)
