@@ -581,7 +581,7 @@ func _create_lightning_effect(origin: Vector3, direction: Vector3) -> void:
 func _create_melee_cone_effect(origin: Vector3, direction: Vector3) -> void:
 	# Create a cone visualization for melee attack
 	var cone_range = 2.0   # BasicAttack range from config
-	var cone_angle = 90.0  # BasicAttack angle from config (degrees)
+	var cone_angle = 90  # BasicAttack angle from config (degrees)
 
 	# Calculate cone parameters
 	var dir_normalized = direction.normalized()
@@ -593,8 +593,8 @@ func _create_melee_cone_effect(origin: Vector3, direction: Vector3) -> void:
 
 	# Use a cylinder with one end smaller to approximate a cone
 	var cone_mesh = CylinderMesh.new()
-	cone_mesh.top_radius = 0.1
-	cone_mesh.bottom_radius = cone_radius
+	cone_mesh.top_radius = cone_radius
+	cone_mesh.bottom_radius = 0.1
 	cone_mesh.height = cone_range
 	mesh_instance.mesh = cone_mesh
 
