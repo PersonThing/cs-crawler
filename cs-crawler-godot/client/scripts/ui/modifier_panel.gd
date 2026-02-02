@@ -53,6 +53,25 @@ func _setup_ui() -> void:
 		vbox.add_child(button)
 		modifier_buttons[modifier["id"]] = button
 
+func _activate_all_modifiers() -> void:
+	for modifier in available_modifiers:
+		var mod_id = modifier["id"]
+		selected_modifiers[mod_id] = true
+		# Update button state
+		if modifier_buttons.has(mod_id):
+			var container = modifier_buttons[mod_id]
+			var button = container.get_node("Button")
+			if button:
+				button.button_pressed = true
+				_update_button_style(button, true)
+		# Notify server
+		NetworkManager.send_message({
+			"type": "set_modifier",
+			"modifierType": mod_id,
+			"enabled": true
+		})
+	print("[MODIFIER_PANEL] All modifiers activated by default")
+
 func _create_modifier_button(modifier_data: Dictionary) -> Control:
 	var container = VBoxContainer.new()
 	container.name = "Modifier_" + modifier_data["id"]
@@ -64,6 +83,10 @@ func _create_modifier_button(modifier_data: Dictionary) -> Control:
 	button.toggle_mode = true
 	button.custom_minimum_size = Vector2(200, 40)
 	button.pressed.connect(func(): _on_modifier_toggled(modifier_data["id"], button.button_pressed))
+
+	# Style: inactive by default
+	_update_button_style(button, false)
+
 	container.add_child(button)
 
 	# Add description label
@@ -81,8 +104,41 @@ func _create_modifier_button(modifier_data: Dictionary) -> Control:
 
 	return container
 
+func _update_button_style(button: Button, active: bool) -> void:
+	if active:
+		# Bright green background for active
+		var active_style = StyleBoxFlat.new()
+		active_style.bg_color = Color(0.1, 0.5, 0.1, 0.9)
+		active_style.border_color = Color(0.3, 1.0, 0.3)
+		active_style.set_border_width_all(2)
+		active_style.set_corner_radius_all(4)
+		active_style.set_content_margin_all(6)
+		button.add_theme_stylebox_override("pressed", active_style)
+		button.add_theme_stylebox_override("normal", active_style)
+		button.add_theme_color_override("font_color", Color(0.8, 1.0, 0.8))
+		button.add_theme_color_override("font_pressed_color", Color(0.8, 1.0, 0.8))
+	else:
+		# Dim dark background for inactive
+		var inactive_style = StyleBoxFlat.new()
+		inactive_style.bg_color = Color(0.15, 0.15, 0.2, 0.9)
+		inactive_style.border_color = Color(0.3, 0.3, 0.4)
+		inactive_style.set_border_width_all(1)
+		inactive_style.set_corner_radius_all(4)
+		inactive_style.set_content_margin_all(6)
+		button.add_theme_stylebox_override("normal", inactive_style)
+		button.add_theme_stylebox_override("pressed", inactive_style)
+		button.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+		button.add_theme_color_override("font_pressed_color", Color(0.5, 0.5, 0.6))
+
 func _on_modifier_toggled(modifier_id: String, is_pressed: bool) -> void:
 	selected_modifiers[modifier_id] = is_pressed
+
+	# Update button style
+	if modifier_buttons.has(modifier_id):
+		var container = modifier_buttons[modifier_id]
+		var button = container.get_node("Button")
+		if button:
+			_update_button_style(button, is_pressed)
 
 	# Send to server
 	var message = {
@@ -98,6 +154,9 @@ func _on_message_received(message: Dictionary) -> void:
 	var msg_type = message.get("type", "")
 
 	match msg_type:
+		"joined":
+			# Player has joined - now safe to send modifier state to server
+			_activate_all_modifiers()
 		"modifier_updated":
 			_handle_modifier_updated(message)
 
@@ -113,6 +172,14 @@ func _handle_modifier_updated(message: Dictionary) -> void:
 			button.button_pressed = enabled
 
 	selected_modifiers[modifier_id] = enabled
+
+	# Update button style
+	if modifier_buttons.has(modifier_id):
+		var container = modifier_buttons[modifier_id]
+		var button = container.get_node("Button")
+		if button:
+			_update_button_style(button, enabled)
+
 	print("[MODIFIER_PANEL] Server confirmed: %s = %s" % [modifier_id, enabled])
 
 func get_active_modifiers() -> Array[String]:

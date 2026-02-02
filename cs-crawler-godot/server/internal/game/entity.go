@@ -24,8 +24,28 @@ type Player struct {
 	Health   float64
 	MaxHealth float64
 
-	// Stats
-	MoveSpeed float64
+	// Base Stats (before item bonuses)
+	BaseMaxHealth float64
+	BaseMoveSpeed float64
+	BaseDamage    float64
+	BaseArmor     float64
+
+	// Current Stats (after item bonuses)
+	MoveSpeed    float64
+	Damage       float64
+	AttackSpeed  float64
+	CritChance   float64
+	CritDamage   float64
+	FireDamage   float64
+	ColdDamage   float64
+	LightningDamage float64
+	Armor        float64
+	FireResist   float64
+	ColdResist   float64
+	LightningResist float64
+
+	// Inventory
+	Inventory *Inventory
 
 	// Abilities
 	Abilities *AbilityManager
@@ -39,17 +59,26 @@ func NewPlayer(id, username string) *Player {
 	// Load player stats from config
 	stats := config.Player.BaseStats
 
-	return &Player{
-		ID:         id,
-		Username:   username,
-		Position:   Vector3{X: 0, Y: 0, Z: 0},
-		Velocity:   Vector3{X: 0, Y: 0, Z: 0},
-		Health:     stats.Health,
-		MaxHealth:  stats.MaxHealth,
-		MoveSpeed:  stats.MoveSpeed,
-		Abilities:  NewAbilityManager(),
-		LastUpdate: time.Now(),
+	player := &Player{
+		ID:            id,
+		Username:      username,
+		Position:      Vector3{X: 0, Y: 0, Z: 0},
+		Velocity:      Vector3{X: 0, Y: 0, Z: 0},
+		Health:        stats.Health,
+		MaxHealth:     stats.MaxHealth,
+		BaseMaxHealth: stats.MaxHealth,
+		BaseMoveSpeed: stats.MoveSpeed,
+		BaseDamage:    10.0, // Default base damage
+		BaseArmor:     0.0,
+		Inventory:     NewInventory(),
+		Abilities:     NewAbilityManager(),
+		LastUpdate:    time.Now(),
 	}
+
+	// Calculate initial stats from base + equipment
+	player.RecalculateStats()
+
+	return player
 }
 
 // Update processes player logic
@@ -67,9 +96,99 @@ func (p *Player) SetVelocity(v Vector3) {
 	p.Velocity = v
 }
 
+// RecalculateStats recalculates all player stats from base stats + equipped items
+func (p *Player) RecalculateStats() {
+	// Start with base stats
+	p.MaxHealth = p.BaseMaxHealth
+	p.MoveSpeed = p.BaseMoveSpeed
+	p.Damage = p.BaseDamage
+	p.Armor = p.BaseArmor
+	p.AttackSpeed = 100.0 // Base 100%
+	p.CritChance = 5.0    // Base 5%
+	p.CritDamage = 150.0  // Base 150%
+	p.FireDamage = 0.0
+	p.ColdDamage = 0.0
+	p.LightningDamage = 0.0
+	p.FireResist = 0.0
+	p.ColdResist = 0.0
+	p.LightningResist = 0.0
+
+	// Get stats from inventory
+	if p.Inventory != nil {
+		itemStats := p.Inventory.GetAllStats()
+
+		// Apply item bonuses
+		for stat, value := range itemStats {
+			switch stat {
+			case StatHealth:
+				p.MaxHealth += value
+			case StatDamage:
+				p.Damage += value
+			case StatMoveSpeed:
+				p.MoveSpeed += value
+			case StatAttackSpeed:
+				p.AttackSpeed += value
+			case StatCritChance:
+				p.CritChance += value
+			case StatCritDamage:
+				p.CritDamage += value
+			case StatFireDamage:
+				p.FireDamage += value
+			case StatColdDamage:
+				p.ColdDamage += value
+			case StatLightningDamage:
+				p.LightningDamage += value
+			case StatArmor:
+				p.Armor += value
+			case StatFireResist:
+				p.FireResist += value
+			case StatColdResist:
+				p.ColdResist += value
+			case StatLightningResist:
+				p.LightningResist += value
+			}
+		}
+	}
+
+	// Ensure health doesn't exceed max after stat changes
+	if p.Health > p.MaxHealth {
+		p.Health = p.MaxHealth
+	}
+}
+
+// EquipItem equips an item and recalculates stats
+func (p *Player) EquipItem(item *Item) (*Item, error) {
+	if p.Inventory == nil {
+		return nil, nil
+	}
+
+	unequipped, err := p.Inventory.EquipItem(item)
+	if err != nil {
+		return nil, err
+	}
+
+	p.RecalculateStats()
+	return unequipped, nil
+}
+
+// UnequipSlot unequips an item from a slot and recalculates stats
+func (p *Player) UnequipSlot(slot EquipmentSlot) (*Item, error) {
+	if p.Inventory == nil {
+		return nil, nil
+	}
+
+	item, err := p.Inventory.UnequipItem(slot)
+	if err != nil {
+		return nil, err
+	}
+
+	p.RecalculateStats()
+	return item, nil
+}
+
 // Serialize converts player to JSON-friendly format
 func (p *Player) Serialize() map[string]interface{} {
-	return map[string]interface{}{
+	result := map[string]interface{}{
 		"id":        p.ID,
 		"username":  p.Username,
 		"position":  p.Position,
@@ -77,7 +196,27 @@ func (p *Player) Serialize() map[string]interface{} {
 		"rotation":  p.Rotation,
 		"health":    p.Health,
 		"maxHealth": p.MaxHealth,
+		"stats": map[string]interface{}{
+			"moveSpeed":       p.MoveSpeed,
+			"damage":          p.Damage,
+			"attackSpeed":     p.AttackSpeed,
+			"critChance":      p.CritChance,
+			"critDamage":      p.CritDamage,
+			"fireDamage":      p.FireDamage,
+			"coldDamage":      p.ColdDamage,
+			"lightningDamage": p.LightningDamage,
+			"armor":           p.Armor,
+			"fireResist":      p.FireResist,
+			"coldResist":      p.ColdResist,
+			"lightningResist": p.LightningResist,
+		},
 	}
+
+	if p.Inventory != nil {
+		result["inventory"] = p.Inventory.Serialize()
+	}
+
+	return result
 }
 
 // Enemy represents an enemy entity

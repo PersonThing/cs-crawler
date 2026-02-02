@@ -6,6 +6,7 @@ extends Node3D
 @onready var enemies_container: Node3D = $Enemies
 @onready var projectiles_container: Node3D = $Projectiles
 @onready var minions_container: Node3D = null  # Created dynamically if doesn't exist
+@onready var ground_items_container: Node3D = null  # Created dynamically if doesn't exist
 
 # Screen shake
 var screen_shake_amount: float = 0.0
@@ -25,13 +26,22 @@ var damage_number_script = preload("res://scripts/ui/damage_number.gd")
 var ability_bar_script = preload("res://scripts/ui/ability_bar.gd")
 var enemy_ui_manager_script = preload("res://scripts/ui/enemy_ui_manager.gd")
 var modifier_panel_script = preload("res://scripts/ui/modifier_panel.gd")
+var inventory_panel_script = preload("res://scripts/ui/inventory_panel.gd")
+var ground_item_script = preload("res://scripts/ground_item.gd")
 
 var local_player: Node3D = null
 var remote_players: Dictionary = {}
 var enemies: Dictionary = {}
 var projectiles: Dictionary = {}
 var minions: Dictionary = {}
+var ground_items: Dictionary = {}
 var enemy_ui_manager: Control = null
+var inventory_panel: Control = null
+
+# Pending pickup target (ground item ID to pick up when in range)
+var pending_pickup_target: String = ""
+var pending_pickup_position: Vector3 = Vector3.ZERO
+const PICKUP_RANGE: float = 3.0
 
 func _ready() -> void:
 	_load_camera_config()
@@ -42,6 +52,8 @@ func _ready() -> void:
 	_setup_ability_bar()
 	_setup_modifier_panel()
 	_setup_minions_container()
+	_setup_ground_items_container()
+	_setup_inventory_panel()
 
 	# Check if we're already joined (main menu handled the join)
 	if GameManager.local_player_id != "":
@@ -58,6 +70,23 @@ func _setup_minions_container() -> void:
 		add_child(minions_container)
 	else:
 		minions_container = get_node("Minions")
+
+func _setup_ground_items_container() -> void:
+	# Create ground items container if it doesn't exist
+	if not has_node("GroundItems"):
+		ground_items_container = Node3D.new()
+		ground_items_container.name = "GroundItems"
+		add_child(ground_items_container)
+	else:
+		ground_items_container = get_node("GroundItems")
+
+func _setup_inventory_panel() -> void:
+	if not has_node("InventoryPanel"):
+		inventory_panel = Control.new()
+		inventory_panel.name = "InventoryPanel"
+		inventory_panel.set_script(inventory_panel_script)
+		inventory_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(inventory_panel)
 
 func _load_camera_config() -> void:
 	var config_loader = get_node_or_null("/root/ConfigLoader")
@@ -133,6 +162,12 @@ func _on_message_received(message: Dictionary) -> void:
 			_handle_world_state(message)
 		"ability_cast":
 			_handle_ability_cast(message)
+		"item_picked_up":
+			_handle_item_picked_up(message)
+		"item_equipped":
+			_handle_inventory_update(message)
+		"item_unequipped":
+			_handle_inventory_update(message)
 
 func _handle_joined(message: Dictionary) -> void:
 	var player_id = message.get("playerID", "")
@@ -169,6 +204,11 @@ func _handle_world_state(state: Dictionary) -> void:
 			# Update local player from server (for reconciliation)
 			if is_instance_valid(local_player):
 				local_player.apply_server_state(player_data)
+
+			# Update inventory panel if player data includes inventory
+			var inv_data = player_data.get("inventory", {})
+			if inventory_panel and inv_data.size() > 0:
+				inventory_panel.update_inventory(inv_data)
 		else:
 			# Update or create remote player
 			if not remote_players.has(pid):
@@ -285,6 +325,27 @@ func _handle_world_state(state: Dictionary) -> void:
 			if minions[minion_id]:
 				minions[minion_id].queue_free()
 			minions.erase(minion_id)
+
+	# Handle ground items
+	var ground_items_data = state.get("groundItems", [])
+	var current_ground_item_ids = []
+
+	for ground_item_data in ground_items_data:
+		var ground_item_id = ground_item_data.get("id", "")
+		current_ground_item_ids.append(ground_item_id)
+
+		if not ground_items.has(ground_item_id):
+			# Create new ground item
+			var ground_item = _create_ground_item(ground_item_data)
+			ground_items[ground_item_id] = ground_item
+			ground_items_container.add_child(ground_item)
+
+	# Remove ground items that no longer exist on server
+	for ground_item_id in ground_items.keys():
+		if not ground_item_id in current_ground_item_ids:
+			if ground_items[ground_item_id]:
+				ground_items[ground_item_id].queue_free()
+			ground_items.erase(ground_item_id)
 
 	# Handle damage events
 	var damage_events = state.get("damageEvents", [])
@@ -603,6 +664,50 @@ func _handle_death_event(death_event: Dictionary) -> void:
 
 	# Death animation is handled by the entity itself via server state
 
+func _handle_item_picked_up(message: Dictionary) -> void:
+	var ground_item_id = message.get("groundItemID", "")
+	print("[WORLD] Item picked up: ", ground_item_id)
+
+	# Clear pending pickup if this was it
+	if pending_pickup_target == ground_item_id:
+		pending_pickup_target = ""
+
+	# Update inventory panel with new data
+	var inv_data = message.get("inventory", {})
+	if inventory_panel and inv_data.size() > 0:
+		inventory_panel.update_inventory(inv_data)
+
+func _handle_inventory_update(message: Dictionary) -> void:
+	# Update inventory panel with new data
+	var inv_data = message.get("inventory", {})
+	if inventory_panel and inv_data.size() > 0:
+		inventory_panel.update_inventory(inv_data)
+	print("[WORLD] Inventory updated")
+
+func request_pickup(ground_item_id: String, item_position: Vector3) -> void:
+	# Called by ground items when clicked - path to item and pick up
+	if not is_instance_valid(local_player):
+		return
+
+	# Check if already in range
+	var distance = local_player.global_position.distance_to(item_position)
+	if distance <= PICKUP_RANGE:
+		# Already in range, pick up immediately
+		_send_pickup_request(ground_item_id)
+	else:
+		# Path to item, then pick up when in range
+		pending_pickup_target = ground_item_id
+		pending_pickup_position = item_position
+		local_player.set_move_target(item_position)
+		print("[WORLD] Pathing to ground item: ", ground_item_id)
+
+func _send_pickup_request(ground_item_id: String) -> void:
+	NetworkManager.send_message({
+		"type": "pickup_item",
+		"groundItemID": ground_item_id
+	})
+	print("[WORLD] Sent pickup request for: ", ground_item_id)
+
 func _create_minion(minion_data: Dictionary) -> Node3D:
 	var minion_type = minion_data.get("type", "pet")
 	var ability_type = minion_data.get("abilityType", "fireball")
@@ -700,6 +805,24 @@ func _update_minion_state(minion: Node3D, state: Dictionary) -> void:
 		var time = Time.get_ticks_msec() / 1000.0
 		minion.position.y = target_position.y + sin(time * 3.0) * 0.1  # Bob up and down
 
+func _create_ground_item(ground_item_data: Dictionary) -> Node3D:
+	var ground_item = Node3D.new()
+	ground_item.set_script(ground_item_script)
+
+	# Set item data
+	ground_item.item_id = ground_item_data.get("id", "")
+	ground_item.item_data = ground_item_data.get("item", {})
+
+	# Set position (use position, not global_position, since node isn't in tree yet)
+	var pos_data = ground_item_data.get("position", {})
+	ground_item.position = Vector3(
+		pos_data.get("x", 0.0),
+		pos_data.get("y", 0.5),
+		pos_data.get("z", 0.0)
+	)
+
+	return ground_item
+
 func _on_disconnected() -> void:
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
@@ -726,35 +849,49 @@ func _setup_navigation_mesh() -> void:
 	nav_mesh.add_polygon(PackedInt32Array([0, 1, 2, 3]))
 	nav_region.navigation_mesh = nav_mesh
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			print("[WORLD] Mouse click detected at: ", event.position)
+			# If inventory has an item on cursor, drop it on the ground instead of moving
+			if inventory_panel and inventory_panel.has_held_item():
+				inventory_panel.drop_held_item()
+				get_viewport().set_input_as_handled()
+				return
+
 			if is_instance_valid(local_player):
-				print("[WORLD] local_player exists, calling _handle_ground_click")
 				_handle_ground_click(event.position)
-			else:
-				print("[WORLD] ERROR: local_player is null or freed!")
+				get_viewport().set_input_as_handled()
 
 func _handle_ground_click(screen_pos: Vector2) -> void:
 	var from = camera.project_ray_origin(screen_pos)
 	var to = from + camera.project_ray_normal(screen_pos) * 1000.0
 
-	print("[WORLD] Raycast from: ", from, " to: ", to)
-
 	var space_state = get_world_3d().direct_space_state
-	var query = PhysicsRayQueryParameters3D.create(from, to)
-	query.collision_mask = 1 << 3  # Layer 4 (bit 3): Environment
 
-	print("[WORLD] Raycast collision_mask: ", query.collision_mask)
+	# First, check for ground items (Layer 5, bit 4) - raycast against areas
+	var item_query = PhysicsRayQueryParameters3D.create(from, to)
+	item_query.collision_mask = 1 << 4  # Layer 5: Items
+	item_query.collide_with_areas = true
+	item_query.collide_with_bodies = false
 
-	var result = space_state.intersect_ray(query)
+	var item_result = space_state.intersect_ray(item_query)
+	if item_result:
+		# Walk up from the Area3D collider to find the ground_item node
+		var node = item_result.collider
+		while node:
+			if "item_id" in node and node.item_id != "":
+				request_pickup(node.item_id, node.global_position)
+				return
+			node = node.get_parent()
+
+	# No item hit - check for ground (Layer 4, bit 3)
+	var ground_query = PhysicsRayQueryParameters3D.create(from, to)
+	ground_query.collision_mask = 1 << 3  # Layer 4: Environment
+
+	var result = space_state.intersect_ray(ground_query)
 	if result:
-		print("[WORLD] Raycast hit at: ", result.position)
 		local_player.set_move_target(result.position)
 		_show_click_indicator(result.position)
-	else:
-		print("[WORLD] Raycast missed - no ground collision")
 
 func _show_click_indicator(pos: Vector3) -> void:
 	var indicator = click_indicator_scene.instantiate()
@@ -765,3 +902,10 @@ func _process(delta: float) -> void:
 	if is_instance_valid(local_player):
 		# Update camera with deadzone and separation
 		_update_camera_with_deadzone(delta)
+
+		# Check if we've reached a pending pickup target
+		if pending_pickup_target != "":
+			var distance = local_player.global_position.distance_to(pending_pickup_position)
+			if distance <= PICKUP_RANGE:
+				_send_pickup_request(pending_pickup_target)
+				pending_pickup_target = ""

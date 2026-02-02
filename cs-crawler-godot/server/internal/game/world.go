@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -21,11 +22,15 @@ type World struct {
 	enemies     map[string]*Enemy
 	projectiles map[string]*Projectile
 	minions     map[string]*Minion
+	groundItems map[string]*GroundItem
 
 	// Events (for broadcasting)
 	damageEvents     []DamageEvent
 	deathEvents      []DeathEvent
 	abilityCastEvents []AbilityCastEvent
+
+	// Item generation
+	nextItemID int
 }
 
 // NewWorld creates a new game world
@@ -37,9 +42,11 @@ func NewWorld(id string) *World {
 		enemies:           make(map[string]*Enemy),
 		projectiles:       make(map[string]*Projectile),
 		minions:           make(map[string]*Minion),
+		groundItems:       make(map[string]*GroundItem),
 		damageEvents:      make([]DamageEvent, 0),
 		deathEvents:       make([]DeathEvent, 0),
 		abilityCastEvents: make([]AbilityCastEvent, 0),
+		nextItemID:        1,
 	}
 
 	// Spawn initial enemies
@@ -212,6 +219,8 @@ func (w *World) Update(delta time.Duration) {
 					EntityType: "enemy",
 					KillerID:   projectile.OwnerID,
 				})
+				// Drop loot
+				w.dropLoot(enemy)
 			}
 
 			// Handle piercing
@@ -319,6 +328,8 @@ func (w *World) Update(delta time.Duration) {
 									EntityType: "enemy",
 									KillerID:   minion.OwnerID,
 								})
+								// Drop loot
+								w.dropLoot(enemy)
 							}
 						}
 					}
@@ -374,6 +385,8 @@ func (w *World) Update(delta time.Duration) {
 									EntityType: "enemy",
 									KillerID:   minion.OwnerID,
 								})
+								// Drop loot
+								w.dropLoot(enemy)
 							}
 						}
 					}
@@ -437,6 +450,14 @@ func (w *World) AddPlayer(player *Player) {
 	defer w.mu.Unlock()
 
 	w.players[player.ID] = player
+}
+
+// GetPlayer returns a specific player by ID
+func (w *World) GetPlayer(playerID string) *Player {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	return w.players[playerID]
 }
 
 // RemovePlayer removes a player from the world
@@ -561,13 +582,220 @@ func (w *World) GetWorldState() map[string]interface{} {
 		})
 	}
 
+	// Serialize ground items
+	groundItems := make([]map[string]interface{}, 0, len(w.groundItems))
+	for _, groundItem := range w.groundItems {
+		groundItems = append(groundItems, groundItem.Serialize())
+	}
+
 	return map[string]interface{}{
 		"players":           players,
 		"enemies":           enemies,
 		"projectiles":       projectiles,
 		"minions":           minions,
+		"groundItems":       groundItems,
 		"damageEvents":      damageEvents,
 		"deathEvents":       deathEvents,
 		"abilityCastEvents": abilityCastEvents,
 	}
+}
+
+// dropLoot creates loot when an enemy dies
+func (w *World) dropLoot(enemy *Enemy) {
+	// Drop chance (70% to drop an item)
+	if rand.Float64() > 0.7 {
+		return
+	}
+
+	// Generate item based on enemy level (for now, use fixed level 1)
+	itemLevel := 1
+
+	// Random item type
+	itemTypes := []ItemType{
+		ItemTypeWeapon1H, ItemTypeWeapon2H,
+		ItemTypeHead, ItemTypeChest, ItemTypeHands, ItemTypeFeet,
+		ItemTypeAmulet, ItemTypeRing,
+	}
+	itemType := itemTypes[rand.Intn(len(itemTypes))]
+
+	// Generate item
+	itemID := fmt.Sprintf("item-%d", w.nextItemID)
+	w.nextItemID++
+
+	item := NewItem(itemID, itemType, itemLevel)
+
+	// Create ground item near enemy position, spread out from other items
+	dropPos := w.findOpenDropPosition(enemy.Position)
+	groundItemID := fmt.Sprintf("ground-%d", time.Now().UnixNano())
+	groundItem := NewGroundItem(groundItemID, item, dropPos)
+
+	w.groundItems[groundItemID] = groundItem
+	log.Printf("[WORLD] Dropped loot: %s (%s) at position %v", item.Name, item.Rarity, dropPos)
+}
+
+// findOpenDropPosition finds a nearby position that doesn't overlap existing ground items
+func (w *World) findOpenDropPosition(origin Vector3) Vector3 {
+	const minDist = 0.8  // Minimum distance between ground items
+	const gridStep = 1.0 // Grid spacing
+
+	// Check if origin is clear
+	if w.isDropPositionClear(origin, minDist) {
+		return origin
+	}
+
+	// Grid-based search expanding outward in rings
+	for ring := 1; ring <= 6; ring++ {
+		for x := -ring; x <= ring; x++ {
+			for z := -ring; z <= ring; z++ {
+				// Only check cells on the current ring's edge
+				if abs(x) != ring && abs(z) != ring {
+					continue
+				}
+				candidate := Vector3{
+					X: origin.X + float64(x)*gridStep,
+					Y: origin.Y,
+					Z: origin.Z + float64(z)*gridStep,
+				}
+				if w.isDropPositionClear(candidate, minDist) {
+					return candidate
+				}
+			}
+		}
+	}
+
+	// Fallback: random offset
+	return Vector3{
+		X: origin.X + (rand.Float64()-0.5)*3.0,
+		Y: origin.Y,
+		Z: origin.Z + (rand.Float64()-0.5)*3.0,
+	}
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func (w *World) isDropPositionClear(pos Vector3, minDist float64) bool {
+	for _, gi := range w.groundItems {
+		dx := gi.Position.X - pos.X
+		dz := gi.Position.Z - pos.Z
+		if dx*dx+dz*dz < minDist*minDist {
+			return false
+		}
+	}
+	return true
+}
+
+// PickupItem allows a player to pick up a ground item
+func (w *World) PickupItem(playerID, groundItemID string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	player, exists := w.players[playerID]
+	if !exists {
+		return fmt.Errorf("player not found")
+	}
+
+	groundItem, exists := w.groundItems[groundItemID]
+	if !exists {
+		return fmt.Errorf("ground item not found")
+	}
+
+	// Check if player is close enough to pick up
+	distance := Distance2D(player.Position, groundItem.Position)
+	if distance > 3.0 {
+		return fmt.Errorf("too far from item")
+	}
+
+	// Try to auto-equip if the matching slot is empty
+	item := groundItem.Item
+	autoEquipped := false
+
+	if player.Inventory != nil {
+		slot, err := player.Inventory.getEquipmentSlot(item)
+		if err == nil && player.Inventory.Equipment[slot] == nil {
+			// Slot is empty, auto-equip
+			_, equipErr := player.EquipItem(item)
+			if equipErr == nil {
+				autoEquipped = true
+				log.Printf("[WORLD] Player %s auto-equipped %s to slot %s", playerID, item.Name, slot)
+			}
+		}
+	}
+
+	// If not auto-equipped, add to bag
+	if !autoEquipped {
+		if player.Inventory.IsFull() {
+			return fmt.Errorf("inventory is full")
+		}
+
+		_, err := player.Inventory.AddToBag(item)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Remove from ground
+	delete(w.groundItems, groundItemID)
+	log.Printf("[WORLD] Player %s picked up %s (auto-equipped: %v)", playerID, item.Name, autoEquipped)
+
+	return nil
+}
+
+// SwapBagItems swaps two items in a player's bag
+func (w *World) SwapBagItems(playerID string, from, to int) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	player, exists := w.players[playerID]
+	if !exists {
+		return fmt.Errorf("player not found")
+	}
+
+	return player.Inventory.SwapBagItems(from, to)
+}
+
+// DropItemFromInventory removes an item from inventory and places it on the ground
+func (w *World) DropItemFromInventory(playerID string, source string, slotRaw interface{}) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	player, exists := w.players[playerID]
+	if !exists {
+		return fmt.Errorf("player not found")
+	}
+
+	var item *Item
+
+	switch source {
+	case "bag":
+		slotIdx := int(slotRaw.(float64))
+		var err error
+		item, err = player.Inventory.RemoveFromBag(slotIdx)
+		if err != nil {
+			return err
+		}
+	case "equipment":
+		slotName := slotRaw.(string)
+		var err error
+		item, err = player.Inventory.UnequipItem(EquipmentSlot(slotName))
+		if err != nil {
+			return err
+		}
+		player.RecalculateStats()
+	default:
+		return fmt.Errorf("invalid source: %s", source)
+	}
+
+	// Create ground item near player position, spread out from other items
+	dropPos := w.findOpenDropPosition(player.Position)
+	groundItemID := fmt.Sprintf("ground-%d", time.Now().UnixNano())
+	groundItem := NewGroundItem(groundItemID, item, dropPos)
+	w.groundItems[groundItemID] = groundItem
+
+	log.Printf("[WORLD] Player %s dropped %s on ground", playerID, item.Name)
+	return nil
 }

@@ -115,6 +115,16 @@ func (c *Client) handleMessage(data []byte) {
 		c.handleUseAbility(msg)
 	case "set_modifier":
 		c.handleSetModifier(msg)
+	case "pickup_item":
+		c.handlePickupItem(msg)
+	case "equip_item":
+		c.handleEquipItem(msg)
+	case "unequip_item":
+		c.handleUnequipItem(msg)
+	case "swap_bag":
+		c.handleSwapBag(msg)
+	case "drop_item":
+		c.handleDropItem(msg)
 	default:
 		log.Printf("Unknown message type: %s", msgType)
 	}
@@ -523,6 +533,289 @@ func (c *Client) handleSetModifier(msg map[string]interface{}) {
 		"modifierType": modifierType,
 		"enabled":      enabled,
 	})
+}
+
+// handlePickupItem processes a request to pick up a ground item
+func (c *Client) handlePickupItem(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		log.Printf("[PICKUP] Player not joined yet, ignoring pickup request")
+		return
+	}
+
+	groundItemID, ok := msg["groundItemID"].(string)
+	if !ok {
+		log.Printf("[PICKUP] Invalid groundItemID in message")
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		log.Printf("[PICKUP] World not found: %s", c.worldID)
+		return
+	}
+
+	err := world.PickupItem(c.playerID, groundItemID)
+	if err != nil {
+		log.Printf("[PICKUP] Failed to pickup item: %v", err)
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "PICKUP_FAILED",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	log.Printf("[PICKUP] Player %s picked up ground item %s", c.playerID, groundItemID)
+
+	// Get player for updated inventory data
+	player := world.GetPlayer(c.playerID)
+	response := map[string]interface{}{
+		"type":         "item_picked_up",
+		"groundItemID": groundItemID,
+	}
+
+	if player != nil && player.Inventory != nil {
+		response["inventory"] = player.Inventory.Serialize()
+		response["stats"] = player.Serialize()["stats"]
+	}
+
+	c.Send(response)
+}
+
+// handleEquipItem processes a request to equip an item from inventory
+func (c *Client) handleEquipItem(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		log.Printf("[EQUIP] Player not joined yet, ignoring equip request")
+		return
+	}
+
+	bagSlot, ok := msg["bagSlot"].(float64)
+	if !ok {
+		log.Printf("[EQUIP] Invalid bagSlot in message")
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		log.Printf("[EQUIP] World not found: %s", c.worldID)
+		return
+	}
+
+	player := world.GetPlayer(c.playerID)
+	if player == nil {
+		log.Printf("[EQUIP] Player not found: %s", c.playerID)
+		return
+	}
+
+	// Get item from bag
+	item, err := player.Inventory.RemoveFromBag(int(bagSlot))
+	if err != nil {
+		log.Printf("[EQUIP] Failed to get item from bag: %v", err)
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "EQUIP_FAILED",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// Equip the item
+	unequippedItem, err := player.EquipItem(item)
+	if err != nil {
+		// Put item back in bag if equip failed
+		player.Inventory.AddToBag(item)
+		log.Printf("[EQUIP] Failed to equip item: %v", err)
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "EQUIP_FAILED",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// If something was unequipped, put it back in the same bag slot
+	if unequippedItem != nil {
+		sourceBagSlot := int(bagSlot)
+		if sourceBagSlot >= 0 && sourceBagSlot < player.Inventory.MaxBagSlots && player.Inventory.Bags[sourceBagSlot] == nil {
+			player.Inventory.Bags[sourceBagSlot] = unequippedItem
+		} else {
+			_, err := player.Inventory.AddToBag(unequippedItem)
+			if err != nil {
+				log.Printf("[EQUIP] Warning: Failed to add unequipped item to bag: %v", err)
+			}
+		}
+	}
+
+	log.Printf("[EQUIP] Player %s equipped item %s", c.playerID, item.Name)
+
+	// Send success confirmation with updated stats
+	c.Send(map[string]interface{}{
+		"type":      "item_equipped",
+		"item":      item.Serialize(),
+		"inventory": player.Inventory.Serialize(),
+		"stats":     player.Serialize()["stats"],
+	})
+}
+
+// handleUnequipItem processes a request to unequip an item
+func (c *Client) handleUnequipItem(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		log.Printf("[UNEQUIP] Player not joined yet, ignoring unequip request")
+		return
+	}
+
+	slotName, ok := msg["slot"].(string)
+	if !ok {
+		log.Printf("[UNEQUIP] Invalid slot in message")
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		log.Printf("[UNEQUIP] World not found: %s", c.worldID)
+		return
+	}
+
+	player := world.GetPlayer(c.playerID)
+	if player == nil {
+		log.Printf("[UNEQUIP] Player not found: %s", c.playerID)
+		return
+	}
+
+	// Unequip the item
+	slot := game.EquipmentSlot(slotName)
+	item, err := player.UnequipSlot(slot)
+	if err != nil {
+		log.Printf("[UNEQUIP] Failed to unequip item: %v", err)
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "UNEQUIP_FAILED",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// Try to place in specific target bag slot if provided
+	placed := false
+	if targetSlot, ok := msg["targetBagSlot"].(float64); ok {
+		idx := int(targetSlot)
+		if idx >= 0 && idx < player.Inventory.MaxBagSlots && player.Inventory.Bags[idx] == nil {
+			player.Inventory.Bags[idx] = item
+			placed = true
+		}
+	}
+
+	// Fallback: add to first empty bag slot
+	if !placed {
+		_, err = player.Inventory.AddToBag(item)
+		if err != nil {
+			// If bag is full, re-equip the item
+			player.EquipItem(item)
+			log.Printf("[UNEQUIP] Bag is full, cannot unequip")
+			c.Send(map[string]interface{}{
+				"type":    "error",
+				"code":    "BAG_FULL",
+				"message": "Inventory is full",
+			})
+			return
+		}
+	}
+
+	log.Printf("[UNEQUIP] Player %s unequipped item from slot %s", c.playerID, slotName)
+
+	// Send success confirmation with updated stats
+	c.Send(map[string]interface{}{
+		"type":      "item_unequipped",
+		"slot":      slotName,
+		"inventory": player.Inventory.Serialize(),
+		"stats":     player.Serialize()["stats"],
+	})
+}
+
+// handleSwapBag processes a request to swap two bag items
+func (c *Client) handleSwapBag(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		return
+	}
+
+	fromSlot, ok := msg["fromSlot"].(float64)
+	if !ok {
+		log.Printf("[SWAP] Invalid fromSlot in message")
+		return
+	}
+	toSlot, ok := msg["toSlot"].(float64)
+	if !ok {
+		log.Printf("[SWAP] Invalid toSlot in message")
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	err := world.SwapBagItems(c.playerID, int(fromSlot), int(toSlot))
+	if err != nil {
+		log.Printf("[SWAP] Failed to swap bag items: %v", err)
+		return
+	}
+
+	player := world.GetPlayer(c.playerID)
+	if player != nil && player.Inventory != nil {
+		c.Send(map[string]interface{}{
+			"type":      "item_equipped",
+			"inventory": player.Inventory.Serialize(),
+			"stats":     player.Serialize()["stats"],
+		})
+	}
+
+	log.Printf("[SWAP] Player %s swapped bag slots %d <-> %d", c.playerID, int(fromSlot), int(toSlot))
+}
+
+// handleDropItem processes a request to drop an item on the ground
+func (c *Client) handleDropItem(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		return
+	}
+
+	source, ok := msg["source"].(string)
+	if !ok {
+		log.Printf("[DROP] Invalid source in message")
+		return
+	}
+
+	slot := msg["slot"]
+	if slot == nil {
+		log.Printf("[DROP] Missing slot in message")
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	err := world.DropItemFromInventory(c.playerID, source, slot)
+	if err != nil {
+		log.Printf("[DROP] Failed to drop item: %v", err)
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "DROP_FAILED",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	player := world.GetPlayer(c.playerID)
+	if player != nil && player.Inventory != nil {
+		c.Send(map[string]interface{}{
+			"type":      "item_unequipped",
+			"inventory": player.Inventory.Serialize(),
+			"stats":     player.Serialize()["stats"],
+		})
+	}
+
+	log.Printf("[DROP] Player %s dropped item from %s", c.playerID, source)
 }
 
 // generateProjectileID creates a unique projectile ID
