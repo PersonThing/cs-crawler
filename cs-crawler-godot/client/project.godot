@@ -18,12 +18,13 @@ config/name="CS Crawler Godot"
 config/description="Multiplayer top-down action RPG with procedural skills and items"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
+config/icon="res://icon.svg"
 
 [autoload]
 
-ConfigLoader="*res://scripts/config/config_loader.gd"
 GameManager="*res://scripts/autoload/game_manager.gd"
 NetworkManager="*res://scripts/autoload/network_manager.gd"
+ConfigLoader="*res://scripts/config/config_loader.gd"
 
 [display]
 
@@ -103,4 +104,3 @@ inventory={
 
 textures/canvas_textures/default_texture_filter=0
 global_illumination/gi/use_half_resolution=true
-anti_aliasing/quality/msaa_3d=2
