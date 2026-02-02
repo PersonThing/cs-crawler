@@ -30,6 +30,7 @@ const RARITY_CONFIG = {
 		"emission_energy": 0.5,
 		"label_color": Color(0.85, 0.85, 0.85),
 		"particles": false,
+		"bob_height": 0.0,  # Normal items don't float
 	},
 	"rare": {
 		"color": Color(0.3, 0.5, 1.0, 0.9),
@@ -37,6 +38,7 @@ const RARITY_CONFIG = {
 		"emission_energy": 1.5,
 		"label_color": Color(0.5, 0.7, 1.0),
 		"particles": true,
+		"bob_height": 0.15,  # Rare items float a bit
 	},
 	"unique": {
 		"color": Color(1.0, 0.5, 0.0, 0.9),
@@ -44,6 +46,7 @@ const RARITY_CONFIG = {
 		"emission_energy": 2.0,
 		"label_color": Color(1.0, 0.6, 0.0),
 		"particles": true,
+		"bob_height": 0.25,  # Unique items float more
 	},
 }
 
@@ -56,6 +59,7 @@ func _setup_appearance() -> void:
 	var rarity = item_data.get("rarity", "normal")
 	var cfg = RARITY_CONFIG.get(rarity, RARITY_CONFIG["normal"])
 	base_emission_energy = cfg["emission_energy"]
+	bob_height = cfg["bob_height"]  # Set bob height based on rarity
 
 	# Create mesh
 	mesh_instance = MeshInstance3D.new()

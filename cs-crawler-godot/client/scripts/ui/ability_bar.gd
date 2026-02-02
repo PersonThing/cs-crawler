@@ -16,10 +16,46 @@ var abilities: Dictionary = {}
 
 var cooldowns: Dictionary = {}  # ability_type -> time_remaining
 
+# Ability color mapping for icons
+const ABILITY_COLORS = {
+	"fireball": Color(1.0, 0.5, 0.2),      # Orange/red
+	"frostbolt": Color(0.5, 0.8, 1.0),     # Light blue
+	"lightning": Color(1.0, 1.0, 0.3),     # Yellow
+	"basic_attack": Color(0.9, 0.2, 0.2),  # Red
+}
+
 func _ready() -> void:
 	_load_ability_configs()
 	_setup_ability_buttons()
 	NetworkManager.message_received.connect(_on_message_received)
+
+func _create_ability_icon(ability_type: String) -> Control:
+	# Create a circular colored icon for the ability
+	var panel = Panel.new()
+	panel.name = "Icon"
+	panel.anchor_left = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -25
+	panel.offset_top = -25
+	panel.offset_right = 25
+	panel.offset_bottom = 25
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# Create circular style
+	var style = StyleBoxFlat.new()
+	var color = ABILITY_COLORS.get(ability_type, Color.WHITE)
+	style.bg_color = color
+	style.set_corner_radius_all(25)  # Make it circular
+
+	# Add subtle border
+	style.border_color = Color(1.0, 1.0, 1.0, 0.3)
+	style.set_border_width_all(2)
+
+	panel.add_theme_stylebox_override("panel", style)
+
+	return panel
 
 func _load_ability_configs() -> void:
 	var config_loader = get_node_or_null("/root/ConfigLoader")
@@ -67,6 +103,12 @@ func _setup_ability_buttons() -> void:
 			button.custom_minimum_size = Vector2(80, 80)
 			button.disabled = true  # Can't click to cast (use keybinds)
 
+			# Add ability icon (colored circle)
+			var ability_type = _get_ability_type_for_slot(i)
+			if ability_type:
+				var icon = _create_ability_icon(ability_type)
+				button.add_child(icon)
+
 			# Add cooldown overlay
 			var overlay = ColorRect.new()
 			overlay.name = "CooldownOverlay"
@@ -109,11 +151,11 @@ func _setup_ability_buttons() -> void:
 		ability_3 = get_node("HBoxContainer/Ability3")
 		ability_4 = get_node("HBoxContainer/Ability4")
 
-		# Set ability info
-		ability_1.text = abilities.get("fireball", {}).get("name", "Fireball")
-		ability_2.text = abilities.get("frostbolt", {}).get("name", "Frostbolt")
-		ability_3.text = abilities.get("lightning", {}).get("name", "Lightning")
-		ability_4.text = abilities.get("basic_attack", {}).get("name", "Basic Attack")
+		# Clear button text (we have icons now)
+		ability_1.text = ""
+		ability_2.text = ""
+		ability_3.text = ""
+		ability_4.text = ""
 
 func _process(delta: float) -> void:
 	# Update cooldown displays

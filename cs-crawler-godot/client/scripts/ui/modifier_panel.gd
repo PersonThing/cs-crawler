@@ -16,9 +16,16 @@ var selected_modifiers: Dictionary = {}
 var panel_container: PanelContainer = null
 var modifier_buttons: Dictionary = {}
 
+# Track if modifiers have been activated
+var modifiers_activated: bool = false
+
 func _ready() -> void:
 	_setup_ui()
 	NetworkManager.message_received.connect(_on_message_received)
+
+	# Activate all modifiers after a short delay to ensure connection is established
+	await get_tree().create_timer(0.5).timeout
+	_activate_all_modifiers()
 
 func _setup_ui() -> void:
 	# Create panel container
@@ -54,6 +61,13 @@ func _setup_ui() -> void:
 		modifier_buttons[modifier["id"]] = button
 
 func _activate_all_modifiers() -> void:
+	# Only activate once
+	if modifiers_activated:
+		print("[MODIFIER_PANEL] Modifiers already activated, skipping")
+		return
+
+	modifiers_activated = true
+
 	for modifier in available_modifiers:
 		var mod_id = modifier["id"]
 		selected_modifiers[mod_id] = true
