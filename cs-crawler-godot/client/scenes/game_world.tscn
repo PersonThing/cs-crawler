@@ -2,6 +2,13 @@
 
 [ext_resource type="Script" uid="uid://dyk3f3dcmmp70" path="res://scripts/game_world.gd" id="1"]
 
+[sub_resource type="Environment" id="Environment_0biqy"]
+ambient_light_energy = 0.0
+sdfgi_enabled = true
+glow_enabled = true
+volumetric_fog_density = 0.0
+volumetric_fog_albedo = Color(0, 0, 0, 1)
+
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
 size = Vector2(100, 100)
 subdivide_width = 100
@@ -45,6 +52,7 @@ transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 
 fov = 60.0
 
 [node name="Environment" type="WorldEnvironment" parent="." unique_id=1369245791]
+environment = SubResource("Environment_0biqy")
 
 [node name="Ground" type="StaticBody3D" parent="." unique_id=417946195]
 collision_layer = 8

@@ -473,7 +473,7 @@ func _create_lightning_effect(origin: Vector3, direction: Vector3) -> void:
 	material.albedo_color = Color(1.0, 1.0, 0.3, 0.7)
 	material.emission_enabled = true
 	material.emission = Color(1.0, 1.0, 0.5)
-	material.emission_energy_multiplier = 4.0
+	material.emission_energy_multiplier = 16.0
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mesh_instance.material_override = material
 
