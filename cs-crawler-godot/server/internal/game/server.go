@@ -4,6 +4,9 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/yourusername/cs-crawler-godot/server/internal/config"
+	"github.com/yourusername/cs-crawler-godot/server/internal/database"
 )
 
 // Server represents the authoritative game server
@@ -16,16 +19,25 @@ type Server struct {
 
 	// Game state
 	worlds map[string]*World
+
+	// Database
+	db *database.DB
 }
 
 // NewServer creates a new game server
-func NewServer(tickRate int) *Server {
+func NewServer(tickRate int, db *database.DB) *Server {
 	return &Server{
 		tickRate:   tickRate,
 		tickPeriod: time.Second / time.Duration(tickRate),
 		stopChan:   make(chan struct{}),
 		worlds:     make(map[string]*World),
+		db:         db,
 	}
+}
+
+// GetDB returns the database reference
+func (s *Server) GetDB() *database.DB {
+	return s.db
 }
 
 // Start begins the game loop
@@ -37,12 +49,18 @@ func (s *Server) Start() {
 	ticker := time.NewTicker(s.tickPeriod)
 	defer ticker.Stop()
 
+	// Periodic save every 30 seconds
+	saveTicker := time.NewTicker(30 * time.Second)
+	defer saveTicker.Stop()
+
 	log.Printf("Game loop started at %d TPS", s.tickRate)
 
 	for {
 		select {
 		case <-ticker.C:
 			s.tick()
+		case <-saveTicker.C:
+			s.SaveAllPlayers()
 		case <-s.stopChan:
 			log.Println("Game loop stopped")
 			return
@@ -70,6 +88,51 @@ func (s *Server) tick() {
 	for _, world := range s.worlds {
 		world.Update(s.tickPeriod)
 	}
+}
+
+// SaveAllPlayers saves all players in all worlds to the database
+func (s *Server) SaveAllPlayers() {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	saved := 0
+	for _, world := range s.worlds {
+		players := world.GetPlayers()
+		for _, player := range players {
+			if err := s.savePlayer(player); err != nil {
+				log.Printf("[SAVE] Error saving player %s: %v", player.Username, err)
+			} else {
+				saved++
+			}
+		}
+	}
+
+	if saved > 0 && config.Server.Debug.LogPlayerSaves {
+		log.Printf("[SAVE] Periodic save: %d players saved", saved)
+	}
+}
+
+// SavePlayer saves a single player to the database
+func (s *Server) SavePlayer(player *Player) error {
+	return s.savePlayer(player)
+}
+
+func (s *Server) savePlayer(player *Player) error {
+	equippedJSON, bagsJSON, err := player.ToSaveData()
+	if err != nil {
+		return err
+	}
+
+	return s.db.SavePlayer(&database.PlayerData{
+		Username:      player.Username,
+		PositionX:     player.Position.X,
+		PositionY:     player.Position.Y,
+		PositionZ:     player.Position.Z,
+		Rotation:      player.Rotation,
+		Health:        player.Health,
+		EquippedItems: equippedJSON,
+		BagItems:      bagsJSON,
+	})
 }
 
 // GetWorlds returns all active worlds (thread-safe copy)

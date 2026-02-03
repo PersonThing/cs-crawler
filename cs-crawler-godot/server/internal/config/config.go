@@ -133,6 +133,10 @@ type DebugConfig struct {
 	LogPlayerMovement bool `json:"logPlayerMovement"`
 	LogAbilityCasts   bool `json:"logAbilityCasts"`
 	LogWorldState     bool `json:"logWorldState"`
+	LogItemPickups    bool `json:"logItemPickups"`
+	LogItemDrops      bool `json:"logItemDrops"`
+	LogPlayerSaves    bool `json:"logPlayerSaves"`
+	LogPlayerLoads    bool `json:"logPlayerLoads"`
 }
 
 // ServerData represents the server.json structure

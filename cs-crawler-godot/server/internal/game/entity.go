@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 
@@ -217,6 +218,57 @@ func (p *Player) Serialize() map[string]interface{} {
 	}
 
 	return result
+}
+
+// ToSaveData serializes the player state for database persistence
+func (p *Player) ToSaveData() (equippedJSON, bagsJSON json.RawMessage, err error) {
+	if p.Inventory == nil {
+		equippedJSON = json.RawMessage("{}")
+		bagsJSON = json.RawMessage("[]")
+		return
+	}
+
+	invData := p.Inventory.Serialize()
+
+	equippedJSON, err = json.Marshal(invData["equipment"])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	bagsJSON, err = json.Marshal(invData["bags"])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return
+}
+
+// RestoreFromSave restores player state from database data
+func (p *Player) RestoreFromSave(posX, posY, posZ, rotation, health float64, equippedJSON, bagsJSON json.RawMessage) {
+	p.Position = Vector3{X: posX, Y: posY, Z: posZ}
+	p.Rotation = rotation
+	p.Health = health
+
+	// Deserialize inventory
+	var equippedData map[string]interface{}
+	var bagsData []interface{}
+
+	if err := json.Unmarshal(equippedJSON, &equippedData); err != nil {
+		log.Printf("[LOAD] Failed to unmarshal equipped items: %v", err)
+		return
+	}
+	if err := json.Unmarshal(bagsJSON, &bagsData); err != nil {
+		log.Printf("[LOAD] Failed to unmarshal bag items: %v", err)
+		return
+	}
+
+	p.Inventory = DeserializeInventory(equippedData, bagsData)
+	p.RecalculateStats()
+
+	// Clamp health to max after recalculating stats
+	if p.Health > p.MaxHealth {
+		p.Health = p.MaxHealth
+	}
 }
 
 // Enemy represents an enemy entity

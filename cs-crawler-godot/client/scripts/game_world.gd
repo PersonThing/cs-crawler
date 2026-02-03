@@ -19,7 +19,21 @@ var camera_follow_speed: float = 4.0
 var camera_focus_point: Vector3 = Vector3.ZERO
 
 var player_scene = preload("res://scenes/player/player.tscn")
-var click_indicator_scene = preload("res://scenes/ui/click_indicator.tscn")
+
+# Mouse tracking for click-and-drag movement
+var _is_mouse_held: bool = false
+
+# Hover reticle (targeting preview)
+var _hover_reticle: Node3D = null
+var _hover_reticle_mesh: MeshInstance3D = null
+var _hover_reticle_last_pos: Vector3 = Vector3.ZERO
+var _hover_trail_timer: float = 0.0
+const HOVER_TRAIL_INTERVAL: float = 0.03
+const HOVER_TRAIL_MIN_DIST: float = 0.05
+
+# Active click indicator (persistent while moving)
+var _active_click_indicator: Node3D = null
+var _active_click_mesh: MeshInstance3D = null
 var enemy_script = preload("res://scripts/enemy/enemy.gd")
 var projectile_script = preload("res://scripts/projectile/projectile.gd")
 var damage_number_script = preload("res://scripts/ui/damage_number.gd")
@@ -54,6 +68,7 @@ func _ready() -> void:
 	_setup_minions_container()
 	_setup_ground_items_container()
 	_setup_inventory_panel()
+	_setup_hover_reticle()
 
 	# Check if we're already joined (main menu handled the join)
 	if GameManager.local_player_id != "":
@@ -849,9 +864,72 @@ func _setup_navigation_mesh() -> void:
 	nav_mesh.add_polygon(PackedInt32Array([0, 1, 2, 3]))
 	nav_region.navigation_mesh = nav_mesh
 
+func _setup_hover_reticle() -> void:
+	# Create a persistent hover reticle (small white ring)
+	_hover_reticle = Node3D.new()
+	_hover_reticle.name = "HoverReticle"
+	add_child(_hover_reticle)
+	_hover_reticle.visible = false
+	_hover_reticle.position.y = 0.02
+
+	_hover_reticle_mesh = MeshInstance3D.new()
+	var hover_torus = TorusMesh.new()
+	hover_torus.inner_radius = 0.24
+	hover_torus.outer_radius = 0.30
+	hover_torus.rings = 32
+	hover_torus.ring_segments = 8
+	_hover_reticle_mesh.mesh = hover_torus
+	var mat = StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(1, 1, 1, 0.35)
+	mat.emission_enabled = true
+	mat.emission = Color(1, 1, 1, 1)
+	mat.emission_energy_multiplier = 2.0
+	mat.disable_receive_shadows = true
+	_hover_reticle_mesh.material_override = mat
+	_hover_reticle.add_child(_hover_reticle_mesh)
+
+func _spawn_hover_trail(pos: Vector3) -> void:
+	var ghost = MeshInstance3D.new()
+	var torus = TorusMesh.new()
+	torus.inner_radius = 0.24
+	torus.outer_radius = 0.30
+	torus.rings = 32
+	torus.ring_segments = 8
+	ghost.mesh = torus
+	ghost.position = pos
+	var mat = StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(1, 1, 1, 0.25)
+	mat.emission_enabled = true
+	mat.emission = Color(1, 1, 1, 1)
+	mat.emission_energy_multiplier = 1.5
+	mat.disable_receive_shadows = true
+	ghost.material_override = mat
+	add_child(ghost)
+
+	var tween = create_tween()
+	tween.tween_method(func(alpha: float):
+		mat.albedo_color.a = alpha
+		mat.emission_energy_multiplier = alpha * 6.0
+	, 0.25, 0.0, 0.3)
+	tween.tween_callback(ghost.queue_free)
+
+func _raycast_ground(screen_pos: Vector2) -> Variant:
+	## Returns the ground hit position or null
+	var from = camera.project_ray_origin(screen_pos)
+	var to = from + camera.project_ray_normal(screen_pos) * 1000.0
+	var space_state = get_world_3d().direct_space_state
+	var ground_query = PhysicsRayQueryParameters3D.create(from, to)
+	ground_query.collision_mask = 1 << 3  # Layer 4: Environment
+	var result = space_state.intersect_ray(ground_query)
+	if result:
+		return result.position
+	return null
+
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
 			# If inventory has an item on cursor, drop it on the ground instead of moving
 			if inventory_panel and inventory_panel.has_held_item():
 				inventory_panel.drop_held_item()
@@ -859,8 +937,32 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 
 			if is_instance_valid(local_player):
+				_is_mouse_held = true
 				_handle_ground_click(event.position)
 				get_viewport().set_input_as_handled()
+		else:
+			_is_mouse_held = false
+			_clear_click_indicator()
+
+	elif event is InputEventMouseMotion:
+		# Update hover reticle
+		if is_instance_valid(local_player):
+			var hit_pos = _raycast_ground(event.position)
+			if hit_pos != null:
+				var reticle_pos = Vector3(hit_pos.x, 0.02, hit_pos.z)
+				_hover_reticle.global_position = reticle_pos
+				_hover_reticle.visible = true
+				# Spawn trail ghost if moved enough
+				if reticle_pos.distance_to(_hover_reticle_last_pos) > HOVER_TRAIL_MIN_DIST:
+					_spawn_hover_trail(reticle_pos)
+					_hover_reticle_last_pos = reticle_pos
+			else:
+				_hover_reticle.visible = false
+
+		# Click-and-drag: continuously update move target while held
+		if _is_mouse_held and is_instance_valid(local_player):
+			_handle_ground_move(event.position)
+			get_viewport().set_input_as_handled()
 
 func _handle_ground_click(screen_pos: Vector2) -> void:
 	var from = camera.project_ray_origin(screen_pos)
@@ -881,25 +983,64 @@ func _handle_ground_click(screen_pos: Vector2) -> void:
 		while node:
 			if "item_id" in node and node.item_id != "":
 				request_pickup(node.item_id, node.global_position)
+				_is_mouse_held = false  # Don't drag-move after picking up item
 				return
 			node = node.get_parent()
 
-	# No item hit - check for ground (Layer 4, bit 3)
-	var ground_query = PhysicsRayQueryParameters3D.create(from, to)
-	ground_query.collision_mask = 1 << 3  # Layer 4: Environment
+	# No item hit - move to ground position
+	var hit_pos = _raycast_ground(screen_pos)
+	if hit_pos != null:
+		local_player.set_move_target(hit_pos)
+		_show_click_indicator(hit_pos)
 
-	var result = space_state.intersect_ray(ground_query)
-	if result:
-		local_player.set_move_target(result.position)
-		_show_click_indicator(result.position)
+func _handle_ground_move(screen_pos: Vector2) -> void:
+	## Update move target during click-and-drag (no item check)
+	var hit_pos = _raycast_ground(screen_pos)
+	if hit_pos != null:
+		local_player.set_move_target(hit_pos)
+		_update_click_indicator(hit_pos)
 
 func _show_click_indicator(pos: Vector3) -> void:
-	var indicator = click_indicator_scene.instantiate()
-	add_child(indicator)
-	indicator.global_position = pos
+	_clear_click_indicator()
+	_active_click_indicator = Node3D.new()
+	_active_click_indicator.position = Vector3(pos.x, 0.02, pos.z)
+	add_child(_active_click_indicator)
+
+	_active_click_mesh = MeshInstance3D.new()
+	var click_torus = TorusMesh.new()
+	click_torus.inner_radius = 0.34
+	click_torus.outer_radius = 0.40
+	click_torus.rings = 32
+	click_torus.ring_segments = 8
+	_active_click_mesh.mesh = click_torus
+	var mat = StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(1, 1, 1, 0.7)
+	mat.emission_enabled = true
+	mat.emission = Color(1, 1, 1, 1)
+	mat.emission_energy_multiplier = 6.0
+	mat.disable_receive_shadows = true
+	_active_click_mesh.material_override = mat
+	_active_click_indicator.add_child(_active_click_mesh)
+
+func _update_click_indicator(pos: Vector3) -> void:
+	if is_instance_valid(_active_click_indicator):
+		_active_click_indicator.global_position = Vector3(pos.x, 0.02, pos.z)
+	else:
+		_show_click_indicator(pos)
+
+func _clear_click_indicator() -> void:
+	if is_instance_valid(_active_click_indicator):
+		_active_click_indicator.queue_free()
+		_active_click_indicator = null
+		_active_click_mesh = null
 
 func _process(delta: float) -> void:
 	if is_instance_valid(local_player):
+		# Clear click indicator when player stops following path
+		if not local_player.is_following_path and not _is_mouse_held:
+			_clear_click_indicator()
+
 		# Update camera with deadzone and separation
 		_update_camera_with_deadzone(delta)
 

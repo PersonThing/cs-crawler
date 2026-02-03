@@ -259,6 +259,61 @@ func (i *Item) Serialize() map[string]interface{} {
 	}
 }
 
+// DeserializeItem reconstructs an Item from a JSON-friendly map
+func DeserializeItem(data map[string]interface{}) *Item {
+	if data == nil {
+		return nil
+	}
+
+	item := &Item{}
+
+	if v, ok := data["id"].(string); ok {
+		item.ID = v
+	}
+	if v, ok := data["name"].(string); ok {
+		item.Name = v
+	}
+	if v, ok := data["type"].(string); ok {
+		item.Type = ItemType(v)
+	}
+	if v, ok := data["rarity"].(string); ok {
+		item.Rarity = ItemRarity(v)
+	}
+	if v, ok := data["level"].(float64); ok {
+		item.Level = int(v)
+	}
+	if v, ok := data["setName"].(string); ok {
+		item.SetName = v
+	}
+	if v, ok := data["description"].(string); ok {
+		item.Description = v
+	}
+
+	item.Affixes = make([]ItemAffix, 0)
+	if affixesRaw, ok := data["affixes"].([]interface{}); ok {
+		for _, a := range affixesRaw {
+			if affixMap, ok := a.(map[string]interface{}); ok {
+				affix := ItemAffix{}
+				if v, ok := affixMap["stat"].(string); ok {
+					affix.Stat = StatType(v)
+				}
+				if v, ok := affixMap["value"].(float64); ok {
+					affix.Value = v
+				}
+				if v, ok := affixMap["min"].(float64); ok {
+					affix.Min = v
+				}
+				if v, ok := affixMap["max"].(float64); ok {
+					affix.Max = v
+				}
+				item.Affixes = append(item.Affixes, affix)
+			}
+		}
+	}
+
+	return item
+}
+
 // GroundItem represents an item dropped on the ground
 type GroundItem struct {
 	ID       string

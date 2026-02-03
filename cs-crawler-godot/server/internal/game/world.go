@@ -630,7 +630,9 @@ func (w *World) dropLoot(enemy *Enemy) {
 	groundItem := NewGroundItem(groundItemID, item, dropPos)
 
 	w.groundItems[groundItemID] = groundItem
-	log.Printf("[WORLD] Dropped loot: %s (%s) at position %v", item.Name, item.Rarity, dropPos)
+	if config.Server.Debug.LogItemDrops {
+		log.Printf("[WORLD] Dropped loot: %s (%s) at position %v", item.Name, item.Rarity, dropPos)
+	}
 }
 
 // findOpenDropPosition finds a nearby position that doesn't overlap existing ground items
@@ -721,7 +723,9 @@ func (w *World) PickupItem(playerID, groundItemID string) error {
 			_, equipErr := player.EquipItem(item)
 			if equipErr == nil {
 				autoEquipped = true
-				log.Printf("[WORLD] Player %s auto-equipped %s to slot %s", playerID, item.Name, slot)
+				if config.Server.Debug.LogItemPickups {
+					log.Printf("[WORLD] Player %s auto-equipped %s to slot %s", playerID, item.Name, slot)
+				}
 			}
 		}
 	}
@@ -740,7 +744,9 @@ func (w *World) PickupItem(playerID, groundItemID string) error {
 
 	// Remove from ground
 	delete(w.groundItems, groundItemID)
-	log.Printf("[WORLD] Player %s picked up %s (auto-equipped: %v)", playerID, item.Name, autoEquipped)
+	if config.Server.Debug.LogItemPickups {
+		log.Printf("[WORLD] Player %s picked up %s (auto-equipped: %v)", playerID, item.Name, autoEquipped)
+	}
 
 	return nil
 }
@@ -796,6 +802,8 @@ func (w *World) DropItemFromInventory(playerID string, source string, slotRaw in
 	groundItem := NewGroundItem(groundItemID, item, dropPos)
 	w.groundItems[groundItemID] = groundItem
 
-	log.Printf("[WORLD] Player %s dropped %s on ground", playerID, item.Name)
+	if config.Server.Debug.LogItemDrops {
+		log.Printf("[WORLD] Player %s dropped %s on ground", playerID, item.Name)
+	}
 	return nil
 }

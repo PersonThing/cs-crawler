@@ -106,13 +106,17 @@ func _on_navigation_finished() -> void:
 func _on_target_reached() -> void:
 	is_following_path = false
 
+var _move_target_seq: int = 0
+
 func set_move_target(target: Vector3) -> void:
-	print("[PLAYER] Click-to-move target set: ", target)
 	move_target = target
+	_move_target_seq += 1
+	var seq = _move_target_seq
 	await get_tree().process_frame  # Wait for NavigationServer
+	if seq != _move_target_seq:
+		return  # A newer target was set, skip this one
 	is_following_path = true
 	navigation_agent.target_position = target
-	print("[PLAYER] Navigation target set, is_following_path: ", is_following_path)
 
 var _debug_frame_count: int = 0
 

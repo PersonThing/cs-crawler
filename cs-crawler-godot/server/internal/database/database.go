@@ -2,8 +2,10 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -22,6 +24,18 @@ type DB struct {
 	conn *sql.DB
 }
 
+// PlayerData holds the serialized player state for persistence
+type PlayerData struct {
+	Username      string
+	PositionX     float64
+	PositionY     float64
+	PositionZ     float64
+	Rotation      float64
+	Health        float64
+	EquippedItems json.RawMessage // JSONB
+	BagItems      json.RawMessage // JSONB
+}
+
 // Connect establishes a connection to PostgreSQL
 func Connect(cfg Config) (*DB, error) {
 	connStr := fmt.Sprintf(
@@ -38,7 +52,7 @@ func Connect(cfg Config) (*DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	log.Printf("Connected to database: %s@%s:%s/%s", cfg.User, cfg.Host, cfg.Port, cfg.DBName)
+	log.Printf("[DB] Connected to database: %s@%s:%s/%s", cfg.User, cfg.Host, cfg.Port, cfg.DBName)
 
 	return &DB{conn: conn}, nil
 }
@@ -48,58 +62,85 @@ func (db *DB) Close() error {
 	return db.conn.Close()
 }
 
-// Character represents a player character
-type Character struct {
-	ID        string
-	AccountID string
-	Name      string
-	Level     int
+// EnsureSchema creates the players table if it doesn't exist
+func (db *DB) EnsureSchema() error {
+	query := `
+		CREATE TABLE IF NOT EXISTS players (
+			username VARCHAR(50) PRIMARY KEY,
+			position_x DOUBLE PRECISION DEFAULT 0,
+			position_y DOUBLE PRECISION DEFAULT 0,
+			position_z DOUBLE PRECISION DEFAULT 0,
+			rotation DOUBLE PRECISION DEFAULT 0,
+			health DOUBLE PRECISION DEFAULT 100,
+			equipped_items JSONB DEFAULT '{}',
+			bag_items JSONB DEFAULT '[]',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			last_saved TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+	`
+	_, err := db.conn.Exec(query)
+	if err != nil {
+		return fmt.Errorf("failed to create players table: %w", err)
+	}
+	log.Printf("[DB] Schema ensured (players table ready)")
+	return nil
 }
 
-// CreateCharacter creates a new character for an account
-func (db *DB) CreateCharacter(accountID, name string) (*Character, error) {
-	char := &Character{}
-
+// SavePlayer upserts player data into the database
+func (db *DB) SavePlayer(data *PlayerData) error {
 	query := `
-		INSERT INTO characters (account_id, name)
-		VALUES ($1, $2)
-		RETURNING id, account_id, name, level
+		INSERT INTO players (username, position_x, position_y, position_z, rotation, health, equipped_items, bag_items, last_saved)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (username) DO UPDATE SET
+			position_x = EXCLUDED.position_x,
+			position_y = EXCLUDED.position_y,
+			position_z = EXCLUDED.position_z,
+			rotation = EXCLUDED.rotation,
+			health = EXCLUDED.health,
+			equipped_items = EXCLUDED.equipped_items,
+			bag_items = EXCLUDED.bag_items,
+			last_saved = EXCLUDED.last_saved
 	`
 
-	err := db.conn.QueryRow(query, accountID, name).Scan(
-		&char.ID, &char.AccountID, &char.Name, &char.Level,
+	_, err := db.conn.Exec(query,
+		data.Username,
+		data.PositionX, data.PositionY, data.PositionZ,
+		data.Rotation,
+		data.Health,
+		data.EquippedItems,
+		data.BagItems,
+		time.Now(),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to save player %s: %w", data.Username, err)
+	}
+	return nil
+}
+
+// LoadPlayer loads player data from the database. Returns nil if not found.
+func (db *DB) LoadPlayer(username string) (*PlayerData, error) {
+	query := `
+		SELECT username, position_x, position_y, position_z, rotation, health, equipped_items, bag_items
+		FROM players
+		WHERE username = $1
+	`
+
+	data := &PlayerData{}
+	err := db.conn.QueryRow(query, username).Scan(
+		&data.Username,
+		&data.PositionX, &data.PositionY, &data.PositionZ,
+		&data.Rotation,
+		&data.Health,
+		&data.EquippedItems,
+		&data.BagItems,
 	)
 
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to create character: %w", err)
+		return nil, fmt.Errorf("failed to load player %s: %w", username, err)
 	}
 
-	return char, nil
-}
-
-// GetCharactersByAccount retrieves all characters for an account
-func (db *DB) GetCharactersByAccount(accountID string) ([]Character, error) {
-	query := `
-		SELECT id, account_id, name, level
-		FROM characters
-		WHERE account_id = $1
-		ORDER BY last_played DESC
-	`
-
-	rows, err := db.conn.Query(query, accountID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query characters: %w", err)
-	}
-	defer rows.Close()
-
-	var characters []Character
-	for rows.Next() {
-		var char Character
-		if err := rows.Scan(&char.ID, &char.AccountID, &char.Name, &char.Level); err != nil {
-			return nil, fmt.Errorf("failed to scan character: %w", err)
-		}
-		characters = append(characters, char)
-	}
-
-	return characters, nil
+	return data, nil
 }

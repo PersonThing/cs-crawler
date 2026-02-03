@@ -302,6 +302,44 @@ func (inv *Inventory) IsFull() bool {
 	return true
 }
 
+// DeserializeInventory reconstructs an Inventory from JSON-friendly maps
+func DeserializeInventory(equippedData map[string]interface{}, bagsData []interface{}) *Inventory {
+	inv := NewInventory()
+
+	// Restore equipment
+	for slotName, itemData := range equippedData {
+		if itemData == nil {
+			continue
+		}
+		if itemMap, ok := itemData.(map[string]interface{}); ok {
+			item := DeserializeItem(itemMap)
+			if item != nil {
+				slot := EquipmentSlot(slotName)
+				inv.Equipment[slot] = item
+				inv.updateSetTracking(item, true)
+			}
+		}
+	}
+
+	// Restore bag items
+	for i, itemData := range bagsData {
+		if i >= inv.MaxBagSlots {
+			break
+		}
+		if itemData == nil {
+			continue
+		}
+		if itemMap, ok := itemData.(map[string]interface{}); ok {
+			item := DeserializeItem(itemMap)
+			if item != nil {
+				inv.Bags[i] = item
+			}
+		}
+	}
+
+	return inv
+}
+
 // Serialize converts inventory to JSON-friendly format
 func (inv *Inventory) Serialize() map[string]interface{} {
 	equipment := make(map[string]interface{})

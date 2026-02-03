@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/yourusername/cs-crawler-godot/server/internal/config"
+	"github.com/yourusername/cs-crawler-godot/server/internal/database"
 	"github.com/yourusername/cs-crawler-godot/server/internal/game"
 )
 
@@ -22,6 +23,7 @@ var upgrader = websocket.Upgrader{
 type Server struct {
 	addr              string
 	gameServer        *game.Server
+	db                *database.DB
 	clients           map[*Client]bool
 	mu                sync.RWMutex
 	httpServer        *http.Server
@@ -30,10 +32,11 @@ type Server struct {
 }
 
 // NewServer creates a new network server
-func NewServer(addr string, gameServer *game.Server) *Server {
+func NewServer(addr string, gameServer *game.Server, db *database.DB) *Server {
 	s := &Server{
 		addr:                addr,
 		gameServer:          gameServer,
+		db:                  db,
 		clients:             make(map[*Client]bool),
 		worldShutdownTimers: make(map[string]*time.Timer),
 	}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/yourusername/cs-crawler-godot/server/internal/config"
 	"github.com/yourusername/cs-crawler-godot/server/internal/game"
 )
 
@@ -23,6 +24,7 @@ type Client struct {
 	server    *Server
 	send      chan []byte
 	playerID  string
+	username  string
 	worldID   string
 	modifiers map[string]bool // Active modifiers (modifier_type -> enabled)
 }
@@ -164,30 +166,41 @@ func (c *Client) handleJoin(msg map[string]interface{}) {
 
 	// Generate unique player ID
 	c.playerID = generatePlayerID()
-	log.Printf("[JOIN] Generated player ID: %s", c.playerID)
+	c.username = username
 
 	// Create player
 	player := game.NewPlayer(c.playerID, username)
-	world.AddPlayer(player)
 
-	c.worldID = worldID
-
-	// Send join confirmation with initial state
-	joinResponse := map[string]interface{}{
-		"type":     "joined",
-		"playerID": player.ID,
-		"worldID":  worldID,
-		"position": player.Position,
-		"stats": map[string]interface{}{
-			"health":    player.Health,
-			"maxHealth": player.MaxHealth,
-			"moveSpeed": player.MoveSpeed,
-		},
+	// Try to load saved data from database
+	savedData, err := c.server.db.LoadPlayer(username)
+	if err != nil {
+		log.Printf("[LOAD] Error loading player %s: %v", username, err)
+	} else if savedData != nil {
+		player.RestoreFromSave(
+			savedData.PositionX, savedData.PositionY, savedData.PositionZ,
+			savedData.Rotation, savedData.Health,
+			savedData.EquippedItems, savedData.BagItems,
+		)
+		if config.Server.Debug.LogPlayerLoads {
+			log.Printf("[LOAD] Restored player %s from database (pos: %.1f, %.1f, %.1f)",
+				username, savedData.PositionX, savedData.PositionY, savedData.PositionZ)
+		}
+	} else {
+		if config.Server.Debug.LogPlayerLoads {
+			log.Printf("[LOAD] No saved data for %s, creating fresh player", username)
+		}
 	}
 
-	log.Printf("[JOIN] Sending join confirmation: %+v", joinResponse)
+	world.AddPlayer(player)
+	c.worldID = worldID
+
+	// Send join confirmation with full state including inventory
+	joinResponse := player.Serialize()
+	joinResponse["type"] = "joined"
+	joinResponse["playerID"] = c.playerID
+	joinResponse["worldID"] = worldID
+
 	c.Send(joinResponse)
-	log.Printf("[JOIN] Join confirmation sent")
 
 	log.Printf("Player %s (%s) joined world %s", username, c.playerID, worldID)
 }
@@ -218,8 +231,6 @@ func (c *Client) handleMove(msg map[string]interface{}) {
 		rotation = rotationVal
 	}
 
-	// log.Printf("[MOVE] Player %s velocity: (%.2f, %.2f, %.2f), rotation: %.2f", c.playerID, velocity.X, velocity.Y, velocity.Z, rotation)
-
 	// Get world and player
 	world, ok := c.server.gameServer.GetWorld(c.worldID)
 	if !ok {
@@ -237,7 +248,9 @@ func (c *Client) handleMove(msg map[string]interface{}) {
 	// Update player velocity and rotation (server will update position in game loop)
 	player.SetVelocity(velocity)
 	player.Rotation = rotation
-	log.Printf("[MOVE] Player %s position: (%.2f, %.2f, %.2f)", c.playerID, player.Position.X, player.Position.Y, player.Position.Z)
+	if config.Server.Debug.LogPlayerMovement {
+		log.Printf("[MOVE] Player %s position: (%.2f, %.2f, %.2f)", c.playerID, player.Position.X, player.Position.Y, player.Position.Z)
+	}
 }
 
 // handleUseAbility processes ability usage
@@ -268,8 +281,10 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 		Z: getFloat64(directionMap, "z"),
 	}
 
-	log.Printf("[ABILITY] Player %s using ability %s in direction (%.2f, %.2f, %.2f)",
-		c.playerID, abilityType, direction.X, direction.Y, direction.Z)
+	if config.Server.Debug.LogAbilityCasts {
+		log.Printf("[ABILITY] Player %s using ability %s in direction (%.2f, %.2f, %.2f)",
+			c.playerID, abilityType, direction.X, direction.Y, direction.Z)
+	}
 
 	// Get world and player
 	world, ok := c.server.gameServer.GetWorld(c.worldID)
@@ -297,7 +312,9 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 		return
 	}
 
-	log.Printf("[ABILITY] Ability %s used successfully (category: %s)", abilityType, ability.Category)
+	if config.Server.Debug.LogAbilityCasts {
+		log.Printf("[ABILITY] Ability %s used successfully (category: %s)", abilityType, ability.Category)
+	}
 
 	// Handle pet and turret modifiers - these create minions
 	if c.modifiers["pet"] {
@@ -312,7 +329,9 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 		pet := game.NewPet(minionID, player.ID, player.Position, ability, abilityType, &modifier)
 		world.AddMinion(pet)
 
-		log.Printf("[ABILITY] Created pet minion %s for player %s", minionID, c.playerID)
+		if config.Server.Debug.LogAbilityCasts {
+			log.Printf("[ABILITY] Created pet minion %s for player %s", minionID, c.playerID)
+		}
 
 		// Broadcast pet creation
 		c.server.BroadcastToWorld(c.worldID, map[string]interface{}{
@@ -345,7 +364,9 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 		turret := game.NewTurret(minionID, player.ID, turretPosition, ability, abilityType, &modifier)
 		world.AddMinion(turret)
 
-		log.Printf("[ABILITY] Created turret minion %s for player %s", minionID, c.playerID)
+		if config.Server.Debug.LogAbilityCasts {
+			log.Printf("[ABILITY] Created turret minion %s for player %s", minionID, c.playerID)
+		}
 
 		// Broadcast turret creation
 		c.server.BroadcastToWorld(c.worldID, map[string]interface{}{
@@ -388,13 +409,17 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 		if c.modifiers["homing"] {
 			projectile.IsHoming = true
 			projectile.HomingTurnRate = 360.0 // degrees per second
-			log.Printf("[ABILITY] Applied homing modifier to projectile")
+			if config.Server.Debug.LogAbilityCasts {
+				log.Printf("[ABILITY] Applied homing modifier to projectile")
+			}
 		}
 
 		if c.modifiers["piercing"] {
 			projectile.IsPiercing = true
 			projectile.MaxPierces = 3 // Can hit up to 3 enemies
-			log.Printf("[ABILITY] Applied piercing modifier to projectile")
+			if config.Server.Debug.LogAbilityCasts {
+				log.Printf("[ABILITY] Applied piercing modifier to projectile")
+			}
 		}
 
 		world.AddProjectile(projectile)
@@ -409,7 +434,9 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 			"projectileID": projectileID,
 		})
 
-		log.Printf("[ABILITY] Projectile %s created for player %s", projectileID, c.playerID)
+		if config.Server.Debug.LogAbilityCasts {
+			log.Printf("[ABILITY] Projectile %s created for player %s", projectileID, c.playerID)
+		}
 
 	case game.AbilityCategoryInstant:
 		// Instant ability (e.g., Lightning) - check line collision immediately
@@ -439,7 +466,9 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 					enemy.ApplyStatusEffect(statusEffect)
 				}
 
-				log.Printf("[ABILITY] Instant ability hit enemy %s (died: %v)", enemy.ID, died)
+				if config.Server.Debug.LogAbilityCasts {
+					log.Printf("[ABILITY] Instant ability hit enemy %s (died: %v)", enemy.ID, died)
+				}
 			}
 		}
 
@@ -453,7 +482,9 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 			"hitTargets":  hitTargets,
 		})
 
-		log.Printf("[ABILITY] Instant ability %s hit %d targets", abilityType, len(hitTargets))
+		if config.Server.Debug.LogAbilityCasts {
+			log.Printf("[ABILITY] Instant ability %s hit %d targets", abilityType, len(hitTargets))
+		}
 
 	case game.AbilityCategoryMelee:
 		// Melee ability (e.g., BasicAttack) - check cone collision immediately
@@ -483,7 +514,9 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 					enemy.ApplyStatusEffect(statusEffect)
 				}
 
-				log.Printf("[ABILITY] Melee ability hit enemy %s (died: %v)", enemy.ID, died)
+				if config.Server.Debug.LogAbilityCasts {
+					log.Printf("[ABILITY] Melee ability hit enemy %s (died: %v)", enemy.ID, died)
+				}
 			}
 		}
 
@@ -497,7 +530,9 @@ func (c *Client) handleUseAbility(msg map[string]interface{}) {
 			"hitTargets":  hitTargets,
 		})
 
-		log.Printf("[ABILITY] Melee ability %s hit %d targets", abilityType, len(hitTargets))
+		if config.Server.Debug.LogAbilityCasts {
+			log.Printf("[ABILITY] Melee ability %s hit %d targets", abilityType, len(hitTargets))
+		}
 	}
 }
 
@@ -565,7 +600,9 @@ func (c *Client) handlePickupItem(msg map[string]interface{}) {
 		return
 	}
 
-	log.Printf("[PICKUP] Player %s picked up ground item %s", c.playerID, groundItemID)
+	if config.Server.Debug.LogItemPickups {
+		log.Printf("[PICKUP] Player %s picked up ground item %s", c.playerID, groundItemID)
+	}
 
 	// Get player for updated inventory data
 	player := world.GetPlayer(c.playerID)
@@ -815,7 +852,9 @@ func (c *Client) handleDropItem(msg map[string]interface{}) {
 		})
 	}
 
-	log.Printf("[DROP] Player %s dropped item from %s", c.playerID, source)
+	if config.Server.Debug.LogItemDrops {
+		log.Printf("[DROP] Player %s dropped item from %s", c.playerID, source)
+	}
 }
 
 // generateProjectileID creates a unique projectile ID
@@ -842,9 +881,19 @@ func (c *Client) Send(message map[string]interface{}) {
 func (c *Client) Close() {
 	close(c.send)
 
-	// Remove player from world
+	// Save and remove player from world
 	if c.worldID != "" && c.playerID != "" {
 		if world, ok := c.server.gameServer.GetWorld(c.worldID); ok {
+			// Save player data before removing
+			player := world.GetPlayer(c.playerID)
+			if player != nil {
+				if err := c.server.gameServer.SavePlayer(player); err != nil {
+					log.Printf("[SAVE] Error saving player %s on disconnect: %v", c.username, err)
+				} else if config.Server.Debug.LogPlayerSaves {
+					log.Printf("[SAVE] Saved player %s on disconnect", c.username)
+				}
+			}
+
 			world.RemovePlayer(c.playerID)
 			log.Printf("Player %s removed from world %s", c.playerID, c.worldID)
 		}
