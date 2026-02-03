@@ -13,6 +13,8 @@ var xr_interface: XRInterface = null
 var xr_origin: XROrigin3D = null
 var xr_camera: XRCamera3D = null
 var is_xr_active: bool = false
+var vr_hud_viewport: SubViewport = null
+var vr_hud_sprite: Sprite3D = null
 
 # Screen shake
 var screen_shake_amount: float = 0.0
@@ -70,6 +72,8 @@ func _ready() -> void:
 	_load_camera_config()
 	_setup_fixed_camera()
 	_setup_xr()
+	if is_xr_active:
+		_setup_vr_hud_billboard()
 	NetworkManager.message_received.connect(_on_message_received)
 	NetworkManager.disconnected_from_server.connect(_on_disconnected)
 	_setup_navigation_mesh()
@@ -114,7 +118,7 @@ func _setup_inventory_panel() -> void:
 		inventory_panel.name = "InventoryPanel"
 		inventory_panel.set_script(inventory_panel_script)
 		inventory_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-		add_child(inventory_panel)
+		_get_hud_parent().add_child(inventory_panel)
 
 func _setup_fps_label() -> void:
 	_fps_label = Label.new()
@@ -232,6 +236,9 @@ func _setup_xr() -> void:
 		xr_camera.name = "XRCamera3D"
 		xr_origin.add_child(xr_camera)
 
+		# Scale up the VR view so the player sees the world from above
+		xr_origin.scale = Vector3(10, 10, 10)
+
 		# Use XR camera for all raycasting and UI projection
 		camera = xr_camera
 
@@ -241,6 +248,49 @@ func _setup_xr() -> void:
 		print("[WORLD] OpenXR initialization failed, using flat camera")
 		is_xr_active = false
 
+func _get_hud_parent() -> Node:
+	if is_xr_active and vr_hud_viewport:
+		return vr_hud_viewport
+	return self
+
+func _setup_vr_hud_billboard() -> void:
+	# SubViewport for rendering 2D UI onto a texture
+	vr_hud_viewport = SubViewport.new()
+	vr_hud_viewport.name = "VRHudViewport"
+	vr_hud_viewport.size = Vector2i(1920, 1080)
+	vr_hud_viewport.transparent_bg = true
+	vr_hud_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vr_hud_viewport.disable_3d = true
+	vr_hud_viewport.gui_disable_input = false
+	add_child(vr_hud_viewport)
+
+	# Sprite3D to display the viewport texture as a billboard in front of the camera
+	vr_hud_sprite = Sprite3D.new()
+	vr_hud_sprite.name = "VRHudSprite"
+	vr_hud_sprite.texture = vr_hud_viewport.get_texture()
+	vr_hud_sprite.transparent = true
+	vr_hud_sprite.shaded = false
+	vr_hud_sprite.double_sided = false
+	vr_hud_sprite.no_depth_test = true
+	vr_hud_sprite.render_priority = 100
+	vr_hud_sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+
+	var mat = StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_texture = vr_hud_viewport.get_texture()
+	mat.albedo_color = Color(1.0, 1.0, 1.0, 0.85)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_BACK
+	mat.no_depth_test = true
+	vr_hud_sprite.material_override = mat
+
+	# 1920 * 0.0078 = ~1.5m wide billboard, placed 0.9m in front, slightly below eye level
+	vr_hud_sprite.pixel_size = 0.0078
+	vr_hud_sprite.position = Vector3(0.0, -3.0, -9.0)
+
+	xr_camera.add_child(vr_hud_sprite)
+	print("[WORLD] VR HUD billboard created")
+
 func _setup_enemy_ui_manager() -> void:
 	# Create enemy UI manager
 	if not has_node("EnemyUIManager"):
@@ -249,7 +299,7 @@ func _setup_enemy_ui_manager() -> void:
 		enemy_ui_manager.set_script(enemy_ui_manager_script)
 		enemy_ui_manager.set_anchors_preset(Control.PRESET_FULL_RECT)
 		enemy_ui_manager.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(enemy_ui_manager)
+		_get_hud_parent().add_child(enemy_ui_manager)
 		enemy_ui_manager.set_camera(camera)
 
 func _setup_ability_bar() -> void:
@@ -263,7 +313,7 @@ func _setup_ability_bar() -> void:
 		ability_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
 		ability_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Don't block mouse input
 
-		add_child(ability_bar)
+		_get_hud_parent().add_child(ability_bar)
 
 func _setup_modifier_panel() -> void:
 	# Create modifier panel UI if it doesn't exist
@@ -276,7 +326,7 @@ func _setup_modifier_panel() -> void:
 		modifier_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 		modifier_panel.mouse_filter = Control.MOUSE_FILTER_PASS  # Allow mouse interaction
 
-		add_child(modifier_panel)
+		_get_hud_parent().add_child(modifier_panel)
 
 func _on_message_received(message: Dictionary) -> void:
 	var msg_type = message.get("type", "")
