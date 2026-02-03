@@ -8,6 +8,12 @@ extends Node3D
 @onready var minions_container: Node3D = null  # Created dynamically if doesn't exist
 @onready var ground_items_container: Node3D = null  # Created dynamically if doesn't exist
 
+# VR / XR
+var xr_interface: XRInterface = null
+var xr_origin: XROrigin3D = null
+var xr_camera: XRCamera3D = null
+var is_xr_active: bool = false
+
 # Screen shake
 var screen_shake_amount: float = 0.0
 var screen_shake_decay: float = 5.0
@@ -29,7 +35,7 @@ var _hover_reticle_mesh: MeshInstance3D = null
 var _hover_reticle_last_pos: Vector3 = Vector3.ZERO
 var _hover_trail_timer: float = 0.0
 const HOVER_TRAIL_INTERVAL: float = 0.03
-const HOVER_TRAIL_MIN_DIST: float = 0.05
+const HOVER_TRAIL_MIN_DIST: float = 0.3
 
 # Active click indicator (persistent while moving)
 var _active_click_indicator: Node3D = null
@@ -51,6 +57,9 @@ var minions: Dictionary = {}
 var ground_items: Dictionary = {}
 var enemy_ui_manager: Control = null
 var inventory_panel: Control = null
+var _fps_label: Label = null
+var _player_labels_container: Control = null
+var _player_labels: Dictionary = {}  # player_id -> { "label": Label, "node": Node3D }
 
 # Pending pickup target (ground item ID to pick up when in range)
 var pending_pickup_target: String = ""
@@ -59,6 +68,8 @@ const PICKUP_RANGE: float = 3.0
 
 func _ready() -> void:
 	_load_camera_config()
+	_setup_fixed_camera()
+	_setup_xr()
 	NetworkManager.message_received.connect(_on_message_received)
 	NetworkManager.disconnected_from_server.connect(_on_disconnected)
 	_setup_navigation_mesh()
@@ -69,6 +80,8 @@ func _ready() -> void:
 	_setup_ground_items_container()
 	_setup_inventory_panel()
 	_setup_hover_reticle()
+	_setup_fps_label()
+	_setup_player_labels()
 
 	# Check if we're already joined (main menu handled the join)
 	if GameManager.local_player_id != "":
@@ -103,6 +116,69 @@ func _setup_inventory_panel() -> void:
 		inventory_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 		add_child(inventory_panel)
 
+func _setup_fps_label() -> void:
+	_fps_label = Label.new()
+	_fps_label.name = "FPSLabel"
+	_fps_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_fps_label.anchor_left = 1.0
+	_fps_label.anchor_right = 1.0
+	_fps_label.anchor_top = 0.0
+	_fps_label.anchor_bottom = 0.0
+	_fps_label.offset_left = -120
+	_fps_label.offset_right = -10
+	_fps_label.offset_top = 10
+	_fps_label.offset_bottom = 30
+	_fps_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
+	_fps_label.visible = true
+	add_child(_fps_label)
+
+func _setup_player_labels() -> void:
+	_player_labels_container = Control.new()
+	_player_labels_container.name = "PlayerLabelsContainer"
+	_player_labels_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_player_labels_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_player_labels_container)
+
+func _add_player_label(player_id: String, player_node: Node3D, display_name: String) -> void:
+	if _player_labels.has(player_id):
+		return
+	var label = Label.new()
+	label.name = "PlayerLabel_" + player_id
+	label.text = display_name
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", Color(1, 1, 1))
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	label.add_theme_constant_override("outline_size", 2)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_player_labels_container.add_child(label)
+	_player_labels[player_id] = { "label": label, "node": player_node }
+
+func _remove_player_label(player_id: String) -> void:
+	if _player_labels.has(player_id):
+		_player_labels[player_id]["label"].queue_free()
+		_player_labels.erase(player_id)
+
+func _update_player_labels() -> void:
+	if not camera:
+		return
+	for pid in _player_labels.keys():
+		var data = _player_labels[pid]
+		var player_node = data["node"]
+		var label = data["label"]
+		if not is_instance_valid(player_node):
+			_remove_player_label(pid)
+			continue
+		var world_pos = player_node.global_position + Vector3(0, 2.2, 0)
+		var screen_pos = camera.unproject_position(world_pos)
+		var camera_to_player = world_pos - camera.global_position
+		var camera_forward = -camera.global_transform.basis.z
+		if camera_to_player.dot(camera_forward) > 0:
+			label.position = screen_pos - Vector2(label.size.x / 2, label.size.y)
+			label.visible = true
+		else:
+			label.visible = false
+
 func _load_camera_config() -> void:
 	var config_loader = get_node_or_null("/root/ConfigLoader")
 	if not config_loader:
@@ -128,6 +204,42 @@ func _load_camera_config() -> void:
 		screen_shake_decay = shake_config["decay"]
 
 	print("[WORLD] Loaded camera config - offset: ", camera_base_offset, " deadzone: ", camera_deadzone)
+
+func _setup_fixed_camera() -> void:
+	# Set camera rotation once based on offset so it looks at the origin, then never rotate again
+	camera.global_position = camera_base_offset
+	camera.look_at(Vector3.ZERO, Vector3.UP)
+
+func _setup_xr() -> void:
+	# Only attempt XR when launched with --xr flag
+	if not OS.get_cmdline_args().has("--xr"):
+		print("[WORLD] XR not requested, using flat camera")
+		is_xr_active = false
+		return
+
+	xr_interface = XRServer.find_interface("OpenXR")
+	if xr_interface and xr_interface.initialize():
+		print("[WORLD] OpenXR initialized successfully")
+		get_viewport().use_xr = true
+		is_xr_active = true
+
+		# Create XR origin and camera dynamically
+		xr_origin = XROrigin3D.new()
+		xr_origin.name = "XROrigin3D"
+		add_child(xr_origin)
+
+		xr_camera = XRCamera3D.new()
+		xr_camera.name = "XRCamera3D"
+		xr_origin.add_child(xr_camera)
+
+		# Use XR camera for all raycasting and UI projection
+		camera = xr_camera
+
+		# Disable the flat camera
+		$Camera3D.current = false
+	else:
+		print("[WORLD] OpenXR initialization failed, using flat camera")
+		is_xr_active = false
 
 func _setup_enemy_ui_manager() -> void:
 	# Create enemy UI manager
@@ -202,6 +314,7 @@ func _spawn_local_player(player_id: String) -> void:
 	local_player.is_local = true
 	local_player.player_id = player_id
 	players_container.add_child(local_player)
+	_add_player_label(player_id, local_player, "You")
 
 	# Initialize camera focus point at player spawn
 	camera_focus_point = local_player.global_position
@@ -232,6 +345,8 @@ func _handle_world_state(state: Dictionary) -> void:
 				remote_player.player_id = pid
 				remote_players[pid] = remote_player
 				players_container.add_child(remote_player)
+				var username = player_data.get("username", "Player")
+				_add_player_label(pid, remote_player, username)
 
 			if is_instance_valid(remote_players[pid]):
 				remote_players[pid].apply_server_state(player_data)
@@ -464,11 +579,13 @@ func _update_camera_with_deadzone(delta: float) -> void:
 		)
 		target_pos += shake_offset
 
-	# Move camera to target position
-	camera.global_position = camera.global_position.lerp(target_pos, delta * camera_follow_speed)
-
-	# Camera rotation - fixed angle, looking at focus point
-	camera.look_at(camera_focus_point, Vector3.UP)
+	if is_xr_active:
+		# VR mode: position the XR origin.
+		# The headset adds relative head rotation on top of this base orientation.
+		xr_origin.global_position = xr_origin.global_position.lerp(target_pos, delta * camera_follow_speed)
+	else:
+		# Flat mode: move camera directly (rotation is fixed, only position changes)
+		camera.global_position = camera.global_position.lerp(target_pos, delta * camera_follow_speed)
 
 func add_screen_shake(amount: float) -> void:
 	screen_shake_amount += amount
@@ -677,7 +794,9 @@ func _handle_death_event(death_event: Dictionary) -> void:
 
 	print("[WORLD] Entity died: ", entity_id, " (", entity_type, ")")
 
-	# Death animation is handled by the entity itself via server state
+	# Remove health bar immediately on death
+	if entity_type == "enemy" and enemy_ui_manager:
+		enemy_ui_manager.unregister_enemy(entity_id)
 
 func _handle_item_picked_up(message: Dictionary) -> void:
 	var ground_item_id = message.get("groundItemID", "")
@@ -731,12 +850,12 @@ func _create_minion(minion_data: Dictionary) -> Node3D:
 
 	# Create visual representation based on minion type
 	if minion_type == "pet":
-		# Create a small animated pet (smaller sphere that follows the player)
+		# Create a small animated pet (cube that follows the player)
 		var mesh_instance = MeshInstance3D.new()
-		var sphere = SphereMesh.new()
-		sphere.radius = 0.3
-		sphere.height = 0.6
-		mesh_instance.mesh = sphere
+		var cube = BoxMesh.new()
+		cube.size = Vector3(0.4, 0.4, 0.4)
+		mesh_instance.mesh = cube
+		mesh_instance.rotation_degrees = Vector3(45, 45, 0)  # Diamond orientation
 
 		# Color based on ability type
 		var material = StandardMaterial3D.new()
@@ -770,7 +889,7 @@ func _create_minion(minion_data: Dictionary) -> Node3D:
 		var cone = CylinderMesh.new()
 		cone.top_radius = 0.1
 		cone.bottom_radius = 0.4
-		cone.height = 0.8
+		cone.height = 1.6
 		mesh_instance.mesh = cone
 
 		# Color based on ability type
@@ -865,7 +984,7 @@ func _setup_navigation_mesh() -> void:
 	nav_region.navigation_mesh = nav_mesh
 
 func _setup_hover_reticle() -> void:
-	# Create a persistent hover reticle (small white ring)
+	# Create a persistent hover reticle (white ring outline)
 	_hover_reticle = Node3D.new()
 	_hover_reticle.name = "HoverReticle"
 	add_child(_hover_reticle)
@@ -881,10 +1000,10 @@ func _setup_hover_reticle() -> void:
 	_hover_reticle_mesh.mesh = hover_torus
 	var mat = StandardMaterial3D.new()
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(1, 1, 1, 0.35)
+	mat.albedo_color = Color(1, 1, 1, 0.2)
 	mat.emission_enabled = true
 	mat.emission = Color(1, 1, 1, 1)
-	mat.emission_energy_multiplier = 2.0
+	mat.emission_energy_multiplier = 1.0
 	mat.disable_receive_shadows = true
 	_hover_reticle_mesh.material_override = mat
 	_hover_reticle.add_child(_hover_reticle_mesh)
@@ -900,10 +1019,10 @@ func _spawn_hover_trail(pos: Vector3) -> void:
 	ghost.position = pos
 	var mat = StandardMaterial3D.new()
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(1, 1, 1, 0.25)
+	mat.albedo_color = Color(1, 1, 1, 0.12)
 	mat.emission_enabled = true
 	mat.emission = Color(1, 1, 1, 1)
-	mat.emission_energy_multiplier = 1.5
+	mat.emission_energy_multiplier = 0.5
 	mat.disable_receive_shadows = true
 	ghost.material_override = mat
 	add_child(ghost)
@@ -928,6 +1047,11 @@ func _raycast_ground(screen_pos: Vector2) -> Variant:
 	return null
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F12:
+		_fps_label.visible = not _fps_label.visible
+		get_viewport().set_input_as_handled()
+		return
+
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			# If inventory has an item on cursor, drop it on the ground instead of moving
@@ -1036,13 +1160,13 @@ func _clear_click_indicator() -> void:
 		_active_click_mesh = null
 
 func _process(delta: float) -> void:
+	if _fps_label.visible:
+		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
+
 	if is_instance_valid(local_player):
 		# Clear click indicator when player stops following path
 		if not local_player.is_following_path and not _is_mouse_held:
 			_clear_click_indicator()
-
-		# Update camera with deadzone and separation
-		_update_camera_with_deadzone(delta)
 
 		# Check if we've reached a pending pickup target
 		if pending_pickup_target != "":
@@ -1050,3 +1174,8 @@ func _process(delta: float) -> void:
 			if distance <= PICKUP_RANGE:
 				_send_pickup_request(pending_pickup_target)
 				pending_pickup_target = ""
+
+func _physics_process(delta: float) -> void:
+	if is_instance_valid(local_player):
+		_update_camera_with_deadzone(delta)
+	_update_player_labels()

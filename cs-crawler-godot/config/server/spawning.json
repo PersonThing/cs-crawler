@@ -4,9 +4,9 @@
     "default": {
       "pattern": "circle",
       "enemyType": "basic",
-      "count": 5,
-      "radius": 10.0,
-      "centerPosition": [0, 0, 0]
+      "count": 10,
+      "radius": 2.0,
+      "centerPosition": [5.0, 0, 0]
     },
     "arena": {
       "pattern": "grid",

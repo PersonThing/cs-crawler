@@ -22,6 +22,8 @@ func connect_to_server(url: String = SERVER_URL) -> void:
 		return
 
 	_client = WebSocketPeer.new()
+	_client.inbound_buffer_size = 1024 * 1024  # 1 MB
+	_client.max_queued_packets = 4096
 	var err = _client.connect_to_url(url)
 
 	if err != OK:
@@ -43,8 +45,7 @@ func disconnect_from_server() -> void:
 	print("Disconnected from server")
 
 func send_message(message: Dictionary) -> void:
-	if not _connected:
-		push_error("Cannot send message: not connected to server")
+	if not _connected or not _client or _client.get_ready_state() != WebSocketPeer.STATE_OPEN:
 		return
 
 	var json_string = JSON.stringify(message)

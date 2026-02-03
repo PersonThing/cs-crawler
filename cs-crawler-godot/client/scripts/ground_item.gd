@@ -38,7 +38,7 @@ const RARITY_CONFIG = {
 		"emission_energy": 1.5,
 		"label_color": Color(0.5, 0.7, 1.0),
 		"particles": true,
-		"bob_height": 0.15,  # Rare items float a bit
+		"bob_height": 0.0,  # Rare items don't float
 	},
 	"unique": {
 		"color": Color(1.0, 0.5, 0.0, 0.9),

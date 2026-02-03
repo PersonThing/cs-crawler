@@ -20,11 +20,23 @@ func _ready() -> void:
 	# Create server IP input if it doesn't exist
 	_setup_server_ip_input()
 
+	# Set default username (overridden by saved settings if available)
+	username_input.text = "Player%d" % randi_range(1000, 9999)
+
 	# Load saved settings
 	_load_settings()
 
-	# Set default username
-	username_input.text = "Player%d" % randi_range(1000, 9999)
+	# Connect Enter key on inputs to trigger connect
+	username_input.text_submitted.connect(_on_text_submitted)
+	if server_ip_input:
+		server_ip_input.text_submitted.connect(_on_text_submitted)
+
+	# Auto-focus username field so Enter works immediately
+	username_input.grab_focus()
+	username_input.caret_column = username_input.text.length()
+
+func _on_text_submitted(_text: String) -> void:
+	_on_connect_pressed()
 
 func _setup_server_ip_input() -> void:
 	# Check if server IP input already exists
@@ -60,6 +72,9 @@ func _load_settings() -> void:
 		server_ip = config.get_value("network", "server_ip", DEFAULT_SERVER_IP)
 		if server_ip_input:
 			server_ip_input.text = server_ip
+		var saved_username = config.get_value("player", "username", "")
+		if saved_username != "":
+			username_input.text = saved_username
 		print("[MAIN_MENU] Loaded server IP: ", server_ip)
 	else:
 		print("[MAIN_MENU] No saved settings, using default: ", DEFAULT_SERVER_IP)
@@ -67,6 +82,7 @@ func _load_settings() -> void:
 func _save_settings() -> void:
 	var config = ConfigFile.new()
 	config.set_value("network", "server_ip", server_ip)
+	config.set_value("player", "username", username_input.text.strip_edges())
 	config.save(SETTINGS_FILE)
 	print("[MAIN_MENU] Saved server IP: ", server_ip)
 

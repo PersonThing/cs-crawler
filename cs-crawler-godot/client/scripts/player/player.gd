@@ -1,8 +1,6 @@
 extends CharacterBody3D
 ## Player controller with client prediction
 
-@onready var name_label: Label3D = $NameLabel
-
 var player_id: String = ""
 var is_local: bool = false
 var move_speed: float = 5.0
@@ -28,15 +26,12 @@ var ability_cooldown_times: Dictionary = {}  # Loaded from config
 func _ready() -> void:
 	print("[PLAYER] _ready called - is_local: ", is_local, " player_id: ", player_id)
 	if is_local:
-		name_label.text = "You"
 		_setup_navigation()
 		_load_ability_configs()
 		print("[PLAYER] Navigation setup complete for local player")
 
 		# Connect to network messages for ability feedback
 		NetworkManager.message_received.connect(_on_message_received)
-	else:
-		name_label.text = "Player"
 
 func _load_ability_configs() -> void:
 	var config_loader = get_node_or_null("/root/ConfigLoader")

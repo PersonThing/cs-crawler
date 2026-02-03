@@ -19,16 +19,16 @@ test-coverage: ## Run tests with coverage report
 run: ## Run the server locally
 	go run ./cmd/gameserver
 
-docker-up: ## Start all services with Docker Compose
+up: ## Start all services with Docker Compose
 	docker-compose up -d
 
-docker-down: ## Stop all services
+down: ## Stop all services
 	docker-compose down
 
-docker-logs: ## View logs from all services
+logs: ## View logs from all services
 	docker-compose logs -f
 
-docker-rebuild: ## Rebuild and restart services
+rebuild: ## Rebuild and restart services
 	docker-compose up -d --build
 
 clean: ## Clean build artifacts
