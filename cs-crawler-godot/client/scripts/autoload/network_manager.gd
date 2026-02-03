@@ -9,7 +9,7 @@ signal connection_error(error: String)
 
 const SERVER_URL = "ws://localhost:7000/ws"
 
-var _client: WebSocketPeer = null
+var _client = null  # Untyped to allow test mocking
 var _connected: bool = false
 
 func _ready() -> void:

@@ -28,13 +28,13 @@ Create test scripts in `tests/` directory with prefix `test_`:
 extends GutTest
 
 func test_something():
-    assert_eq(1 + 1, 2)
+	assert_eq(1 + 1, 2)
 
 func test_signal_emission():
-    var emitter = Node.new()
-    watch_signals(emitter)
-    emitter.emit_signal("some_signal")
-    assert_signal_emitted(emitter, "some_signal")
+	var emitter = Node.new()
+	watch_signals(emitter)
+	emitter.emit_signal("some_signal")
+	assert_signal_emitted(emitter, "some_signal")
 ```
 
 ## Gut Assertions
