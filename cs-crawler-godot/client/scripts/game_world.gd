@@ -8,6 +8,12 @@ extends Node3D
 @onready var minions_container: Node3D = null  # Created dynamically if doesn't exist
 @onready var ground_items_container: Node3D = null  # Created dynamically if doesn't exist
 
+# VR / XR
+var xr_interface: XRInterface = null
+var xr_origin: XROrigin3D = null
+var xr_camera: XRCamera3D = null
+var is_xr_active: bool = false
+
 # Screen shake
 var screen_shake_amount: float = 0.0
 var screen_shake_decay: float = 5.0
@@ -46,6 +52,7 @@ const PICKUP_RANGE: float = 3.0
 
 func _ready() -> void:
 	_load_camera_config()
+	_setup_xr()
 	NetworkManager.message_received.connect(_on_message_received)
 	NetworkManager.disconnected_from_server.connect(_on_disconnected)
 	_setup_navigation_mesh()
@@ -115,6 +122,31 @@ func _load_camera_config() -> void:
 		screen_shake_decay = shake_config["decay"]
 
 	print("[WORLD] Loaded camera config - offset: ", camera_base_offset, " deadzone: ", camera_deadzone)
+
+func _setup_xr() -> void:
+	xr_interface = XRServer.find_interface("OpenXR")
+	if xr_interface and xr_interface.initialize():
+		print("[WORLD] OpenXR initialized successfully")
+		get_viewport().use_xr = true
+		is_xr_active = true
+
+		# Create XR origin and camera dynamically
+		xr_origin = XROrigin3D.new()
+		xr_origin.name = "XROrigin3D"
+		add_child(xr_origin)
+
+		xr_camera = XRCamera3D.new()
+		xr_camera.name = "XRCamera3D"
+		xr_origin.add_child(xr_camera)
+
+		# Use XR camera for all raycasting and UI projection
+		camera = xr_camera
+
+		# Disable the flat camera
+		$Camera3D.current = false
+	else:
+		print("[WORLD] OpenXR not available, using flat camera")
+		is_xr_active = false
 
 func _setup_enemy_ui_manager() -> void:
 	# Create enemy UI manager
@@ -451,11 +483,14 @@ func _update_camera_with_deadzone(delta: float) -> void:
 		)
 		target_pos += shake_offset
 
-	# Move camera to target position
-	camera.global_position = camera.global_position.lerp(target_pos, delta * camera_follow_speed)
-
-	# Camera rotation - fixed angle, looking at focus point
-	camera.look_at(camera_focus_point, Vector3.UP)
+	if is_xr_active:
+		# VR mode: position the XR origin.
+		# The headset adds relative head rotation on top of this base orientation.
+		xr_origin.global_position = xr_origin.global_position.lerp(target_pos, delta * camera_follow_speed)
+	else:
+		# Flat mode: move camera directly
+		camera.global_position = camera.global_position.lerp(target_pos, delta * camera_follow_speed)
+		camera.look_at(camera_focus_point, Vector3.UP)
 
 func add_screen_shake(amount: float) -> void:
 	screen_shake_amount += amount
