@@ -17,6 +17,10 @@ type World struct {
 	mu      sync.RWMutex
 	created time.Time
 
+	// Procedural level
+	Level         *Level
+	levelSent     map[string]bool // Track which players have received level data
+
 	// Entities
 	players     map[string]*Player
 	enemies     map[string]*Enemy
@@ -38,6 +42,7 @@ func NewWorld(id string) *World {
 	w := &World{
 		ID:                id,
 		created:           time.Now(),
+		levelSent:         make(map[string]bool),
 		players:           make(map[string]*Player),
 		enemies:           make(map[string]*Enemy),
 		projectiles:       make(map[string]*Projectile),
@@ -49,10 +54,55 @@ func NewWorld(id string) *World {
 		nextItemID:        1,
 	}
 
-	// Spawn initial enemies
-	w.spawnInitialEnemies()
+	// Generate procedural level
+	seed := time.Now().UnixNano()
+	levelGen := NewLevelGenerator(seed)
+	w.Level = levelGen.GenerateLevel(100.0, 100.0, 4) // 100x100 world, ~8-12 rooms
+
+	log.Printf("[WORLD] Generated level with %d rooms, seed: %d", len(w.Level.Rooms), seed)
+
+	// Spawn enemies based on level spawn points
+	w.spawnLevelEnemies()
 
 	return w
+}
+
+// spawnLevelEnemies spawns enemies based on the procedural level
+func (w *World) spawnLevelEnemies() {
+	if w.Level == nil {
+		log.Println("[WORLD] No level data, using fallback spawning")
+		w.spawnInitialEnemies()
+		return
+	}
+
+	spawnTime := time.Now().UnixNano()
+	enemyCount := 0
+
+	for _, room := range w.Level.Rooms {
+		for spawnIdx, spawn := range room.EnemySpawns {
+			for i := 0; i < spawn.Count; i++ {
+				// Pick random enemy type from spawn point
+				enemyType := spawn.EnemyTypes[rand.Intn(len(spawn.EnemyTypes))]
+
+				// Spread enemies around spawn position
+				offsetX := (rand.Float64() - 0.5) * 3.0
+				offsetZ := (rand.Float64() - 0.5) * 3.0
+
+				pos := Vector3{
+					X: spawn.Position.X + offsetX,
+					Y: spawn.Position.Y,
+					Z: spawn.Position.Z + offsetZ,
+				}
+
+				enemyID := fmt.Sprintf("enemy-%d-%s-%d-%d", spawnTime, room.ID, spawnIdx, i)
+				enemy := NewEnemy(enemyID, enemyType, pos)
+				w.enemies[enemyID] = enemy
+				enemyCount++
+			}
+		}
+	}
+
+	log.Printf("[WORLD] Spawned %d enemies from level spawn points", enemyCount)
 }
 
 // spawnInitialEnemies spawns starting enemies in the world
@@ -554,7 +604,7 @@ func (w *World) Update(delta time.Duration) {
 	// Check if all remaining enemies are dead or if there are no enemies (for respawning)
 	if len(w.enemies) == 0 {
 		log.Println("[WORLD] All enemies removed, respawning...")
-		w.spawnInitialEnemies()
+		w.spawnLevelEnemies()
 	} else {
 		allDead := true
 		for _, enemy := range w.enemies {
@@ -570,7 +620,7 @@ func (w *World) Update(delta time.Duration) {
 			for id := range w.enemies {
 				delete(w.enemies, id)
 			}
-			w.spawnInitialEnemies()
+			w.spawnLevelEnemies()
 		}
 	}
 }
@@ -581,6 +631,40 @@ func (w *World) AddPlayer(player *Player) {
 	defer w.mu.Unlock()
 
 	w.players[player.ID] = player
+
+	// Set player spawn position based on level
+	if w.Level != nil {
+		player.Position = w.Level.SpawnPoint
+		player.Position.Y = 0
+	}
+}
+
+// NeedsLevelData returns true if a player hasn't received level data yet
+func (w *World) NeedsLevelData(playerID string) bool {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	return !w.levelSent[playerID]
+}
+
+// MarkLevelSent marks that a player has received level data
+func (w *World) MarkLevelSent(playerID string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	w.levelSent[playerID] = true
+}
+
+// GetLevelData returns the serialized level data
+func (w *World) GetLevelData() map[string]interface{} {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	if w.Level == nil {
+		return nil
+	}
+
+	return w.Level.Serialize()
 }
 
 // GetPlayer returns a specific player by ID

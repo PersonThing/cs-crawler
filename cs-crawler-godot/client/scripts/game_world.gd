@@ -27,6 +27,9 @@ var camera_follow_speed: float = 4.0
 var camera_focus_point: Vector3 = Vector3.ZERO
 
 var player_scene = preload("res://scenes/player/player.tscn")
+var level_manager_script = preload("res://scripts/level/level_manager.gd")
+var level_manager: Node3D = null
+var has_level_data: bool = false
 
 # Mouse tracking for click-and-drag movement
 var _is_mouse_held: bool = false
@@ -51,9 +54,13 @@ var modifier_panel_script = preload("res://scripts/ui/modifier_panel.gd")
 var inventory_panel_script = preload("res://scripts/ui/inventory_panel.gd")
 var ground_item_script = preload("res://scripts/ground_item.gd")
 var ai_debug_overlay_script = preload("res://scripts/ui/ai_debug_overlay.gd")
+var game_chat_script = preload("res://scripts/ui/game_chat.gd")
+var minimap_script = preload("res://scripts/ui/minimap.gd")
 
 var local_player: Node3D = null
 var ai_debug_overlay: CanvasLayer = null
+var game_chat: Control = null
+var minimap: Control = null
 var remote_players: Dictionary = {}
 var enemies: Dictionary = {}
 var projectiles: Dictionary = {}
@@ -86,6 +93,7 @@ func _ready() -> void:
 		_setup_vr_hud_billboard()
 	NetworkManager.message_received.connect(_on_message_received)
 	NetworkManager.disconnected_from_server.connect(_on_disconnected)
+	_setup_level_manager()
 	_setup_navigation_mesh()
 	_setup_enemy_ui_manager()
 	_setup_ability_bar()
@@ -98,6 +106,8 @@ func _ready() -> void:
 	_setup_player_labels()
 	_setup_ai_debug_overlay()
 	_setup_player_health_bar()
+	_setup_game_chat()
+	_setup_minimap()
 
 	# Check if we're already joined (main menu handled the join)
 	if GameManager.local_player_id != "":
@@ -105,6 +115,25 @@ func _ready() -> void:
 		_spawn_local_player(GameManager.local_player_id)
 	else:
 		print("[WORLD] Waiting for joined message...")
+
+	# Check if level data was received during scene transition
+	if GameManager.pending_level_data.size() > 0:
+		print("[WORLD] Found pending level data from scene transition")
+		_handle_level_data(GameManager.pending_level_data)
+		GameManager.pending_level_data = {}  # Clear after processing
+	else:
+		print("[WORLD] No pending level data, will wait for level_data message")
+		# Start a timer to check if we need to create a fallback level
+		var timer = get_tree().create_timer(3.0)
+		timer.timeout.connect(_check_level_loaded)
+
+func _setup_level_manager() -> void:
+	## Setup the procedural level manager
+	level_manager = Node3D.new()
+	level_manager.name = "LevelManager"
+	level_manager.set_script(level_manager_script)
+	add_child(level_manager)
+	print("[WORLD] Level manager initialized")
 
 func _setup_minions_container() -> void:
 	# Create minions container if it doesn't exist
@@ -154,6 +183,19 @@ func _setup_ai_debug_overlay() -> void:
 	ai_debug_overlay.name = "AIDebugOverlay"
 	ai_debug_overlay.game_world = self
 	add_child(ai_debug_overlay)
+
+func _setup_game_chat() -> void:
+	game_chat = Control.new()
+	game_chat.name = "GameChat"
+	game_chat.set_script(game_chat_script)
+	_get_hud_parent().add_child(game_chat)
+
+func _setup_minimap() -> void:
+	minimap = Control.new()
+	minimap.name = "Minimap"
+	minimap.set_script(minimap_script)
+	minimap.set_game_world(self)
+	_get_hud_parent().add_child(minimap)
 
 func _setup_player_health_bar() -> void:
 	# Create 2D UI container for player health (same style as enemy health bars)
@@ -475,6 +517,8 @@ func _on_message_received(message: Dictionary) -> void:
 	match msg_type:
 		"joined":
 			_handle_joined(message)
+		"level_data":
+			_handle_level_data(message)
 		"world_state":
 			_handle_world_state(message)
 		"ability_cast":
@@ -485,6 +529,90 @@ func _on_message_received(message: Dictionary) -> void:
 			_handle_inventory_update(message)
 		"item_unequipped":
 			_handle_inventory_update(message)
+
+func _check_level_loaded() -> void:
+	## Called after timeout to check if level was loaded
+	if not has_level_data:
+		print("[WORLD] No level data received after 3 seconds, creating fallback level")
+		_create_fallback_level()
+
+func _create_fallback_level() -> void:
+	## Create a simple fallback level for testing
+	print("[WORLD] Creating fallback test level")
+
+	# Hide the old ground
+	var old_ground = get_node_or_null("Ground")
+	if old_ground:
+		old_ground.visible = false
+
+	# Create simple test level data
+	var test_level_data = {
+		"id": "fallback-level",
+		"seed": 12345,
+		"startRoomID": "room-0",
+		"bossRoomID": "room-1",
+		"spawnPoint": {"x": 0.0, "y": 0.0, "z": 0.0},
+		"rooms": [
+			{
+				"id": "room-0",
+				"type": "start",
+				"position": {"x": 0.0, "y": 0.0, "z": 0.0},
+				"size": {"x": 20.0, "y": 4.0, "z": 20.0},
+				"rotation": 0,
+				"connections": [{"targetRoomID": "room-1", "direction": "east", "doorPosition": {"x": 10.0, "y": 0.0, "z": 0.0}}],
+				"enemySpawns": [],
+				"lootSpawns": [],
+				"lighting": {"ambientColor": [0.8, 0.9, 1.0], "ambientIntensity": 0.6, "fogEnabled": false}
+			},
+			{
+				"id": "room-1",
+				"type": "combat",
+				"position": {"x": 30.0, "y": 0.0, "z": 0.0},
+				"size": {"x": 20.0, "y": 4.0, "z": 20.0},
+				"rotation": 0,
+				"connections": [{"targetRoomID": "room-0", "direction": "west", "doorPosition": {"x": 20.0, "y": 0.0, "z": 0.0}}],
+				"enemySpawns": [],
+				"lootSpawns": [],
+				"lighting": {"ambientColor": [0.6, 0.5, 0.4], "ambientIntensity": 0.4, "fogEnabled": true, "fogColor": [0.1, 0.1, 0.1], "fogDensity": 0.01}
+			}
+		]
+	}
+
+	if level_manager:
+		level_manager.load_level(test_level_data)
+		has_level_data = true
+	else:
+		print("[WORLD] ERROR: Level manager is null, cannot create fallback level")
+
+func _handle_level_data(message: Dictionary) -> void:
+	## Handle procedural level data from server
+	print("[WORLD] Received level data: ", message.keys())
+	print("[WORLD] Level ID: ", message.get("id", "none"))
+	print("[WORLD] Rooms count: ", message.get("rooms", []).size())
+
+	if level_manager:
+		print("[WORLD] Level manager exists, loading level...")
+		level_manager.load_level(message)
+		has_level_data = true
+
+		# Hide the old ground plane if it exists
+		var old_ground = get_node_or_null("Ground")
+		if old_ground:
+			old_ground.visible = false
+			print("[WORLD] Hidden old ground plane")
+
+		# Update spawn point if we have a local player
+		if is_instance_valid(local_player):
+			var spawn_point = level_manager.get_spawn_point()
+			local_player.global_position = spawn_point
+			camera_focus_point = spawn_point
+			print("[WORLD] Moved player to spawn point: ", spawn_point)
+
+		# Update minimap with level data
+		if minimap:
+			minimap.set_level_manager(level_manager)
+	else:
+		print("[WORLD] ERROR: Level manager is null!")
 
 func _handle_joined(message: Dictionary) -> void:
 	var player_id = message.get("playerID", "")
@@ -516,8 +644,18 @@ func _spawn_local_player(player_id: String) -> void:
 	if local_player.has_signal("damage_taken"):
 		local_player.damage_taken.connect(_on_player_damage_taken)
 
+	# Use level spawn point if available
+	if has_level_data and level_manager:
+		var spawn_point = level_manager.get_spawn_point()
+		local_player.global_position = spawn_point
+		print("[WORLD] Using level spawn point: ", spawn_point)
+
 	# Initialize camera focus point at player spawn
 	camera_focus_point = local_player.global_position
+
+	# Update minimap with local player
+	if minimap:
+		minimap.set_local_player(local_player)
 
 	print("[WORLD] Spawned local player: ", player_id, " at position: ", local_player.global_position)
 	print("[WORLD] local_player reference valid: ", local_player != null)
@@ -550,6 +688,10 @@ func _handle_world_state(state: Dictionary) -> void:
 
 			if is_instance_valid(remote_players[pid]):
 				remote_players[pid].apply_server_state(player_data)
+
+	# Update minimap with remote players
+	if minimap:
+		minimap.update_remote_players(remote_players)
 
 	# Handle enemies
 	var enemies_data = state.get("enemies", [])
@@ -1196,7 +1338,9 @@ func _on_disconnected() -> void:
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 func _setup_navigation_mesh() -> void:
+	## Setup fallback navigation mesh (will be replaced by level manager's navigation)
 	var nav_region = NavigationRegion3D.new()
+	nav_region.name = "FallbackNavigation"
 	add_child(nav_region)
 
 	var nav_mesh = NavigationMesh.new()
@@ -1205,7 +1349,7 @@ func _setup_navigation_mesh() -> void:
 	nav_mesh.cell_size = 0.25
 	nav_mesh.cell_height = 0.25  # Match cell_size to avoid rasterization errors
 
-	# Create single polygon covering ground
+	# Create single polygon covering ground (fallback for when no level data)
 	var vertices = PackedVector3Array([
 		Vector3(-50, 0, -50),
 		Vector3(50, 0, -50),

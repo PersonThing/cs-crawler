@@ -20,6 +20,10 @@ type Server struct {
 	// Game state
 	worlds map[string]*World
 
+	// Services
+	Lobby *LobbyService
+	Chat  *ChatService
+
 	// Database
 	db *database.DB
 }
@@ -31,6 +35,8 @@ func NewServer(tickRate int, db *database.DB) *Server {
 		tickPeriod: time.Second / time.Duration(tickRate),
 		stopChan:   make(chan struct{}),
 		worlds:     make(map[string]*World),
+		Lobby:      NewLobbyService(),
+		Chat:       NewChatService(),
 		db:         db,
 	}
 }

@@ -113,14 +113,19 @@ func _on_connect_pressed() -> void:
 	NetworkManager.connect_to_server(ws_url)
 
 func _on_connected() -> void:
-	status_label.text = "Connected! Joining game..."
+	status_label.text = "Connected! Entering lobby..."
 
-	# Send join message
+	# Store username in GameManager
+	GameManager.username = username_input.text.strip_edges()
+
+	# Send login message to server (not join - we'll join a game from the lobby)
 	NetworkManager.send_message({
-		"type": "join",
-		"username": username_input.text,
-		"worldID": "default"
+		"type": "login",
+		"username": username_input.text.strip_edges()
 	})
+
+	# Go to lobby
+	get_tree().change_scene_to_file("res://scenes/lobby.tscn")
 
 func _on_disconnected() -> void:
 	status_label.text = "Disconnected"
@@ -131,11 +136,14 @@ func _on_connection_error(error: String) -> void:
 	connect_button.disabled = false
 
 func _on_message_received(message: Dictionary) -> void:
-	if message.get("type") == "joined":
+	var msg_type = message.get("type", "")
+
+	if msg_type == "logged_in":
 		# Store player ID in GameManager
 		var player_id = message.get("playerID", "")
 		GameManager.local_player_id = player_id
-		print("[MAIN_MENU] Received joined message, player ID: ", player_id)
-
-		# Successfully joined, switch to game scene
-		get_tree().change_scene_to_file("res://scenes/game_world.tscn")
+		print("[MAIN_MENU] Logged in, player ID: ", player_id)
+	elif msg_type == "error":
+		var error_msg = message.get("message", "Unknown error")
+		status_label.text = "Error: " + error_msg
+		connect_button.disabled = false

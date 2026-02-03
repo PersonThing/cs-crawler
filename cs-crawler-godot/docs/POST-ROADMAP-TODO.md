@@ -16,7 +16,6 @@
   - Set items - design a few sets, look at existing sets
   - Items have some fixed attributes, can't be all random
   - Item system from original game copied more or less
-
 - Character panel w/ stats, or put on same inv panel
    - Aggregate stats from equipped items
    - Apply stats to player (damage, health, speed, etc.)
@@ -24,16 +23,12 @@
    - **Tests**:
      - Unit test: Stat aggregation
      - Unit test: Set bonus calculation
-
 - Get free models for all item types
 - Attach items to character when equipping
 - Enemy AI doesnt seem to work
 - I can only see 1 kind of enemy.. need more to spawn, maybe randomly spawn a bunch on level load ?
 - Cant test enemy synergy
-
-## Phase 6: Procedural Level Generation
-
-**Goal**: Generate random levels using prefab rooms and WaveFunctionCollapse.
+- Enemies aren't respawning (but this goes away later in roadmap anyway)
 
 ### Backend Tasks
 1. **Level Data Model**

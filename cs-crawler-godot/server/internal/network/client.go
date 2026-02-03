@@ -34,7 +34,7 @@ func NewClient(conn *websocket.Conn, server *Server) *Client {
 	return &Client{
 		conn:      conn,
 		server:    server,
-		send:      make(chan []byte, 256),
+		send:      make(chan []byte, 1024), // Increased buffer for 60 TPS world states
 		modifiers: make(map[string]bool),
 	}
 }
@@ -110,6 +110,8 @@ func (c *Client) handleMessage(data []byte) {
 	}
 
 	switch msgType {
+	case "login":
+		c.handleLogin(msg)
 	case "join":
 		c.handleJoin(msg)
 	case "move":
@@ -130,9 +132,51 @@ func (c *Client) handleMessage(data []byte) {
 		c.handleSwapEquipment(msg)
 	case "drop_item":
 		c.handleDropItem(msg)
+	// Lobby messages
+	case "list_games":
+		c.handleListGames(msg)
+	case "create_game":
+		c.handleCreateGame(msg)
+	case "join_game":
+		c.handleJoinGame(msg)
+	case "request_join":
+		c.handleRequestJoin(msg)
+	case "respond_join_request":
+		c.handleRespondJoinRequest(msg)
+	case "get_join_requests":
+		c.handleGetJoinRequests(msg)
+	// Chat messages
+	case "chat":
+		c.handleChat(msg)
 	default:
 		log.Printf("Unknown message type: %s", msgType)
 	}
+}
+
+// handleLogin processes a player login (entering lobby, not joining a game world)
+func (c *Client) handleLogin(msg map[string]interface{}) {
+	username, _ := msg["username"].(string)
+
+	if username == "" {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "INVALID_USERNAME",
+			"message": "Username is required",
+		})
+		return
+	}
+
+	// Generate player ID and store info
+	c.playerID = generatePlayerID()
+	c.username = username
+
+	log.Printf("[LOGIN] Player logged in: %s (%s)", username, c.playerID)
+
+	c.Send(map[string]interface{}{
+		"type":     "logged_in",
+		"playerID": c.playerID,
+		"username": username,
+	})
 }
 
 // handleJoin processes a player join request
@@ -204,6 +248,15 @@ func (c *Client) handleJoin(msg map[string]interface{}) {
 	joinResponse["worldID"] = worldID
 
 	c.Send(joinResponse)
+
+	// Send level data to new player
+	levelData := world.GetLevelData()
+	if levelData != nil {
+		levelData["type"] = "level_data"
+		c.Send(levelData)
+		world.MarkLevelSent(c.playerID)
+		log.Printf("[LEVEL] Sent level data to player %s", c.playerID)
+	}
 
 	log.Printf("Player %s (%s) joined world %s", username, c.playerID, worldID)
 }
@@ -908,6 +961,429 @@ func (c *Client) handleDropItem(msg map[string]interface{}) {
 	if config.Server.Debug.LogItemDrops {
 		log.Printf("[DROP] Player %s dropped item from %s", c.playerID, source)
 	}
+}
+
+// =====================
+// Lobby Message Handlers
+// =====================
+
+// handleListGames returns a list of available games
+func (c *Client) handleListGames(msg map[string]interface{}) {
+	games := c.server.gameServer.Lobby.ListGames(c.playerID)
+
+	gameList := make([]map[string]interface{}, 0, len(games))
+	for _, game := range games {
+		gameList = append(gameList, game.Serialize())
+	}
+
+	c.Send(map[string]interface{}{
+		"type":  "game_list",
+		"games": gameList,
+	})
+}
+
+// handleCreateGame creates a new game
+func (c *Client) handleCreateGame(msg map[string]interface{}) {
+	if c.username == "" {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "NOT_LOGGED_IN",
+			"message": "Must be logged in to create a game",
+		})
+		return
+	}
+
+	name, _ := msg["name"].(string)
+	visibilityStr, _ := msg["visibility"].(string)
+	maxPlayers := int(getFloat64(msg, "maxPlayers"))
+
+	visibility := game.GameVisibilityPublic
+	if visibilityStr == "private" {
+		visibility = game.GameVisibilityPrivate
+	}
+
+	gameListing, err := c.server.gameServer.Lobby.CreateGame(c.playerID, c.username, name, visibility, maxPlayers)
+	if err != nil {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "CREATE_FAILED",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	log.Printf("[LOBBY] Player %s created game: %s (%s)", c.username, gameListing.Name, gameListing.ID)
+
+	c.Send(map[string]interface{}{
+		"type": "game_created",
+		"game": gameListing.Serialize(),
+	})
+
+	// Broadcast updated game list to all clients in lobby
+	c.server.BroadcastToLobby(map[string]interface{}{
+		"type":  "game_list_updated",
+		"games": c.getGameList(),
+	})
+}
+
+// handleJoinGame handles a player joining a game
+func (c *Client) handleJoinGame(msg map[string]interface{}) {
+	gameID, _ := msg["gameID"].(string)
+
+	if gameID == "" {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "INVALID_GAME",
+			"message": "Game ID required",
+		})
+		return
+	}
+
+	canJoin, reason := c.server.gameServer.Lobby.CanJoinGame(gameID, c.playerID)
+	if !canJoin {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "JOIN_DENIED",
+			"message": reason,
+		})
+		return
+	}
+
+	gameListing, ok := c.server.gameServer.Lobby.GetGame(gameID)
+	if !ok {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "GAME_NOT_FOUND",
+			"message": "Game not found",
+		})
+		return
+	}
+
+	// Join the game world
+	c.joinGameWorld(gameListing.WorldID)
+}
+
+// handleRequestJoin handles a join request for a private game
+func (c *Client) handleRequestJoin(msg map[string]interface{}) {
+	gameID, _ := msg["gameID"].(string)
+
+	if gameID == "" {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "INVALID_GAME",
+			"message": "Game ID required",
+		})
+		return
+	}
+
+	request, err := c.server.gameServer.Lobby.RequestJoin(gameID, c.playerID, c.username)
+	if err != nil {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "REQUEST_FAILED",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	log.Printf("[LOBBY] Player %s requested to join game %s", c.username, gameID)
+
+	c.Send(map[string]interface{}{
+		"type":    "join_requested",
+		"request": request.Serialize(),
+	})
+
+	// Notify game host
+	gameListing, _ := c.server.gameServer.Lobby.GetGame(gameID)
+	if gameListing != nil {
+		c.server.SendToPlayer(gameListing.HostID, map[string]interface{}{
+			"type":    "join_request_received",
+			"request": request.Serialize(),
+		})
+	}
+}
+
+// handleRespondJoinRequest handles a host responding to a join request
+func (c *Client) handleRespondJoinRequest(msg map[string]interface{}) {
+	requestID, _ := msg["requestID"].(string)
+	approved, _ := msg["approved"].(bool)
+
+	request, err := c.server.gameServer.Lobby.RespondToRequest(requestID, approved)
+	if err != nil {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "RESPOND_FAILED",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	log.Printf("[LOBBY] Player %s %s join request %s", c.username, map[bool]string{true: "approved", false: "denied"}[approved], requestID)
+
+	// Notify the requesting player
+	c.server.SendToPlayer(request.PlayerID, map[string]interface{}{
+		"type":     "join_request_response",
+		"request":  request.Serialize(),
+		"approved": approved,
+	})
+
+	c.Send(map[string]interface{}{
+		"type":    "request_responded",
+		"request": request.Serialize(),
+	})
+}
+
+// handleGetJoinRequests returns pending join requests for a game the player hosts
+func (c *Client) handleGetJoinRequests(msg map[string]interface{}) {
+	gameID, _ := msg["gameID"].(string)
+
+	gameListing, ok := c.server.gameServer.Lobby.GetGame(gameID)
+	if !ok || gameListing.HostID != c.playerID {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "NOT_HOST",
+			"message": "You are not the host of this game",
+		})
+		return
+	}
+
+	requests := c.server.gameServer.Lobby.GetPendingRequests(gameID)
+	requestList := make([]map[string]interface{}, 0, len(requests))
+	for _, req := range requests {
+		requestList = append(requestList, req.Serialize())
+	}
+
+	c.Send(map[string]interface{}{
+		"type":     "join_requests",
+		"gameID":   gameID,
+		"requests": requestList,
+	})
+}
+
+// getGameList returns serialized game list
+func (c *Client) getGameList() []map[string]interface{} {
+	games := c.server.gameServer.Lobby.ListGames(c.playerID)
+	gameList := make([]map[string]interface{}, 0, len(games))
+	for _, g := range games {
+		gameList = append(gameList, g.Serialize())
+	}
+	return gameList
+}
+
+// joinGameWorld joins a specific game world
+func (c *Client) joinGameWorld(worldID string) {
+	// Get or create world
+	world, ok := c.server.gameServer.GetWorld(worldID)
+	if !ok {
+		world = c.server.gameServer.CreateWorld(worldID)
+	}
+
+	// Create player
+	player := game.NewPlayer(c.playerID, c.username)
+
+	// Try to load saved data
+	savedData, err := c.server.db.LoadPlayer(c.username)
+	if err == nil && savedData != nil {
+		player.RestoreFromSave(
+			savedData.PositionX, savedData.PositionY, savedData.PositionZ,
+			savedData.Rotation, savedData.Health,
+			savedData.EquippedItems, savedData.BagItems,
+		)
+	}
+
+	world.AddPlayer(player)
+	c.worldID = worldID
+
+	// Update lobby player count
+	c.server.gameServer.Lobby.UpdatePlayerCount(worldID, len(world.GetPlayers()))
+
+	// Send join confirmation
+	joinResponse := player.Serialize()
+	joinResponse["type"] = "joined"
+	joinResponse["playerID"] = c.playerID
+	joinResponse["worldID"] = worldID
+
+	c.Send(joinResponse)
+
+	// Send level data
+	levelData := world.GetLevelData()
+	if levelData != nil {
+		levelData["type"] = "level_data"
+		c.Send(levelData)
+		world.MarkLevelSent(c.playerID)
+	}
+
+	log.Printf("[LOBBY] Player %s joined game world %s", c.username, worldID)
+}
+
+// =====================
+// Chat Message Handlers
+// =====================
+
+// handleChat processes a chat message
+func (c *Client) handleChat(msg map[string]interface{}) {
+	if c.playerID == "" {
+		return
+	}
+
+	content, _ := msg["content"].(string)
+	channel, _ := msg["channel"].(string) // "lobby" or "world" (default)
+
+	if content == "" {
+		return
+	}
+
+	// Check for commands (only in world chat)
+	if c.worldID != "" && channel != "lobby" {
+		command, args, isCommand := c.server.gameServer.Chat.ParseCommand(content)
+		if isCommand {
+			c.handleChatCommand(command, args)
+			return
+		}
+	}
+
+	// Create chat message
+	chatMsg, err := c.server.gameServer.Chat.CreateMessage(c.playerID, c.username, content, game.ChatMessageTypeNormal)
+	if err != nil || chatMsg == nil {
+		return // Spam or error
+	}
+
+	log.Printf("[CHAT] [%s] %s: %s", channel, c.username, chatMsg.Content)
+
+	// Broadcast based on channel
+	if channel == "lobby" || c.worldID == "" {
+		// Broadcast to lobby
+		c.server.BroadcastToLobby(map[string]interface{}{
+			"type":     "chat_message",
+			"chatType": "normal",
+			"senderID": chatMsg.SenderID,
+			"senderName": chatMsg.SenderName,
+			"content":  chatMsg.Content,
+		})
+	} else {
+		// Broadcast to all players in the world
+		c.server.BroadcastToWorld(c.worldID, map[string]interface{}{
+			"type":    "chat_message",
+			"message": chatMsg.Serialize(),
+		})
+	}
+}
+
+// handleChatCommand processes chat commands
+func (c *Client) handleChatCommand(command string, args []string) {
+	switch command {
+	case "whisper", "w", "tell":
+		if len(args) < 2 {
+			c.sendSystemMessage("Usage: /whisper <player> <message>")
+			return
+		}
+		targetName := args[0]
+		message := joinArgs(args[1:])
+		c.handleWhisper(targetName, message)
+
+	case "me", "emote":
+		if len(args) < 1 {
+			c.sendSystemMessage("Usage: /me <action>")
+			return
+		}
+		c.handleEmote(joinArgs(args))
+
+	case "players", "who":
+		c.handleListPlayers()
+
+	default:
+		c.sendSystemMessage("Unknown command: /" + command)
+	}
+}
+
+// handleWhisper sends a private message to another player
+func (c *Client) handleWhisper(targetName, content string) {
+	// Find target player
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	var targetID string
+	players := world.GetPlayers()
+	for _, p := range players {
+		if p.Username == targetName {
+			targetID = p.ID
+			break
+		}
+	}
+
+	if targetID == "" {
+		c.sendSystemMessage("Player not found: " + targetName)
+		return
+	}
+
+	chatMsg, err := c.server.gameServer.Chat.CreateWhisper(c.playerID, c.username, targetID, content)
+	if err != nil || chatMsg == nil {
+		return
+	}
+
+	// Send to target
+	c.server.SendToPlayer(targetID, map[string]interface{}{
+		"type":    "chat_message",
+		"message": chatMsg.Serialize(),
+	})
+
+	// Send confirmation to sender
+	c.Send(map[string]interface{}{
+		"type":    "chat_message",
+		"message": chatMsg.Serialize(),
+	})
+}
+
+// handleEmote broadcasts an emote action
+func (c *Client) handleEmote(action string) {
+	chatMsg, _ := c.server.gameServer.Chat.CreateMessage(c.playerID, c.username, "* "+c.username+" "+action, game.ChatMessageTypeNormal)
+	if chatMsg == nil {
+		return
+	}
+
+	c.server.BroadcastToWorld(c.worldID, map[string]interface{}{
+		"type":    "chat_message",
+		"message": chatMsg.Serialize(),
+	})
+}
+
+// handleListPlayers sends a list of players in the current world
+func (c *Client) handleListPlayers() {
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	players := world.GetPlayers()
+	names := make([]string, 0, len(players))
+	for _, p := range players {
+		names = append(names, p.Username)
+	}
+
+	c.sendSystemMessage(fmt.Sprintf("Players online (%d): %s", len(names), joinArgs(names)))
+}
+
+// sendSystemMessage sends a system message to the client
+func (c *Client) sendSystemMessage(content string) {
+	sysMsg := c.server.gameServer.Chat.CreateSystemMessage(content)
+	c.Send(map[string]interface{}{
+		"type":    "chat_message",
+		"message": sysMsg.Serialize(),
+	})
+}
+
+// joinArgs joins string arguments with spaces
+func joinArgs(args []string) string {
+	result := ""
+	for i, arg := range args {
+		if i > 0 {
+			result += " "
+		}
+		result += arg
+	}
+	return result
 }
 
 // generateProjectileID creates a unique projectile ID

@@ -74,13 +74,15 @@ func _process(_delta: float) -> void:
 			while _client.get_available_packet_count() > 0:
 				var packet = _client.get_packet()
 				var json_string = packet.get_string_from_utf8()
-				#print("[NET] Received raw: ", json_string)
 				var json = JSON.new()
 				var parse_result = json.parse(json_string)
 
 				if parse_result == OK:
 					var message = json.data
-					#print("[NET] Parsed message type: ", message.get("type", "UNKNOWN"))
+					var msg_type = message.get("type", "UNKNOWN")
+					print("[NET] Received message type: ", msg_type)
+					if msg_type == "level_data":
+						print("[NET] LEVEL DATA RECEIVED! Rooms: ", message.get("rooms", []).size())
 					message_received.emit(message)
 				else:
 					push_error("Failed to parse JSON: " + json_string)

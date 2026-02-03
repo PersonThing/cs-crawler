@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8xm4k7v2tjhp"]
+
+[ext_resource type="Script" path="res://scripts/level/room_combat.gd" id="1_combat"]
+
+[node name="RoomCombat" type="Node3D"]
+script = ExtResource("1_combat")

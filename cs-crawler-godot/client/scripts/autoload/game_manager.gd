@@ -15,8 +15,10 @@ enum GameState {
 
 var current_state: GameState = GameState.DISCONNECTED
 var local_player_id: String = ""
+var username: String = ""
 var local_player_data: Dictionary = {}
 var game_config: Dictionary = {}
+var pending_level_data: Dictionary = {}  # Level data received during scene transition
 
 func _ready() -> void:
 	print("GameManager initialized")

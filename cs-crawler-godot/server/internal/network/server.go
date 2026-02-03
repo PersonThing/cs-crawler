@@ -143,6 +143,31 @@ func (s *Server) BroadcastToWorld(worldID string, message map[string]interface{}
 	}
 }
 
+// BroadcastToLobby sends a message to all clients not in a game world
+func (s *Server) BroadcastToLobby(message map[string]interface{}) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for client := range s.clients {
+		if client.worldID == "" {
+			client.Send(message)
+		}
+	}
+}
+
+// SendToPlayer sends a message to a specific player by their ID
+func (s *Server) SendToPlayer(playerID string, message map[string]interface{}) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for client := range s.clients {
+		if client.playerID == playerID {
+			client.Send(message)
+			return
+		}
+	}
+}
+
 // broadcastLoop continuously broadcasts world state to all clients
 func (s *Server) broadcastLoop() {
 	ticker := time.NewTicker(time.Second / 60) // 60 broadcasts per second
