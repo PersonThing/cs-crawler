@@ -240,7 +240,7 @@ func (i *Item) Serialize() map[string]interface{} {
 	affixes := make([]map[string]interface{}, 0, len(i.Affixes))
 	for _, affix := range i.Affixes {
 		affixes = append(affixes, map[string]interface{}{
-			"stat":  affix.Stat,
+			"stat":  string(affix.Stat),
 			"value": affix.Value,
 			"min":   affix.Min,
 			"max":   affix.Max,
@@ -250,8 +250,8 @@ func (i *Item) Serialize() map[string]interface{} {
 	return map[string]interface{}{
 		"id":          i.ID,
 		"name":        i.Name,
-		"type":        i.Type,
-		"rarity":      i.Rarity,
+		"type":        string(i.Type),
+		"rarity":      string(i.Rarity),
 		"level":       i.Level,
 		"affixes":     affixes,
 		"setName":     i.SetName,
@@ -279,8 +279,11 @@ func DeserializeItem(data map[string]interface{}) *Item {
 	if v, ok := data["rarity"].(string); ok {
 		item.Rarity = ItemRarity(v)
 	}
+	// Handle both int (direct) and float64 (JSON unmarshaled) for level
 	if v, ok := data["level"].(float64); ok {
 		item.Level = int(v)
+	} else if v, ok := data["level"].(int); ok {
+		item.Level = v
 	}
 	if v, ok := data["setName"].(string); ok {
 		item.SetName = v
@@ -290,28 +293,38 @@ func DeserializeItem(data map[string]interface{}) *Item {
 	}
 
 	item.Affixes = make([]ItemAffix, 0)
+	// Handle both []interface{} (JSON) and []map[string]interface{} (direct)
 	if affixesRaw, ok := data["affixes"].([]interface{}); ok {
 		for _, a := range affixesRaw {
 			if affixMap, ok := a.(map[string]interface{}); ok {
-				affix := ItemAffix{}
-				if v, ok := affixMap["stat"].(string); ok {
-					affix.Stat = StatType(v)
-				}
-				if v, ok := affixMap["value"].(float64); ok {
-					affix.Value = v
-				}
-				if v, ok := affixMap["min"].(float64); ok {
-					affix.Min = v
-				}
-				if v, ok := affixMap["max"].(float64); ok {
-					affix.Max = v
-				}
-				item.Affixes = append(item.Affixes, affix)
+				item.Affixes = append(item.Affixes, deserializeAffix(affixMap))
 			}
+		}
+	} else if affixesDirect, ok := data["affixes"].([]map[string]interface{}); ok {
+		for _, affixMap := range affixesDirect {
+			item.Affixes = append(item.Affixes, deserializeAffix(affixMap))
 		}
 	}
 
 	return item
+}
+
+// deserializeAffix extracts an ItemAffix from a map
+func deserializeAffix(affixMap map[string]interface{}) ItemAffix {
+	affix := ItemAffix{}
+	if v, ok := affixMap["stat"].(string); ok {
+		affix.Stat = StatType(v)
+	}
+	if v, ok := affixMap["value"].(float64); ok {
+		affix.Value = v
+	}
+	if v, ok := affixMap["min"].(float64); ok {
+		affix.Min = v
+	}
+	if v, ok := affixMap["max"].(float64); ok {
+		affix.Max = v
+	}
+	return affix
 }
 
 // GroundItem represents an item dropped on the ground
