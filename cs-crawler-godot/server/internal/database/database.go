@@ -62,9 +62,10 @@ func (db *DB) Close() error {
 	return db.conn.Close()
 }
 
-// EnsureSchema creates the players table if it doesn't exist
+// EnsureSchema creates tables and runs migrations if they don't exist
 func (db *DB) EnsureSchema() error {
-	query := `
+	// Create players table
+	playersQuery := `
 		CREATE TABLE IF NOT EXISTS players (
 			username VARCHAR(50) PRIMARY KEY,
 			position_x DOUBLE PRECISION DEFAULT 0,
@@ -78,11 +79,46 @@ func (db *DB) EnsureSchema() error {
 			last_saved TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 	`
-	_, err := db.conn.Exec(query)
+	_, err := db.conn.Exec(playersQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create players table: %w", err)
 	}
 	log.Printf("[DB] Schema ensured (players table ready)")
+
+	// Create feedback table
+	feedbackQuery := `
+		CREATE TABLE IF NOT EXISTS feedback (
+			id SERIAL PRIMARY KEY,
+			username VARCHAR(50),
+			feedback_type VARCHAR(50) DEFAULT 'general',
+			message TEXT NOT NULL,
+			github_issue_url TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+	`
+	_, err = db.conn.Exec(feedbackQuery)
+	if err != nil {
+		return fmt.Errorf("failed to create feedback table: %w", err)
+	}
+
+	// Add github_issue_url column if it doesn't exist (migration for existing tables)
+	migrateFeedbackQuery := `
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'feedback' AND column_name = 'github_issue_url'
+			) THEN
+				ALTER TABLE feedback ADD COLUMN github_issue_url TEXT;
+			END IF;
+		END $$;
+	`
+	_, err = db.conn.Exec(migrateFeedbackQuery)
+	if err != nil {
+		return fmt.Errorf("failed to migrate feedback table: %w", err)
+	}
+	log.Printf("[DB] Schema ensured (feedback table ready)")
+
 	return nil
 }
 
