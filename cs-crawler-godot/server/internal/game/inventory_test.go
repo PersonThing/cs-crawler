@@ -51,7 +51,8 @@ func TestEquipItem_ReplacesExisting(t *testing.T) {
 	unequipped, err := inv.EquipItem(newHelm)
 
 	assert.NoError(t, err)
-	assert.Equal(t, oldHelm, unequipped)
+	assert.Len(t, unequipped, 1)
+	assert.Equal(t, oldHelm, unequipped[0])
 	assert.Equal(t, newHelm, inv.Equipment[SlotHead])
 }
 
@@ -92,11 +93,13 @@ func TestEquipItem_2HWeapon_ClearsBothSlots(t *testing.T) {
 	assert.Equal(t, sword, inv.Equipment[SlotWeapon1])
 	assert.Equal(t, offhand, inv.Equipment[SlotWeapon2])
 
-	// Equip 2H weapon - should clear both
+	// Equip 2H weapon - should clear both and return both items
 	unequipped, err := inv.EquipItem(greatsword)
 
 	assert.NoError(t, err)
-	assert.Equal(t, sword, unequipped) // Returns main hand
+	assert.Len(t, unequipped, 2)
+	assert.Equal(t, sword, unequipped[0])   // Main hand first
+	assert.Equal(t, offhand, unequipped[1]) // Off hand second
 	assert.Equal(t, greatsword, inv.Equipment[SlotWeapon1])
 	assert.Nil(t, inv.Equipment[SlotWeapon2])
 }
@@ -113,7 +116,8 @@ func TestEquipItem_1HWeapon_Replaces2HWeapon(t *testing.T) {
 	unequipped, err := inv.EquipItem(dagger)
 
 	assert.NoError(t, err)
-	assert.Equal(t, greatsword, unequipped)
+	assert.Len(t, unequipped, 1)
+	assert.Equal(t, greatsword, unequipped[0])
 	assert.Equal(t, dagger, inv.Equipment[SlotWeapon1])
 	assert.Nil(t, inv.Equipment[SlotWeapon2])
 }
@@ -136,7 +140,8 @@ func TestEquipItem_Ring_PrefersEmptySlot(t *testing.T) {
 
 	// Third ring replaces ring1
 	unequipped, _ := inv.EquipItem(ring3)
-	assert.Equal(t, ring1, unequipped)
+	assert.Len(t, unequipped, 1)
+	assert.Equal(t, ring1, unequipped[0])
 	assert.Equal(t, ring3, inv.Equipment[SlotRing1])
 }
 

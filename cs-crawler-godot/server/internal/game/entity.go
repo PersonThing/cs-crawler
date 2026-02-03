@@ -17,12 +17,12 @@ type Vector3 struct {
 
 // Player represents a player character
 type Player struct {
-	ID       string
-	Username string
-	Position Vector3
-	Velocity Vector3
-	Rotation float64 // Y-axis rotation in radians
-	Health   float64
+	ID        string
+	Username  string
+	Position  Vector3
+	Velocity  Vector3
+	Rotation  float64 // Y-axis rotation in radians
+	Health    float64
 	MaxHealth float64
 
 	// Base Stats (before item bonuses)
@@ -32,17 +32,17 @@ type Player struct {
 	BaseArmor     float64
 
 	// Current Stats (after item bonuses)
-	MoveSpeed    float64
-	Damage       float64
-	AttackSpeed  float64
-	CritChance   float64
-	CritDamage   float64
-	FireDamage   float64
-	ColdDamage   float64
+	MoveSpeed       float64
+	Damage          float64
+	AttackSpeed     float64
+	CritChance      float64
+	CritDamage      float64
+	FireDamage      float64
+	ColdDamage      float64
 	LightningDamage float64
-	Armor        float64
-	FireResist   float64
-	ColdResist   float64
+	Armor           float64
+	FireResist      float64
+	ColdResist      float64
 	LightningResist float64
 
 	// Inventory
@@ -158,12 +158,18 @@ func (p *Player) RecalculateStats() {
 }
 
 // EquipItem equips an item and recalculates stats
-func (p *Player) EquipItem(item *Item) (*Item, error) {
+func (p *Player) EquipItem(item *Item) ([]*Item, error) {
+	return p.EquipItemToSlot(item, "")
+}
+
+// EquipItemToSlot equips an item to a specific slot and recalculates stats
+// Returns a slice of unequipped items (may be 0, 1, or 2 items for 2H weapon replacing dual 1H)
+func (p *Player) EquipItemToSlot(item *Item, targetSlot EquipmentSlot) ([]*Item, error) {
 	if p.Inventory == nil {
 		return nil, nil
 	}
 
-	unequipped, err := p.Inventory.EquipItem(item)
+	unequipped, err := p.Inventory.EquipItemToSlot(item, targetSlot)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +253,12 @@ func (p *Player) ToSaveData() (equippedJSON, bagsJSON json.RawMessage, err error
 func (p *Player) RestoreFromSave(posX, posY, posZ, rotation, health float64, equippedJSON, bagsJSON json.RawMessage) {
 	p.Position = Vector3{X: posX, Y: posY, Z: posZ}
 	p.Rotation = rotation
-	p.Health = health
+	// Reset health to max if player was dead (respawn on reconnect)
+	if health <= 0 {
+		p.Health = p.MaxHealth
+	} else {
+		p.Health = health
+	}
 
 	// Deserialize inventory
 	var equippedData map[string]interface{}
@@ -273,16 +284,28 @@ func (p *Player) RestoreFromSave(posX, posY, posZ, rotation, health float64, equ
 
 // Enemy represents an enemy entity
 type Enemy struct {
-	ID         string
-	Type       string
-	Position   Vector3
-	Velocity   Vector3
-	Health     float64
-	MaxHealth  float64
-	Dead       bool
+	ID        string
+	Type      string
+	Position  Vector3
+	Velocity  Vector3
+	Health    float64
+	MaxHealth float64
+	Dead      bool
+
+	// AI
+	AI *EnemyAI
+
+	// Combat stats (from config)
+	Damage      float64
+	AttackRange float64
 
 	// Status effects
 	StatusEffects map[StatusEffectType]*StatusEffect
+
+	// Buffs from allies (shaman, etc.)
+	DamageBuff     float64 // Multiplier (1.0 = no buff)
+	SpeedBuff      float64 // Multiplier (1.0 = no buff)
+	BuffExpireTime time.Time
 
 	LastUpdate time.Time
 }
@@ -296,6 +319,11 @@ func NewEnemy(id, enemyType string, position Vector3) *Enemy {
 		cfg = &config.EnemyConfig{
 			Health:    100,
 			MaxHealth: 100,
+			Damage:    10,
+			AI: config.EnemyAI{
+				Type:       "idle",
+				AggroRange: 0,
+			},
 		}
 	}
 
@@ -307,7 +335,12 @@ func NewEnemy(id, enemyType string, position Vector3) *Enemy {
 		Health:        cfg.Health,
 		MaxHealth:     cfg.MaxHealth,
 		Dead:          false,
+		AI:            NewEnemyAI(cfg),
+		Damage:        cfg.Damage,
+		AttackRange:   2.0, // Default melee range, will be overridden by AI
 		StatusEffects: make(map[StatusEffectType]*StatusEffect),
+		DamageBuff:    1.0,
+		SpeedBuff:     1.0,
 		LastUpdate:    time.Now(),
 	}
 }
@@ -321,8 +354,45 @@ func (e *Enemy) Update(delta float64) {
 		}
 	}
 
-	// TODO: Implement AI logic
+	// Update buffs
+	if time.Now().After(e.BuffExpireTime) {
+		e.DamageBuff = 1.0
+		e.SpeedBuff = 1.0
+	}
+
 	e.LastUpdate = time.Now()
+}
+
+// UpdateAI processes enemy AI with context (called from World.Update)
+func (e *Enemy) UpdateAI(ctx *EnemyAIContext) *EnemyAttackResult {
+	if e.Dead || e.AI == nil {
+		return nil
+	}
+
+	// Update status effects first
+	for effectType, effect := range e.StatusEffects {
+		if effect.IsExpired() {
+			delete(e.StatusEffects, effectType)
+		}
+	}
+
+	// Update buffs
+	if time.Now().After(e.BuffExpireTime) {
+		e.DamageBuff = 1.0
+		e.SpeedBuff = 1.0
+	}
+
+	e.LastUpdate = time.Now()
+
+	// Run AI
+	return e.AI.Update(e, ctx)
+}
+
+// ApplyBuff applies a buff to the enemy
+func (e *Enemy) ApplyBuff(damageMult, speedMult, duration float64) {
+	e.DamageBuff = damageMult
+	e.SpeedBuff = speedMult
+	e.BuffExpireTime = time.Now().Add(time.Duration(duration * float64(time.Second)))
 }
 
 // TakeDamage applies damage to the enemy and returns true if it died
@@ -388,15 +458,31 @@ func (e *Enemy) Serialize() map[string]interface{} {
 		}
 	}
 
-	return map[string]interface{}{
+	result := map[string]interface{}{
 		"id":            e.ID,
 		"type":          e.Type,
 		"position":      e.Position,
+		"velocity":      e.Velocity,
 		"health":        e.Health,
 		"maxHealth":     e.MaxHealth,
 		"dead":          e.Dead,
 		"statusEffects": activeEffects,
 	}
+
+	// Add AI state if available
+	if e.AI != nil {
+		result["aiState"] = string(e.AI.State)
+		result["targetID"] = e.AI.TargetID
+		result["isRaging"] = e.AI.RageMode
+		result["isCharging"] = e.AI.IsCharging
+	}
+
+	// Add buff info if active
+	if e.DamageBuff != 1.0 || e.SpeedBuff != 1.0 {
+		result["isBuffed"] = true
+	}
+
+	return result
 }
 
 // Projectile represents a projectile entity
@@ -421,6 +507,10 @@ type Projectile struct {
 	MaxPierces     int      // Maximum number of pierces (-1 for infinite)
 	PierceCount    int      // Current number of enemies pierced
 	HitEnemies     []string // Track which enemies have been hit (for piercing)
+
+	// Enemy projectile support
+	IsEnemyProjectile bool     // If true, this projectile damages players instead of enemies
+	HitPlayers        []string // Track which players have been hit (for piercing enemy projectiles)
 }
 
 // NewProjectile creates a new projectile
@@ -444,6 +534,32 @@ func NewProjectile(id, ownerID string, position, velocity Vector3, damage float6
 		MaxPierces:       0,
 		PierceCount:      0,
 		HitEnemies:       make([]string, 0),
+	}
+}
+
+// NewEnemyProjectile creates a projectile fired by an enemy towards players
+func NewEnemyProjectile(id, ownerID string, position, direction Vector3, damage float64, damageType DamageType) *Projectile {
+	speed := 10.0 // Enemy projectiles are slightly slower
+	return &Projectile{
+		ID:                id,
+		OwnerID:           ownerID,
+		Position:          Vector3{X: position.X, Y: 0.5, Z: position.Z}, // Spawn at consistent height
+		Velocity:          Vector3{X: direction.X * speed, Y: 0, Z: direction.Z * speed},
+		Damage:            damage,
+		DamageType:        damageType,
+		Speed:             speed,
+		Radius:            0.4,
+		CreatedAt:         time.Now(),
+		Lifetime:          4.0,
+		AbilityType:       "enemy_projectile",
+		StatusEffectInfo:  nil,
+		IsHoming:          false,
+		HomingTurnRate:    0,
+		IsPiercing:        false,
+		MaxPierces:        0,
+		PierceCount:       0,
+		HitEnemies:        make([]string, 0),
+		IsEnemyProjectile: true,
 	}
 }
 
@@ -527,10 +643,11 @@ func (p *Projectile) ShouldDestroy() bool {
 // Serialize converts projectile to JSON-friendly format
 func (p *Projectile) Serialize() map[string]interface{} {
 	return map[string]interface{}{
-		"id":          p.ID,
-		"ownerID":     p.OwnerID,
-		"position":    p.Position,
-		"velocity":    p.Velocity,
-		"abilityType": p.AbilityType,
+		"id":                p.ID,
+		"ownerID":           p.OwnerID,
+		"position":          p.Position,
+		"velocity":          p.Velocity,
+		"abilityType":       p.AbilityType,
+		"isEnemyProjectile": p.IsEnemyProjectile,
 	}
 }

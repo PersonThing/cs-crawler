@@ -25,6 +25,10 @@ func _ready() -> void:
 		"physical":
 			modulate = Color(1.0, 1.0, 1.0)  # White
 			outline_modulate = Color(0.3, 0.3, 0.3)  # Gray
+		"player_damage":
+			modulate = Color(1.0, 0.2, 0.2)  # Red for player damage
+			outline_modulate = Color(0.4, 0.0, 0.0)  # Dark red
+			font_size = 20  # Slightly larger for player damage
 		_:
 			modulate = Color(1.0, 1.0, 1.0)
 

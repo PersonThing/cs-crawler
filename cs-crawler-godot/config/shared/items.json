@@ -1,0 +1,146 @@
+{
+  "version": "1.0",
+  "attributes": {
+    "defensive": {
+      "Health": { "displayName": "Health", "description": "Increases maximum health" },
+      "Defense": { "displayName": "Defense", "description": "Reduces all damage taken" },
+      "PhysicalResistPercent": { "displayName": "Physical Resist %", "description": "Reduces physical damage taken" },
+      "ColdResist": { "displayName": "Cold Resist", "description": "Reduces cold damage taken" },
+      "FireResist": { "displayName": "Fire Resist", "description": "Reduces fire damage taken" },
+      "LightningResist": { "displayName": "Lightning Resist", "description": "Reduces lightning damage taken" },
+      "PoisonResist": { "displayName": "Poison Resist", "description": "Reduces poison damage taken" }
+    },
+    "utility": {
+      "MovementSpeedPercent": { "displayName": "Movement Speed %", "description": "Increases movement speed" },
+      "Vision": { "displayName": "Vision", "description": "Increases vision range" },
+      "HealingPower": { "displayName": "Healing Power", "description": "Adds flat amount to heals done" }
+    },
+    "offensive": {
+      "PercentDamage": { "displayName": "% Damage", "description": "Multiplies all damage types" },
+      "PhysicalDamage": { "displayName": "Physical Damage", "description": "Adds flat physical damage" },
+      "FireDamage": { "displayName": "Fire Damage", "description": "Adds flat fire damage" },
+      "ColdDamage": { "displayName": "Cold Damage", "description": "Adds flat cold damage" },
+      "LightningDamage": { "displayName": "Lightning Damage", "description": "Adds flat lightning damage" },
+      "PoisonDamage": { "displayName": "Poison Damage", "description": "Adds flat poison damage" },
+      "AreaDamageRadius": { "displayName": "Area Damage Radius", "description": "Increases area of effect" },
+      "AttackHitChance": { "displayName": "Attack Hit Chance", "description": "Increases chance to hit" },
+      "AttackSpeedPercent": { "displayName": "Attack Speed %", "description": "Increases attack speed" },
+      "ReflectDamagePercent": { "displayName": "Reflect Damage %", "description": "Reflects damage back to attacker" },
+      "ReflectDamageFlat": { "displayName": "Reflect Damage", "description": "Reflects flat damage to attacker" }
+    },
+    "onHit": {
+      "LifePerHit": { "displayName": "Life Per Hit", "description": "Heals on each hit" },
+      "Knockback": { "displayName": "Knockback", "description": "Chance to knock enemies back" },
+      "Stun": { "displayName": "Stun", "description": "Chance to stun enemies" }
+    },
+    "ability": {
+      "MaxAbilityModifiers": { "displayName": "Max Ability Modifiers", "description": "Increases max ability modifiers" },
+      "ExtraProjectiles": { "displayName": "Extra Projectiles", "description": "Adds extra projectiles to abilities" },
+      "ChainProjectiles": { "displayName": "Chain Projectiles", "description": "Projectiles chain to additional targets" },
+      "SplitProjectiles": { "displayName": "Split Projectiles", "description": "Projectiles split into smaller ones" },
+      "MaxTurrets": { "displayName": "Max Turrets", "description": "Increases max active turrets" },
+      "MaxPets": { "displayName": "Max Pets", "description": "Increases max active pets" }
+    }
+  },
+  "quality": {
+    "Normal": { "displayName": "Normal", "color": "#cccccc", "affixCount": [1, 2] },
+    "Rare": { "displayName": "Rare", "color": "#b83dba", "affixCount": [2, 4] },
+    "Unique": { "displayName": "Unique", "color": "#ff7f27", "affixCount": [4, 6] },
+    "Special": { "displayName": "Special", "color": "#00a8f3", "affixCount": [3, 5] },
+    "Set": { "displayName": "Set", "color": "#0ed145", "affixCount": [2, 4] }
+  },
+  "types": {
+    "weapon_1h": {
+      "displayName": "One-Handed Weapon",
+      "validSlots": ["weapon1", "weapon2"],
+      "bothHands": false,
+      "baseStats": { "PhysicalDamage": 10, "AttackSpeedPercent": 20 }
+    },
+    "weapon_2h": {
+      "displayName": "Two-Handed Weapon",
+      "validSlots": ["weapon1"],
+      "bothHands": true,
+      "baseStats": { "PhysicalDamage": 10, "MovementSpeedPercent": -5 }
+    },
+    "head": {
+      "displayName": "Head",
+      "validSlots": ["head"],
+      "bothHands": false,
+      "baseStats": { "Defense": 10 }
+    },
+    "chest": {
+      "displayName": "Chest",
+      "validSlots": ["chest"],
+      "bothHands": false,
+      "baseStats": { "Defense": 10 }
+    },
+    "hands": {
+      "displayName": "Hands",
+      "validSlots": ["hands"],
+      "bothHands": false,
+      "baseStats": { "Defense": 5 }
+    },
+    "feet": {
+      "displayName": "Feet",
+      "validSlots": ["feet"],
+      "bothHands": false,
+      "baseStats": { "Defense": 5, "MovementSpeedPercent": 20 }
+    },
+    "amulet": {
+      "displayName": "Amulet",
+      "validSlots": ["amulet"],
+      "bothHands": false,
+      "baseStats": {}
+    },
+    "ring": {
+      "displayName": "Ring",
+      "validSlots": ["ring1", "ring2"],
+      "bothHands": false,
+      "baseStats": {}
+    },
+    "bonus": {
+      "displayName": "Bonus Item",
+      "validSlots": ["bonus1", "bonus2", "bonus3"],
+      "bothHands": false,
+      "baseStats": { "Defense": 1, "PhysicalDamage": 1 }
+    }
+  },
+  "sets": {
+    "Eebeeb": {
+      "name": "Eebeeb's Glory",
+      "bonuses": [
+        {
+          "piecesRequired": 2,
+          "attributes": { "Health": 100, "LifePerHit": 50 },
+          "abilities": ["Fireball"],
+          "abilityModifiers": []
+        },
+        {
+          "piecesRequired": 3,
+          "attributes": { "MaxPets": 2, "MaxAbilityModifiers": 2 },
+          "abilities": [],
+          "abilityModifiers": ["Pet"]
+        }
+      ]
+    }
+  },
+  "affixRanges": {
+    "Health": { "min": 10, "max": 50, "perLevel": 1.0 },
+    "Defense": { "min": 5, "max": 25, "perLevel": 0.5 },
+    "PhysicalDamage": { "min": 2, "max": 10, "perLevel": 0.3 },
+    "FireDamage": { "min": 3, "max": 15, "perLevel": 0.4 },
+    "ColdDamage": { "min": 3, "max": 15, "perLevel": 0.4 },
+    "LightningDamage": { "min": 3, "max": 15, "perLevel": 0.4 },
+    "PoisonDamage": { "min": 3, "max": 15, "perLevel": 0.4 },
+    "MovementSpeedPercent": { "min": 5, "max": 20, "perLevel": 0.2 },
+    "AttackSpeedPercent": { "min": 5, "max": 15, "perLevel": 0.3 },
+    "CritChance": { "min": 1, "max": 5, "perLevel": 0.1 },
+    "CritDamage": { "min": 10, "max": 30, "perLevel": 0.5 },
+    "LifePerHit": { "min": 5, "max": 20, "perLevel": 0.3 },
+    "FireResist": { "min": 3, "max": 15, "perLevel": 0.2 },
+    "ColdResist": { "min": 3, "max": 15, "perLevel": 0.2 },
+    "LightningResist": { "min": 3, "max": 15, "perLevel": 0.2 },
+    "PoisonResist": { "min": 3, "max": 15, "perLevel": 0.2 },
+    "PhysicalResistPercent": { "min": 3, "max": 15, "perLevel": 0.2 }
+  }
+}

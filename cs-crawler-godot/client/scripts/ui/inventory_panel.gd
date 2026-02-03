@@ -316,17 +316,21 @@ func _handle_left_click(slot: Control) -> void:
 			var target_bag_idx = _bag_index(slot)
 			_send_unequip_request(held_source_slot.get_meta("slot_id"), target_bag_idx)
 		elif not held_source_is_equipment and is_equip:
-			# Equip from bag
+			# Equip from bag to specific slot
 			var bag_idx = _bag_index(held_source_slot)
-			_send_equip_request(bag_idx)
+			var target_slot = slot.get_meta("slot_id")
+			_send_equip_request(bag_idx, target_slot)
 		elif not held_source_is_equipment and not is_equip:
 			# Bag-to-bag swap
 			var from_idx = _bag_index(held_source_slot)
 			var to_idx = _bag_index(slot)
 			_send_swap_bag_request(from_idx, to_idx)
 		elif held_source_is_equipment and is_equip:
-			# Equipment-to-equipment: not supported, just drop back
-			pass
+			# Equipment-to-equipment swap
+			var from_slot = held_source_slot.get_meta("slot_id")
+			var to_slot = slot.get_meta("slot_id")
+			if from_slot != to_slot:
+				_send_swap_equipment_request(from_slot, to_slot)
 
 		# Clear cursor
 		held_item = null
@@ -408,8 +412,16 @@ func _show_tooltip(item_data: Dictionary) -> void:
 
 	var item_name = str(item_data.get("name", "Unknown Item"))
 	var item_level = item_data.get("level", 1)
+	var item_type = str(item_data.get("type", ""))
 
-	var text = "[b][color=#%s]%s[/color][/b]\n" % [color_hex, item_name]
+	# Determine weapon handedness indicator
+	var handedness_text = ""
+	if item_type == "weapon_2h":
+		handedness_text = " [color=#ffcc00](2H)[/color]"
+	elif item_type == "weapon_1h":
+		handedness_text = " [color=#aaaaaa](1H)[/color]"
+
+	var text = "[b][color=#%s]%s[/color][/b]%s\n" % [color_hex, item_name, handedness_text]
 	text += "[color=#888888]%s  |  Level %s[/color]\n" % [rarity.capitalize(), str(item_level)]
 
 	var affixes = item_data.get("affixes", [])
@@ -493,11 +505,14 @@ func drop_held_item() -> void:
 
 # --- Network requests ---
 
-func _send_equip_request(bag_slot: int) -> void:
-	NetworkManager.send_message({
+func _send_equip_request(bag_slot: int, target_slot: String = "") -> void:
+	var msg = {
 		"type": "equip_item",
 		"bagSlot": bag_slot
-	})
+	}
+	if target_slot != "":
+		msg["targetSlot"] = target_slot
+	NetworkManager.send_message(msg)
 
 func _send_unequip_request(equipment_slot: String, target_bag_slot: int = -1) -> void:
 	var msg = {
@@ -513,6 +528,13 @@ func _send_swap_bag_request(from_slot: int, to_slot: int) -> void:
 		return
 	NetworkManager.send_message({
 		"type": "swap_bag",
+		"fromSlot": from_slot,
+		"toSlot": to_slot
+	})
+
+func _send_swap_equipment_request(from_slot: String, to_slot: String) -> void:
+	NetworkManager.send_message({
+		"type": "swap_equipment",
 		"fromSlot": from_slot,
 		"toSlot": to_slot
 	})
@@ -586,7 +608,12 @@ func _update_slot_display(slot: PanelContainer, item_data, is_equipment: bool) -
 
 		if label:
 			var item_name = str(data.get("name", "?"))
-			label.text = item_name.split(" ")[-1].substr(0, 5)
+			var item_type = str(data.get("type", ""))
+			# Add 2h indicator for two-handed weapons
+			var suffix = ""
+			if item_type == "weapon_2h":
+				suffix = " 2h"
+			label.text = item_name.split(" ")[-1].substr(0, 4) + suffix
 			label.add_theme_color_override("font_color", Color.WHITE)
 
 		var style = slot.get_theme_stylebox("panel") as StyleBoxFlat

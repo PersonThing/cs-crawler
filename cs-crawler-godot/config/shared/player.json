@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "baseStats": {
-    "health": 100,
-    "maxHealth": 100,
+    "health": 5000,
+    "maxHealth": 5000,
     "moveSpeed": 5.0,
     "mana": 100,
     "maxMana": 100,

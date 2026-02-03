@@ -50,8 +50,10 @@ var enemy_ui_manager_script = preload("res://scripts/ui/enemy_ui_manager.gd")
 var modifier_panel_script = preload("res://scripts/ui/modifier_panel.gd")
 var inventory_panel_script = preload("res://scripts/ui/inventory_panel.gd")
 var ground_item_script = preload("res://scripts/ground_item.gd")
+var ai_debug_overlay_script = preload("res://scripts/ui/ai_debug_overlay.gd")
 
 var local_player: Node3D = null
+var ai_debug_overlay: CanvasLayer = null
 var remote_players: Dictionary = {}
 var enemies: Dictionary = {}
 var projectiles: Dictionary = {}
@@ -59,6 +61,14 @@ var minions: Dictionary = {}
 var ground_items: Dictionary = {}
 var enemy_ui_manager: Control = null
 var inventory_panel: Control = null
+var player_ui_container: Control = null
+var player_health_fill: Panel = null
+var player_nameplate: Label = null
+var player_health_text: Label = null
+var damage_flash: ColorRect = null
+var _player_current_health: float = 100.0
+var _player_max_health: float = 100.0
+var _player_username: String = "Player"
 var _fps_label: Label = null
 var _player_labels_container: Control = null
 var _player_labels: Dictionary = {}  # player_id -> { "label": Label, "node": Node3D }
@@ -86,6 +96,8 @@ func _ready() -> void:
 	_setup_hover_reticle()
 	_setup_fps_label()
 	_setup_player_labels()
+	_setup_ai_debug_overlay()
+	_setup_player_health_bar()
 
 	# Check if we're already joined (main menu handled the join)
 	if GameManager.local_player_id != "":
@@ -135,6 +147,134 @@ func _setup_fps_label() -> void:
 	_fps_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
 	_fps_label.visible = true
 	add_child(_fps_label)
+
+func _setup_ai_debug_overlay() -> void:
+	ai_debug_overlay = CanvasLayer.new()
+	ai_debug_overlay.set_script(ai_debug_overlay_script)
+	ai_debug_overlay.name = "AIDebugOverlay"
+	ai_debug_overlay.game_world = self
+	add_child(ai_debug_overlay)
+
+func _setup_player_health_bar() -> void:
+	# Create 2D UI container for player health (same style as enemy health bars)
+	player_ui_container = Control.new()
+	player_ui_container.name = "PlayerUIContainer"
+	player_ui_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_get_hud_parent().add_child(player_ui_container)
+
+	# Create VBoxContainer to stack nameplate and health bar
+	var vbox = VBoxContainer.new()
+	vbox.name = "VBox"
+	vbox.add_theme_constant_override("separation", 2)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_ui_container.add_child(vbox)
+
+	# Create nameplate (will show username)
+	player_nameplate = Label.new()
+	player_nameplate.name = "Nameplate"
+	player_nameplate.text = _player_username
+	player_nameplate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	player_nameplate.add_theme_font_size_override("font_size", 12)
+	player_nameplate.add_theme_color_override("font_color", Color(0.4, 0.8, 1.0))  # Light blue for player
+	player_nameplate.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	player_nameplate.add_theme_constant_override("outline_size", 2)
+	vbox.add_child(player_nameplate)
+
+	# Create health bar background (half size: 50x4 instead of 100x8)
+	var health_bg = Panel.new()
+	health_bg.name = "HealthBg"
+	health_bg.custom_minimum_size = Vector2(50, 4)
+
+	var bg_style = StyleBoxFlat.new()
+	bg_style.bg_color = Color(0.2, 0.2, 0.2, 0.8)
+	bg_style.border_width_left = 1
+	bg_style.border_width_right = 1
+	bg_style.border_width_top = 1
+	bg_style.border_width_bottom = 1
+	bg_style.border_color = Color(0, 0, 0)
+	health_bg.add_theme_stylebox_override("panel", bg_style)
+	vbox.add_child(health_bg)
+
+	# Create health bar fill
+	player_health_fill = Panel.new()
+	player_health_fill.name = "HealthFill"
+	player_health_fill.position = Vector2(1, 1)
+	player_health_fill.size = Vector2(48, 2)
+
+	var fill_style = StyleBoxFlat.new()
+	fill_style.bg_color = Color(0.2, 0.8, 0.2)  # Green for player health
+	player_health_fill.add_theme_stylebox_override("panel", fill_style)
+	health_bg.add_child(player_health_fill)
+
+	# Create health text (shows health / max)
+	player_health_text = Label.new()
+	player_health_text.name = "HealthText"
+	player_health_text.text = "100 / 100"
+	player_health_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	player_health_text.add_theme_font_size_override("font_size", 10)
+	player_health_text.add_theme_color_override("font_color", Color(1, 1, 1))
+	player_health_text.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	player_health_text.add_theme_constant_override("outline_size", 1)
+	vbox.add_child(player_health_text)
+
+	# Create damage flash overlay (for when player takes damage)
+	damage_flash = ColorRect.new()
+	damage_flash.name = "DamageFlash"
+	damage_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	damage_flash.color = Color(1, 0, 0, 0)  # Start invisible
+	damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_get_hud_parent().add_child(damage_flash)
+
+func _update_player_health_bar_2d() -> void:
+	if not player_ui_container or not camera:
+		return
+
+	if not is_instance_valid(local_player):
+		player_ui_container.visible = false
+		return
+
+	player_ui_container.visible = true
+
+	# Get player 3D position (above the model)
+	var world_pos = local_player.global_position + Vector3(0, 2.2, 0)
+
+	# Convert to 2D screen position
+	var screen_pos = camera.unproject_position(world_pos)
+
+	# Check if behind camera
+	var camera_to_player = world_pos - camera.global_position
+	var camera_forward = -camera.global_transform.basis.z
+	var is_in_front = camera_to_player.dot(camera_forward) > 0
+
+	if is_in_front:
+		var vbox = player_ui_container.get_node("VBox")
+		player_ui_container.position = screen_pos - Vector2(vbox.size.x / 2, vbox.size.y)
+	else:
+		player_ui_container.visible = false
+
+	# Update health fill and color
+	if player_health_fill and _player_max_health > 0:
+		var health_percent = _player_current_health / _player_max_health
+		player_health_fill.size.x = 48 * health_percent
+
+		# Color by percentage: green > yellow > orange > red
+		var fill_color: Color
+		if health_percent > 0.75:
+			fill_color = Color(0.2, 0.8, 0.2)  # Green
+		elif health_percent > 0.5:
+			fill_color = Color(0.9, 0.9, 0.2)  # Yellow
+		elif health_percent > 0.25:
+			fill_color = Color(0.9, 0.5, 0.1)  # Orange
+		else:
+			fill_color = Color(0.9, 0.2, 0.2)  # Red
+
+		var fill_style = player_health_fill.get_theme_stylebox("panel") as StyleBoxFlat
+		if fill_style:
+			fill_style.bg_color = fill_color
+
+	# Update health text
+	if player_health_text:
+		player_health_text.text = "%d / %d" % [int(_player_current_health), int(_player_max_health)]
 
 func _setup_player_labels() -> void:
 	_player_labels_container = Control.new()
@@ -364,7 +504,17 @@ func _spawn_local_player(player_id: String) -> void:
 	local_player.is_local = true
 	local_player.player_id = player_id
 	players_container.add_child(local_player)
-	_add_player_label(player_id, local_player, "You")
+
+	# Get username from GameManager and update nameplate
+	_player_username = GameManager.username if GameManager.username != "" else "Player"
+	if player_nameplate:
+		player_nameplate.text = _player_username
+
+	# Connect health signals for UI updates
+	if local_player.has_signal("health_changed"):
+		local_player.health_changed.connect(_on_player_health_changed)
+	if local_player.has_signal("damage_taken"):
+		local_player.damage_taken.connect(_on_player_damage_taken)
 
 	# Initialize camera focus point at player spawn
 	camera_focus_point = local_player.global_position
@@ -467,6 +617,7 @@ func _handle_world_state(state: Dictionary) -> void:
 			projectile.set_script(projectile_script)
 			projectile.projectile_id = proj_id
 			projectile.ability_type = proj_data.get("abilityType", "fireball")
+			projectile.is_enemy_projectile = proj_data.get("isEnemyProjectile", false)
 			projectiles[proj_id] = projectile
 			projectiles_container.add_child(projectile)
 
@@ -847,6 +998,40 @@ func _handle_death_event(death_event: Dictionary) -> void:
 	# Remove health bar immediately on death
 	if entity_type == "enemy" and enemy_ui_manager:
 		enemy_ui_manager.unregister_enemy(entity_id)
+
+func _on_player_health_changed(current: float, maximum: float) -> void:
+	# Store health values for 3D bar update
+	_player_current_health = current
+	_player_max_health = maximum
+
+func _on_player_damage_taken(amount: float, _damage_type: String) -> void:
+	# Show damage number above player
+	if is_instance_valid(local_player):
+		_spawn_player_damage_number(local_player.global_position, amount)
+
+	# Flash screen red
+	_flash_damage_screen()
+
+	# Screen shake
+	add_screen_shake(0.3)
+
+	print("[WORLD] Player took %d damage" % int(amount))
+
+func _spawn_player_damage_number(spawn_pos: Vector3, damage: float) -> void:
+	var damage_number = Label3D.new()
+	damage_number.set_script(damage_number_script)
+	add_child(damage_number)
+	damage_number.global_position = spawn_pos + Vector3(0, 2.0, 0)
+	damage_number.setup(damage, "player_damage")
+
+func _flash_damage_screen() -> void:
+	if not damage_flash:
+		return
+
+	# Flash red and fade out
+	var tween = create_tween()
+	damage_flash.color = Color(1, 0, 0, 0.3)
+	tween.tween_property(damage_flash, "color", Color(1, 0, 0, 0), 0.3)
 
 func _handle_item_picked_up(message: Dictionary) -> void:
 	var ground_item_id = message.get("groundItemID", "")
@@ -1229,3 +1414,4 @@ func _physics_process(delta: float) -> void:
 	if is_instance_valid(local_player):
 		_update_camera_with_deadzone(delta)
 	_update_player_labels()
+	_update_player_health_bar_2d()

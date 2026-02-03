@@ -25,8 +25,8 @@ type World struct {
 	groundItems map[string]*GroundItem
 
 	// Events (for broadcasting)
-	damageEvents     []DamageEvent
-	deathEvents      []DeathEvent
+	damageEvents      []DamageEvent
+	deathEvents       []DeathEvent
 	abilityCastEvents []AbilityCastEvent
 
 	// Item generation
@@ -147,9 +147,112 @@ func (w *World) Update(delta time.Duration) {
 		player.Update(deltaSeconds)
 	}
 
-	// Update enemies
+	// Update enemies with AI
+	aiContext := &EnemyAIContext{
+		Players:      w.players,
+		Enemies:      w.enemies,
+		DeltaSeconds: deltaSeconds,
+		World:        w,
+	}
+
+	// Collect spawn requests to avoid modifying map during iteration
+	var spawnRequests []SpawnEnemyRequest
+
 	for _, enemy := range w.enemies {
-		enemy.Update(deltaSeconds)
+		// Run AI and get attack result
+		attackResult := enemy.UpdateAI(aiContext)
+		if attackResult == nil {
+			continue
+		}
+
+		// Handle different attack results
+		if attackResult.IsExplosion {
+			// Exploder enemy - deal AoE damage to all players in radius
+			for _, player := range w.players {
+				distance := Distance2D(enemy.Position, player.Position)
+				if distance <= attackResult.ExplosionRadius {
+					// Deal damage to player
+					player.Health -= attackResult.Damage
+					if player.Health < 0 {
+						player.Health = 0
+					}
+					// Record damage event
+					w.damageEvents = append(w.damageEvents, DamageEvent{
+						TargetID: player.ID,
+						Damage:   attackResult.Damage,
+						Type:     attackResult.DamageType,
+					})
+				}
+			}
+			// Kill the exploder
+			enemy.Dead = true
+			enemy.Health = 0
+			w.deathEvents = append(w.deathEvents, DeathEvent{
+				EntityID:   enemy.ID,
+				EntityType: "enemy",
+				KillerID:   enemy.ID, // Self-destruct
+			})
+		} else if attackResult.IsProjectile {
+			// Spawn enemy projectile towards player
+			projectileID := fmt.Sprintf("proj-enemy-%s-%d", enemy.ID, time.Now().UnixNano())
+			projectile := NewEnemyProjectile(
+				projectileID,
+				enemy.ID,
+				attackResult.Position,
+				attackResult.Direction,
+				attackResult.Damage,
+				attackResult.DamageType,
+			)
+			w.projectiles[projectileID] = projectile
+			// Record ability cast event
+			w.abilityCastEvents = append(w.abilityCastEvents, AbilityCastEvent{
+				CasterID:    enemy.ID,
+				CasterType:  "enemy",
+				OwnerID:     enemy.ID,
+				AbilityType: "enemy_projectile",
+				Position:    attackResult.Position,
+				Direction:   attackResult.Direction,
+			})
+		} else if attackResult.ApplyBuff != nil {
+			// Support enemy - buff nearby allies
+			buff := attackResult.ApplyBuff
+			for _, ally := range w.enemies {
+				if ally.ID == enemy.ID || ally.Dead {
+					continue
+				}
+				distance := Distance2D(enemy.Position, ally.Position)
+				if distance <= buff.Radius {
+					ally.ApplyBuff(buff.DamageMult, buff.SpeedMult, buff.Duration)
+				}
+			}
+		} else if len(attackResult.SpawnEnemies) > 0 {
+			// Summoner enemy - queue spawn requests
+			spawnRequests = append(spawnRequests, attackResult.SpawnEnemies...)
+		} else if attackResult.TargetID != "" {
+			// Melee attack - deal direct damage to player
+			player, exists := w.players[attackResult.TargetID]
+			if exists {
+				// Apply damage with buff multiplier
+				damage := attackResult.Damage * enemy.DamageBuff
+				player.Health -= damage
+				if player.Health < 0 {
+					player.Health = 0
+				}
+				// Record damage event
+				w.damageEvents = append(w.damageEvents, DamageEvent{
+					TargetID: player.ID,
+					Damage:   damage,
+					Type:     attackResult.DamageType,
+				})
+			}
+		}
+	}
+
+	// Process spawn requests
+	for _, spawn := range spawnRequests {
+		enemyID := fmt.Sprintf("enemy-summon-%d", time.Now().UnixNano())
+		newEnemy := NewEnemy(enemyID, spawn.Type, spawn.Position)
+		w.enemies[enemyID] = newEnemy
 	}
 
 	// Update projectiles and check collisions
@@ -177,7 +280,35 @@ func (w *World) Update(delta time.Duration) {
 
 		projectile.Update(deltaSeconds)
 
-		// Check collision with enemies
+		// Check if this is an enemy projectile (hits players)
+		if projectile.IsEnemyProjectile {
+			// Check collision with players
+			for _, player := range w.players {
+				if player.Health <= 0 {
+					continue
+				}
+				distance := Distance2D(projectile.Position, player.Position)
+				if distance <= projectile.Radius+0.5 { // Player radius ~0.5
+					// Deal damage to player
+					player.Health -= projectile.Damage
+					if player.Health < 0 {
+						player.Health = 0
+					}
+					// Record damage event
+					w.damageEvents = append(w.damageEvents, DamageEvent{
+						TargetID: player.ID,
+						Damage:   projectile.Damage,
+						Type:     projectile.DamageType,
+					})
+					// Destroy projectile
+					delete(w.projectiles, id)
+					break
+				}
+			}
+			continue
+		}
+
+		// Check collision with enemies (player projectiles)
 		if enemy := CheckProjectileCollision(projectile, w.enemies, projectile.Radius); enemy != nil {
 			// Skip if already hit this enemy (for piercing projectiles)
 			if projectile.HasHitEnemy(enemy.ID) {
@@ -762,6 +893,19 @@ func (w *World) SwapBagItems(playerID string, from, to int) error {
 	}
 
 	return player.Inventory.SwapBagItems(from, to)
+}
+
+// SwapEquipmentItems swaps two equipped items
+func (w *World) SwapEquipmentItems(playerID string, from, to EquipmentSlot) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	player, exists := w.players[playerID]
+	if !exists {
+		return fmt.Errorf("player not found")
+	}
+
+	return player.Inventory.SwapEquipmentItems(from, to)
 }
 
 // DropItemFromInventory removes an item from inventory and places it on the ground

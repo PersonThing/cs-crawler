@@ -8,15 +8,15 @@ import (
 type EquipmentSlot string
 
 const (
-	SlotHead      EquipmentSlot = "head"
-	SlotChest     EquipmentSlot = "chest"
-	SlotHands     EquipmentSlot = "hands"
-	SlotFeet      EquipmentSlot = "feet"
-	SlotWeapon1   EquipmentSlot = "weapon1"
-	SlotWeapon2   EquipmentSlot = "weapon2"
-	SlotAmulet    EquipmentSlot = "amulet"
-	SlotRing1     EquipmentSlot = "ring1"
-	SlotRing2     EquipmentSlot = "ring2"
+	SlotHead    EquipmentSlot = "head"
+	SlotChest   EquipmentSlot = "chest"
+	SlotHands   EquipmentSlot = "hands"
+	SlotFeet    EquipmentSlot = "feet"
+	SlotWeapon1 EquipmentSlot = "weapon1"
+	SlotWeapon2 EquipmentSlot = "weapon2"
+	SlotAmulet  EquipmentSlot = "amulet"
+	SlotRing1   EquipmentSlot = "ring1"
+	SlotRing2   EquipmentSlot = "ring2"
 )
 
 // Inventory manages player items
@@ -25,7 +25,7 @@ type Inventory struct {
 	Equipment map[EquipmentSlot]*Item
 
 	// Bag storage (60 slots)
-	Bags      []*Item
+	Bags        []*Item
 	MaxBagSlots int
 
 	// Set bonuses tracking
@@ -53,7 +53,13 @@ func NewInventory() *Inventory {
 }
 
 // EquipItem equips an item to the appropriate slot
-func (inv *Inventory) EquipItem(item *Item) (*Item, error) {
+func (inv *Inventory) EquipItem(item *Item) ([]*Item, error) {
+	return inv.EquipItemToSlot(item, "")
+}
+
+// EquipItemToSlot equips an item to a specific slot, or auto-selects if targetSlot is empty
+// Returns a slice of unequipped items (may be 0, 1, or 2 items for 2H weapon replacing dual 1H)
+func (inv *Inventory) EquipItemToSlot(item *Item, targetSlot EquipmentSlot) ([]*Item, error) {
 	if item == nil {
 		return nil, errors.New("cannot equip nil item")
 	}
@@ -63,6 +69,23 @@ func (inv *Inventory) EquipItem(item *Item) (*Item, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// If a target slot was specified and it's valid for this item, use it
+	if targetSlot != "" {
+		validSlots := inv.getValidSlotsForItem(item)
+		slotValid := false
+		for _, vs := range validSlots {
+			if vs == targetSlot {
+				slotValid = true
+				break
+			}
+		}
+		if slotValid {
+			slot = targetSlot
+		}
+	}
+
+	var unequippedItems []*Item
 
 	// Check for 2-handed weapon restrictions
 	if item.Type == ItemTypeWeapon2H {
@@ -76,13 +99,14 @@ func (inv *Inventory) EquipItem(item *Item) (*Item, error) {
 		inv.updateSetTracking(item, true)
 		if unequipped1 != nil {
 			inv.updateSetTracking(unequipped1, false)
+			unequippedItems = append(unequippedItems, unequipped1)
 		}
 		if unequipped2 != nil {
 			inv.updateSetTracking(unequipped2, false)
+			unequippedItems = append(unequippedItems, unequipped2)
 		}
 
-		// Return the main hand item if any (other hand must be empty for 2H)
-		return unequipped1, nil
+		return unequippedItems, nil
 	}
 
 	// For 1-handed weapons, check if there's a 2-handed weapon equipped
@@ -96,17 +120,17 @@ func (inv *Inventory) EquipItem(item *Item) (*Item, error) {
 			inv.Equipment[SlotWeapon2] = nil
 			inv.updateSetTracking(equipped1, false)
 			inv.updateSetTracking(item, true)
-			return equipped1, nil
+			return []*Item{equipped1}, nil
 		}
 
-		// Prefer weapon1 slot, unless it's occupied and weapon2 is free
-		if slot == SlotWeapon1 && equipped1 != nil && equipped2 == nil {
+		// If no specific target slot given, prefer weapon1 unless it's occupied and weapon2 is free
+		if targetSlot == "" && slot == SlotWeapon1 && equipped1 != nil && equipped2 == nil {
 			slot = SlotWeapon2
 		}
 	}
 
-	// For rings, prefer ring1 slot unless it's occupied
-	if item.Type == ItemTypeRing && slot == SlotRing1 {
+	// For rings, prefer ring1 slot unless it's occupied (if no specific target given)
+	if item.Type == ItemTypeRing && slot == SlotRing1 && targetSlot == "" {
 		if inv.Equipment[SlotRing1] != nil && inv.Equipment[SlotRing2] == nil {
 			slot = SlotRing2
 		}
@@ -120,9 +144,10 @@ func (inv *Inventory) EquipItem(item *Item) (*Item, error) {
 	inv.updateSetTracking(item, true)
 	if unequipped != nil {
 		inv.updateSetTracking(unequipped, false)
+		return []*Item{unequipped}, nil
 	}
 
-	return unequipped, nil
+	return nil, nil
 }
 
 // UnequipItem removes an item from an equipment slot
@@ -213,6 +238,30 @@ func (inv *Inventory) getEquipmentSlot(item *Item) (EquipmentSlot, error) {
 	}
 }
 
+// getValidSlotsForItem returns all valid equipment slots for an item
+func (inv *Inventory) getValidSlotsForItem(item *Item) []EquipmentSlot {
+	switch item.Type {
+	case ItemTypeHead:
+		return []EquipmentSlot{SlotHead}
+	case ItemTypeChest:
+		return []EquipmentSlot{SlotChest}
+	case ItemTypeHands:
+		return []EquipmentSlot{SlotHands}
+	case ItemTypeFeet:
+		return []EquipmentSlot{SlotFeet}
+	case ItemTypeWeapon1H:
+		return []EquipmentSlot{SlotWeapon1, SlotWeapon2}
+	case ItemTypeWeapon2H:
+		return []EquipmentSlot{SlotWeapon1}
+	case ItemTypeAmulet:
+		return []EquipmentSlot{SlotAmulet}
+	case ItemTypeRing:
+		return []EquipmentSlot{SlotRing1, SlotRing2}
+	default:
+		return []EquipmentSlot{}
+	}
+}
+
 // updateSetTracking updates the set piece count
 func (inv *Inventory) updateSetTracking(item *Item, equipped bool) {
 	if item.SetName == "" {
@@ -289,6 +338,43 @@ func (inv *Inventory) SwapBagItems(from, to int) error {
 		return errors.New("invalid bag slot")
 	}
 	inv.Bags[from], inv.Bags[to] = inv.Bags[to], inv.Bags[from]
+	return nil
+}
+
+// SwapEquipmentItems swaps two items between equipment slots
+func (inv *Inventory) SwapEquipmentItems(from, to EquipmentSlot) error {
+	fromItem := inv.Equipment[from]
+	toItem := inv.Equipment[to]
+
+	// Check if the slots are compatible for the items
+	// For weapons: both must be 1h, or one must be empty
+	if (from == SlotWeapon1 || from == SlotWeapon2) && (to == SlotWeapon1 || to == SlotWeapon2) {
+		// Check 2h weapon restrictions - cannot swap 2h weapon to offhand
+		if fromItem != nil && fromItem.Type == ItemTypeWeapon2H && to == SlotWeapon2 {
+			return errors.New("cannot move 2h weapon to offhand")
+		}
+		if toItem != nil && toItem.Type == ItemTypeWeapon2H && from == SlotWeapon2 {
+			return errors.New("cannot move 2h weapon to offhand")
+		}
+	}
+
+	// For rings: both slots must be ring slots
+	if (from == SlotRing1 || from == SlotRing2) && (to == SlotRing1 || to == SlotRing2) {
+		// Both are ring slots, swap is allowed
+	} else if from == SlotRing1 || from == SlotRing2 || to == SlotRing1 || to == SlotRing2 {
+		// One is a ring slot but the other isn't - check item types
+		if fromItem != nil && fromItem.Type != ItemTypeRing && (to == SlotRing1 || to == SlotRing2) {
+			return errors.New("cannot equip non-ring to ring slot")
+		}
+		if toItem != nil && toItem.Type != ItemTypeRing && (from == SlotRing1 || from == SlotRing2) {
+			return errors.New("cannot equip non-ring to ring slot")
+		}
+	}
+
+	// Perform the swap
+	inv.Equipment[from] = toItem
+	inv.Equipment[to] = fromItem
+
 	return nil
 }
 

@@ -11,6 +11,7 @@ var ability_type: String = "fireball"
 var velocity: Vector3 = Vector3.ZERO
 var lifetime: float = 5.0
 var age: float = 0.0
+var is_enemy_projectile: bool = false
 
 func _ready() -> void:
 	_setup_appearance()
@@ -31,19 +32,26 @@ func _setup_appearance() -> void:
 	# Set material based on ability type
 	var material = StandardMaterial3D.new()
 
-	match ability_type:
-		"fireball":
-			material.albedo_color = Color(1.0, 0.4, 0.0)  # Orange
-			material.emission_enabled = true
-			material.emission = Color(1.0, 0.5, 0.0)
-			material.emission_energy_multiplier = 2.0
-		"frostbolt":
-			material.albedo_color = Color(0.3, 0.7, 1.0)  # Light blue
-			material.emission_enabled = true
-			material.emission = Color(0.5, 0.8, 1.0)
-			material.emission_energy_multiplier = 2.0
-		_:
-			material.albedo_color = Color(1.0, 1.0, 1.0)
+	# Enemy projectiles have a distinct red/purple color
+	if is_enemy_projectile:
+		material.albedo_color = Color(0.8, 0.2, 0.4)  # Red/purple
+		material.emission_enabled = true
+		material.emission = Color(1.0, 0.2, 0.3)
+		material.emission_energy_multiplier = 3.0
+	else:
+		match ability_type:
+			"fireball":
+				material.albedo_color = Color(1.0, 0.4, 0.0)  # Orange
+				material.emission_enabled = true
+				material.emission = Color(1.0, 0.5, 0.0)
+				material.emission_energy_multiplier = 2.0
+			"frostbolt":
+				material.albedo_color = Color(0.3, 0.7, 1.0)  # Light blue
+				material.emission_enabled = true
+				material.emission = Color(0.5, 0.8, 1.0)
+				material.emission_energy_multiplier = 2.0
+			_:
+				material.albedo_color = Color(1.0, 1.0, 1.0)
 
 	mesh_instance.material_override = material
 
@@ -54,13 +62,17 @@ func _setup_appearance() -> void:
 		glow.light_energy = 1.5
 		glow.omni_range = 3.0
 
-		match ability_type:
-			"fireball":
-				glow.light_color = Color(1.0, 0.5, 0.0)
-			"frostbolt":
-				glow.light_color = Color(0.5, 0.8, 1.0)
-			_:
-				glow.light_color = Color(1.0, 1.0, 1.0)
+		if is_enemy_projectile:
+			glow.light_color = Color(1.0, 0.2, 0.3)
+			glow.light_energy = 2.0
+		else:
+			match ability_type:
+				"fireball":
+					glow.light_color = Color(1.0, 0.5, 0.0)
+				"frostbolt":
+					glow.light_color = Color(0.5, 0.8, 1.0)
+				_:
+					glow.light_color = Color(1.0, 1.0, 1.0)
 
 		add_child(glow)
 
@@ -87,13 +99,16 @@ func _setup_particles() -> void:
 		particle_mat.scale_min = 0.1
 		particle_mat.scale_max = 0.2
 
-		match ability_type:
-			"fireball":
-				particle_mat.color = Color(1.0, 0.5, 0.0, 0.8)
-			"frostbolt":
-				particle_mat.color = Color(0.5, 0.8, 1.0, 0.8)
-			_:
-				particle_mat.color = Color(1.0, 1.0, 1.0, 0.8)
+		if is_enemy_projectile:
+			particle_mat.color = Color(1.0, 0.2, 0.3, 0.8)
+		else:
+			match ability_type:
+				"fireball":
+					particle_mat.color = Color(1.0, 0.5, 0.0, 0.8)
+				"frostbolt":
+					particle_mat.color = Color(0.5, 0.8, 1.0, 0.8)
+				_:
+					particle_mat.color = Color(1.0, 1.0, 1.0, 0.8)
 
 		trail_particles.process_material = particle_mat
 

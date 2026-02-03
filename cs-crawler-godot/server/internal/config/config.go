@@ -52,9 +52,19 @@ type EnemyVisual struct {
 
 // EnemyAI represents enemy AI configuration
 type EnemyAI struct {
-	Type       string  `json:"type"`
-	AggroRange float64 `json:"aggroRange"`
-	ChaseSpeed float64 `json:"chaseSpeed,omitempty"`
+	Type            string  `json:"type"`
+	AggroRange      float64 `json:"aggroRange"`
+	ChaseSpeed      float64 `json:"chaseSpeed,omitempty"`
+	AttackRange     float64 `json:"attackRange,omitempty"`
+	AttackCooldown  float64 `json:"attackCooldown,omitempty"`
+	FleeHealth      float64 `json:"fleeHealth,omitempty"`
+	RageThreshold   float64 `json:"rageThreshold,omitempty"`
+	ChargeSpeed     float64 `json:"chargeSpeed,omitempty"`
+	ExplosionRadius float64 `json:"explosionRadius,omitempty"`
+	ExplosionDamage float64 `json:"explosionDamage,omitempty"`
+	SupportRange    float64 `json:"supportRange,omitempty"`
+	SummonCooldown  float64 `json:"summonCooldown,omitempty"`
+	MaxSummons      int     `json:"maxSummons,omitempty"`
 }
 
 // EnemyConfig represents a single enemy type's configuration

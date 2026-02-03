@@ -14,6 +14,14 @@ var navigation_agent: NavigationAgent3D = null
 var move_target: Vector3 = Vector3.ZERO
 var is_following_path: bool = false
 
+# Health
+var current_health: float = 100.0
+var max_health: float = 100.0
+
+# Damage feedback
+signal health_changed(current: float, maximum: float)
+signal damage_taken(amount: float, damage_type: String)
+
 # Ability cooldowns (client-side tracking for hold-to-cast)
 var ability_cooldowns: Dictionary = {
 	"fireball": 0.0,
@@ -313,6 +321,20 @@ func apply_server_state(state: Dictionary) -> void:
 			var server_rotation = state.get("rotation", 0.0)
 			rotation.y = server_rotation
 
-	# Update other stats
+	# Update health
 	if state.has("health"):
-		pass  # TODO: Update health bar
+		var new_health = state.get("health", current_health)
+		var old_health = current_health
+		current_health = new_health
+
+		# Emit damage taken signal if health decreased
+		if new_health < old_health:
+			var damage = old_health - new_health
+			damage_taken.emit(damage, "physical")
+
+		# Emit health changed signal
+		health_changed.emit(current_health, max_health)
+
+	if state.has("maxHealth"):
+		max_health = state.get("maxHealth", max_health)
+		health_changed.emit(current_health, max_health)

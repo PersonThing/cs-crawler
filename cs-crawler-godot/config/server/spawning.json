@@ -1,19 +1,40 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "spawnPatterns": {
     "default": {
-      "pattern": "circle",
-      "enemyType": "basic",
-      "count": 10,
-      "radius": 2.0,
-      "centerPosition": [5.0, 0, 0]
+      "pattern": "grid",
+      "enemyTypes": ["zombie", "skeleton", "archer", "zombie", "mage", "zombie", "skeleton", "shaman", "charger"],
+      "spacing": 4.0,
+      "rows": 3,
+      "columns": 3
     },
     "arena": {
       "pattern": "grid",
-      "enemyTypes": ["basic", "fast", "tank"],
+      "enemyTypes": ["zombie", "skeleton", "archer", "mage", "shaman", "necromancer", "exploder", "charger", "tank"],
       "spacing": 5.0,
       "rows": 3,
       "columns": 3
+    },
+    "horde": {
+      "pattern": "circle",
+      "enemyType": "zombie",
+      "count": 15,
+      "radius": 8.0,
+      "centerPosition": [10.0, 0, 0]
+    },
+    "ranged_squad": {
+      "pattern": "grid",
+      "enemyTypes": ["archer", "archer", "mage", "archer", "shaman", "mage"],
+      "spacing": 3.0,
+      "rows": 2,
+      "columns": 3
+    },
+    "boss_encounter": {
+      "pattern": "grid",
+      "enemyTypes": ["skeleton", "skeleton", "necromancer", "skeleton", "skeleton"],
+      "spacing": 3.0,
+      "rows": 1,
+      "columns": 5
     }
   }
 }

@@ -126,6 +126,8 @@ func (c *Client) handleMessage(data []byte) {
 		c.handleUnequipItem(msg)
 	case "swap_bag":
 		c.handleSwapBag(msg)
+	case "swap_equipment":
+		c.handleSwapEquipment(msg)
 	case "drop_item":
 		c.handleDropItem(msg)
 	default:
@@ -633,6 +635,12 @@ func (c *Client) handleEquipItem(msg map[string]interface{}) {
 		return
 	}
 
+	// Optional target slot
+	targetSlot := ""
+	if ts, ok := msg["targetSlot"].(string); ok {
+		targetSlot = ts
+	}
+
 	world, ok := c.server.gameServer.GetWorld(c.worldID)
 	if !ok {
 		log.Printf("[EQUIP] World not found: %s", c.worldID)
@@ -657,8 +665,8 @@ func (c *Client) handleEquipItem(msg map[string]interface{}) {
 		return
 	}
 
-	// Equip the item
-	unequippedItem, err := player.EquipItem(item)
+	// Equip the item to the target slot (or auto-select if empty)
+	unequippedItems, err := player.EquipItemToSlot(item, game.EquipmentSlot(targetSlot))
 	if err != nil {
 		// Put item back in bag if equip failed
 		player.Inventory.AddToBag(item)
@@ -671,10 +679,14 @@ func (c *Client) handleEquipItem(msg map[string]interface{}) {
 		return
 	}
 
-	// If something was unequipped, put it back in the same bag slot
-	if unequippedItem != nil {
-		sourceBagSlot := int(bagSlot)
-		if sourceBagSlot >= 0 && sourceBagSlot < player.Inventory.MaxBagSlots && player.Inventory.Bags[sourceBagSlot] == nil {
+	// If items were unequipped, put them back in bag
+	// First item goes to the source bag slot if available
+	sourceBagSlot := int(bagSlot)
+	for i, unequippedItem := range unequippedItems {
+		if unequippedItem == nil {
+			continue
+		}
+		if i == 0 && sourceBagSlot >= 0 && sourceBagSlot < player.Inventory.MaxBagSlots && player.Inventory.Bags[sourceBagSlot] == nil {
 			player.Inventory.Bags[sourceBagSlot] = unequippedItem
 		} else {
 			_, err := player.Inventory.AddToBag(unequippedItem)
@@ -684,7 +696,7 @@ func (c *Client) handleEquipItem(msg map[string]interface{}) {
 		}
 	}
 
-	log.Printf("[EQUIP] Player %s equipped item %s", c.playerID, item.Name)
+	log.Printf("[EQUIP] Player %s equipped item %s to slot %s", c.playerID, item.Name, targetSlot)
 
 	// Send success confirmation with updated stats
 	c.Send(map[string]interface{}{
@@ -808,6 +820,46 @@ func (c *Client) handleSwapBag(msg map[string]interface{}) {
 	}
 
 	log.Printf("[SWAP] Player %s swapped bag slots %d <-> %d", c.playerID, int(fromSlot), int(toSlot))
+}
+
+// handleSwapEquipment processes a request to swap two equipped items
+func (c *Client) handleSwapEquipment(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		return
+	}
+
+	fromSlot, ok := msg["fromSlot"].(string)
+	if !ok {
+		log.Printf("[SWAP_EQUIP] Invalid fromSlot in message")
+		return
+	}
+	toSlot, ok := msg["toSlot"].(string)
+	if !ok {
+		log.Printf("[SWAP_EQUIP] Invalid toSlot in message")
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	err := world.SwapEquipmentItems(c.playerID, game.EquipmentSlot(fromSlot), game.EquipmentSlot(toSlot))
+	if err != nil {
+		log.Printf("[SWAP_EQUIP] Failed to swap equipment: %v", err)
+		return
+	}
+
+	player := world.GetPlayer(c.playerID)
+	if player != nil && player.Inventory != nil {
+		c.Send(map[string]interface{}{
+			"type":      "item_equipped",
+			"inventory": player.Inventory.Serialize(),
+			"stats":     player.Serialize()["stats"],
+		})
+	}
+
+	log.Printf("[SWAP_EQUIP] Player %s swapped equipment slots %s <-> %s", c.playerID, fromSlot, toSlot)
 }
 
 // handleDropItem processes a request to drop an item on the ground

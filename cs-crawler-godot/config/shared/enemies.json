@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "enemyTypes": {
     "basic": {
       "name": "Basic Enemy",
@@ -35,9 +35,11 @@
         "radius": 0.3
       },
       "ai": {
-        "type": "chase",
+        "type": "melee",
         "aggroRange": 15.0,
-        "chaseSpeed": 8.0
+        "chaseSpeed": 8.0,
+        "attackRange": 2.0,
+        "attackCooldown": 0.8
       }
     },
     "tank": {
@@ -55,8 +57,197 @@
         "radius": 0.6
       },
       "ai": {
-        "type": "idle",
-        "aggroRange": 0
+        "type": "melee",
+        "aggroRange": 10.0,
+        "chaseSpeed": 2.0,
+        "attackRange": 2.5,
+        "attackCooldown": 1.5
+      }
+    },
+    "zombie": {
+      "name": "Zombie",
+      "health": 80,
+      "maxHealth": 80,
+      "moveSpeed": 3.0,
+      "damage": 12,
+      "xpReward": 6,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.4, 0.5, 0.3],
+        "scale": [1.0, 1.0, 1.0],
+        "height": 1.8,
+        "radius": 0.4
+      },
+      "ai": {
+        "type": "melee",
+        "aggroRange": 12.0,
+        "chaseSpeed": 3.0,
+        "attackRange": 2.0,
+        "attackCooldown": 1.2
+      }
+    },
+    "skeleton": {
+      "name": "Skeleton",
+      "health": 60,
+      "maxHealth": 60,
+      "moveSpeed": 5.0,
+      "damage": 8,
+      "xpReward": 7,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.9, 0.9, 0.85],
+        "scale": [0.8, 1.0, 0.8],
+        "height": 1.7,
+        "radius": 0.35
+      },
+      "ai": {
+        "type": "melee",
+        "aggroRange": 14.0,
+        "chaseSpeed": 5.0,
+        "attackRange": 2.0,
+        "attackCooldown": 0.7
+      }
+    },
+    "archer": {
+      "name": "Skeleton Archer",
+      "health": 45,
+      "maxHealth": 45,
+      "moveSpeed": 4.0,
+      "damage": 15,
+      "xpReward": 10,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.85, 0.85, 0.7],
+        "scale": [0.75, 1.0, 0.75],
+        "height": 1.7,
+        "radius": 0.35
+      },
+      "ai": {
+        "type": "ranged",
+        "aggroRange": 18.0,
+        "chaseSpeed": 4.0,
+        "attackRange": 12.0,
+        "attackCooldown": 1.5,
+        "fleeHealth": 0.25
+      }
+    },
+    "mage": {
+      "name": "Dark Mage",
+      "health": 70,
+      "maxHealth": 70,
+      "moveSpeed": 3.5,
+      "damage": 25,
+      "xpReward": 15,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.4, 0.2, 0.6],
+        "scale": [0.9, 1.1, 0.9],
+        "height": 1.9,
+        "radius": 0.4
+      },
+      "ai": {
+        "type": "ranged",
+        "aggroRange": 20.0,
+        "chaseSpeed": 3.5,
+        "attackRange": 15.0,
+        "attackCooldown": 2.0,
+        "fleeHealth": 0.3
+      }
+    },
+    "shaman": {
+      "name": "Orc Shaman",
+      "health": 100,
+      "maxHealth": 100,
+      "moveSpeed": 3.0,
+      "damage": 8,
+      "xpReward": 20,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.3, 0.6, 0.3],
+        "scale": [1.1, 1.0, 1.1],
+        "height": 1.7,
+        "radius": 0.45
+      },
+      "ai": {
+        "type": "support",
+        "aggroRange": 20.0,
+        "chaseSpeed": 3.0,
+        "attackRange": 15.0,
+        "attackCooldown": 4.0,
+        "supportRange": 10.0,
+        "fleeHealth": 0.4
+      }
+    },
+    "necromancer": {
+      "name": "Necromancer",
+      "health": 120,
+      "maxHealth": 120,
+      "moveSpeed": 2.5,
+      "damage": 10,
+      "xpReward": 25,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.2, 0.15, 0.3],
+        "scale": [1.0, 1.2, 1.0],
+        "height": 2.0,
+        "radius": 0.4
+      },
+      "ai": {
+        "type": "summoner",
+        "aggroRange": 25.0,
+        "chaseSpeed": 2.5,
+        "attackRange": 20.0,
+        "attackCooldown": 3.0,
+        "summonCooldown": 6.0,
+        "maxSummons": 3,
+        "fleeHealth": 0.35
+      }
+    },
+    "exploder": {
+      "name": "Volatile Creep",
+      "health": 40,
+      "maxHealth": 40,
+      "moveSpeed": 6.0,
+      "damage": 50,
+      "xpReward": 12,
+      "visual": {
+        "meshType": "sphere",
+        "color": [1.0, 0.4, 0.1],
+        "scale": [0.8, 0.8, 0.8],
+        "height": 1.2,
+        "radius": 0.5
+      },
+      "ai": {
+        "type": "exploder",
+        "aggroRange": 15.0,
+        "chaseSpeed": 6.0,
+        "attackRange": 1.5,
+        "explosionRadius": 4.0,
+        "explosionDamage": 50.0
+      }
+    },
+    "charger": {
+      "name": "Charging Bull",
+      "health": 150,
+      "maxHealth": 150,
+      "moveSpeed": 4.0,
+      "damage": 30,
+      "xpReward": 18,
+      "visual": {
+        "meshType": "capsule",
+        "color": [0.6, 0.3, 0.2],
+        "scale": [1.3, 1.0, 1.3],
+        "height": 1.6,
+        "radius": 0.5
+      },
+      "ai": {
+        "type": "charger",
+        "aggroRange": 18.0,
+        "chaseSpeed": 4.0,
+        "attackRange": 10.0,
+        "attackCooldown": 2.5,
+        "chargeSpeed": 15.0,
+        "rageThreshold": 0.3
       }
     }
   }
