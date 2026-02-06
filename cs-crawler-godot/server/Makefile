@@ -22,8 +22,14 @@ run: ## Run the server locally
 up: ## Start all services with Docker Compose
 	docker-compose up -d
 
+up-b: ## Start all services with Docker Compose (build first)
+	docker-compose up -d --build
+
 down: ## Stop all services
 	docker-compose down
+
+down-v: ## Stop all services and remove volumes
+	docker-compose down -v
 
 logs: ## View logs from all services
 	docker-compose logs -f

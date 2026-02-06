@@ -35,8 +35,25 @@ func _ready() -> void:
 	username_input.grab_focus()
 	username_input.caret_column = username_input.text.length()
 
+	# Auto-connect if server is available
+	_try_auto_connect()
+
 func _on_text_submitted(_text: String) -> void:
 	_on_connect_pressed()
+
+var _auto_connecting: bool = false
+
+func _try_auto_connect() -> void:
+	# Only auto-connect if we have saved settings
+	var config = ConfigFile.new()
+	if config.load(SETTINGS_FILE) == OK:
+		var saved_username = config.get_value("player", "username", "")
+		if saved_username != "":
+			_auto_connecting = true
+			status_label.text = "Auto-connecting..."
+			# Small delay to let UI settle
+			await get_tree().create_timer(0.2).timeout
+			_on_connect_pressed()
 
 func _setup_server_ip_input() -> void:
 	# Check if server IP input already exists
@@ -132,7 +149,11 @@ func _on_disconnected() -> void:
 	connect_button.disabled = false
 
 func _on_connection_error(error: String) -> void:
-	status_label.text = "Error: " + error
+	if _auto_connecting:
+		status_label.text = "Server not available. Enter details manually."
+		_auto_connecting = false
+	else:
+		status_label.text = "Error: " + error
 	connect_button.disabled = false
 
 func _on_message_received(message: Dictionary) -> void:

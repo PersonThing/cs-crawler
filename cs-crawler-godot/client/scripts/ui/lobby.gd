@@ -72,30 +72,16 @@ func _on_join_pressed() -> void:
 		status_label.text = "Joining game..."
 
 func _on_create_pressed() -> void:
-	name_input.text = "%s's Game" % GameManager.username
-	visibility_option.selected = 0
-	max_players_spinbox.value = 4
-	create_dialog.show()
-
-func _on_create_dialog_closed() -> void:
-	create_dialog.hide()
-
-func _on_create_confirmed() -> void:
-	var game_name = name_input.text.strip_edges()
-	if game_name.is_empty():
-		game_name = "%s's Game" % GameManager.username
-
-	var visibility = "public" if visibility_option.selected == 0 else "private"
-	var max_players = int(max_players_spinbox.value)
+	# Create game directly with player name, public, 8 players
+	var game_name = "%s's game" % GameManager.username
 
 	NetworkManager.send_message({
 		"type": "create_game",
 		"name": game_name,
-		"visibility": visibility,
-		"maxPlayers": max_players
+		"visibility": "public",
+		"maxPlayers": 8
 	})
 
-	create_dialog.hide()
 	status_label.text = "Creating game..."
 
 func _on_disconnect_pressed() -> void:

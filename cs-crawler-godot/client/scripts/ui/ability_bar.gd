@@ -61,14 +61,19 @@ func _load_ability_configs() -> void:
 	var config_loader = get_node_or_null("/root/ConfigLoader")
 	if not config_loader:
 		push_warning("[ABILITY_BAR] ConfigLoader not found, using defaults")
-		abilities["fireball"] = {"name": "Fireball", "cooldown": 0.2, "icon": null, "keybind": "1"}
-		abilities["frostbolt"] = {"name": "Frostbolt", "cooldown": 0.8, "icon": null, "keybind": "2"}
-		abilities["lightning"] = {"name": "Lightning", "cooldown": 1.0, "icon": null, "keybind": "3"}
-		abilities["basic_attack"] = {"name": "Basic Attack", "cooldown": 0.3, "icon": null, "keybind": "4"}
+		# Order: X, Y, A, B (Lightning, Basic Attack, Fireball, Frostbolt)
+		# Keys: 1 = X, 2 = Y, 3 = A, 4 = B
+		abilities["lightning"] = {"name": "Lightning", "cooldown": 1.0, "icon": null, "keybind": "1"}
+		abilities["basic_attack"] = {"name": "Basic Attack", "cooldown": 0.3, "icon": null, "keybind": "2"}
+		abilities["fireball"] = {"name": "Fireball", "cooldown": 0.2, "icon": null, "keybind": "3"}
+		abilities["frostbolt"] = {"name": "Frostbolt", "cooldown": 0.8, "icon": null, "keybind": "4"}
 		return
 
 	# Load all abilities from config
-	var ability_types = ["fireball", "frostbolt", "lightning", "basic_attack"]
+	# Order: X, Y, A, B (Lightning, Basic Attack, Fireball, Frostbolt)
+	# Keys: 1 = X, 2 = Y, 3 = A, 4 = B
+	var ability_types = ["lightning", "basic_attack", "fireball", "frostbolt"]
+	var keybinds = ["1", "2", "3", "4"]
 	for i in range(ability_types.size()):
 		var ability_type = ability_types[i]
 		var ability_config = config_loader.get_ability(ability_type)
@@ -77,7 +82,7 @@ func _load_ability_configs() -> void:
 				"name": ability_config.get("name", ability_type.capitalize()),
 				"cooldown": ability_config.get("cooldown", 1.0),
 				"icon": null,
-				"keybind": str(i + 1)
+				"keybind": keybinds[i]
 			}
 			print("[ABILITY_BAR] Loaded %s config: %s" % [ability_type, abilities[ability_type]])
 
@@ -131,16 +136,23 @@ func _setup_ability_buttons() -> void:
 			button.add_child(label)
 			cooldown_labels.append(label)
 
-			# Add keybind label
+			# Add keybind label (will be updated for VR mode)
+			# Order: X, Y, A, B maps to keys 1, 2, 3, 4
+			var keyboard_keys = ["1", "2", "3", "4"]
 			var keybind_label = Label.new()
 			keybind_label.name = "KeybindLabel"
-			keybind_label.text = str(i + 1)
+			keybind_label.text = keyboard_keys[i]  # Default to keyboard
 			keybind_label.anchor_left = 0.0
 			keybind_label.anchor_top = 0.0
 			keybind_label.offset_left = 5
 			keybind_label.offset_top = 5
 			keybind_label.add_theme_font_size_override("font_size", 14)
 			button.add_child(keybind_label)
+
+			# Store reference for VR label updates
+			if not has_meta("keybind_labels"):
+				set_meta("keybind_labels", [])
+			get_meta("keybind_labels").append(keybind_label)
 
 			hbox.add_child(button)
 
@@ -157,7 +169,18 @@ func _setup_ability_buttons() -> void:
 		ability_3.text = ""
 		ability_4.text = ""
 
+var _vr_labels_applied: bool = false
+
 func _process(delta: float) -> void:
+	# Update keybind labels for VR mode (X, Y, A, B instead of 3, 4, 1, 2)
+	if not _vr_labels_applied:
+		var game_world = get_node_or_null("/root/GameWorld")
+		if game_world and game_world.is_xr_active and has_meta("keybind_labels"):
+			var labels = get_meta("keybind_labels")
+			var vr_keys = ["X", "Y", "A", "B"]  # Lightning, Basic Attack, Fireball, Frostbolt
+			for i in range(min(labels.size(), vr_keys.size())):
+				labels[i].text = vr_keys[i]
+			_vr_labels_applied = true
 	# Update cooldown displays
 	for ability_type in cooldowns.keys():
 		cooldowns[ability_type] -= delta
@@ -174,27 +197,29 @@ func _process(delta: float) -> void:
 			_clear_cooldown_display(i)
 
 func _get_ability_type_for_slot(slot: int) -> String:
+	# Order: X, Y, A, B (Lightning, Basic Attack, Fireball, Frostbolt)
 	match slot:
 		0:
-			return "fireball"
-		1:
-			return "frostbolt"
-		2:
 			return "lightning"
-		3:
+		1:
 			return "basic_attack"
+		2:
+			return "fireball"
+		3:
+			return "frostbolt"
 		_:
 			return ""
 
 func _get_slot_for_ability(ability_type: String) -> int:
+	# Order: X, Y, A, B (Lightning, Basic Attack, Fireball, Frostbolt)
 	match ability_type:
-		"fireball":
-			return 0
-		"frostbolt":
-			return 1
 		"lightning":
-			return 2
+			return 0
 		"basic_attack":
+			return 1
+		"fireball":
+			return 2
+		"frostbolt":
 			return 3
 		_:
 			return -1

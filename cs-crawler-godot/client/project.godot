@@ -32,6 +32,10 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/stretch/mode="viewport"
 
+[editor]
+
+run/main_run_args="--xr"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
@@ -111,4 +115,5 @@ global_illumination/gi/use_half_resolution=true
 
 [xr]
 
+openxr/enabled=false
 shaders/enabled=true

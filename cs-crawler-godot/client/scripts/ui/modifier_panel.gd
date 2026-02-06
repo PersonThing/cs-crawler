@@ -28,37 +28,77 @@ func _ready() -> void:
 	_activate_all_modifiers()
 
 func _setup_ui() -> void:
-	# Create panel container
+	# Create panel container - small horizontal layout attached to right of skill bar
 	panel_container = PanelContainer.new()
 	panel_container.name = "ModifierPanelContainer"
-	panel_container.anchor_left = 0.02
-	panel_container.anchor_top = 0.3
-	panel_container.anchor_right = 0.02
-	panel_container.anchor_bottom = 0.7
-	panel_container.offset_right = 220
+	# Position at bottom of screen, right of the skill bar
+	panel_container.anchor_left = 0.5
+	panel_container.anchor_right = 0.5
+	panel_container.anchor_top = 1.0
+	panel_container.anchor_bottom = 1.0
+	# Skill bar is 400px wide centered, so start at +200 (right edge of skill bar) + 10px gap
+	panel_container.offset_left = 210
+	panel_container.offset_right = 380  # 4 buttons x 40px + gaps
+	panel_container.offset_top = -100
+	panel_container.offset_bottom = -30
+
+	# Semi-transparent background
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.15, 0.8)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(6)
+	panel_container.add_theme_stylebox_override("panel", style)
 	add_child(panel_container)
 
-	# Create VBox for layout
-	var vbox = VBoxContainer.new()
-	vbox.name = "VBox"
-	panel_container.add_child(vbox)
+	# Create HBox for horizontal layout (4 small buttons)
+	var hbox = HBoxContainer.new()
+	hbox.name = "HBox"
+	hbox.add_theme_constant_override("separation", 4)
+	panel_container.add_child(hbox)
 
-	# Add title label
-	var title = Label.new()
-	title.text = "Modifiers"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 18)
-	vbox.add_child(title)
-
-	# Add separator
-	var separator = HSeparator.new()
-	vbox.add_child(separator)
-
-	# Add modifier buttons
+	# Add modifier buttons (small, square)
 	for modifier in available_modifiers:
-		var button = _create_modifier_button(modifier)
-		vbox.add_child(button)
+		var button = _create_small_modifier_button(modifier)
+		hbox.add_child(button)
 		modifier_buttons[modifier["id"]] = button
+
+func _create_small_modifier_button(modifier_data: Dictionary) -> Button:
+	var button = Button.new()
+	button.name = "Modifier_" + modifier_data["id"]
+	button.text = modifier_data["name"][0]  # First letter only (H, P, P, T)
+	button.toggle_mode = true
+	button.custom_minimum_size = Vector2(36, 36)
+	button.tooltip_text = modifier_data["name"] + "\n" + modifier_data["description"]
+	button.pressed.connect(func(): _on_modifier_toggled(modifier_data["id"], button.button_pressed))
+
+	# Style: inactive by default
+	_update_small_button_style(button, false)
+
+	return button
+
+func _update_small_button_style(button: Button, active: bool) -> void:
+	if active:
+		# Bright green background for active
+		var active_style = StyleBoxFlat.new()
+		active_style.bg_color = Color(0.15, 0.5, 0.15, 0.95)
+		active_style.border_color = Color(0.4, 1.0, 0.4)
+		active_style.set_border_width_all(2)
+		active_style.set_corner_radius_all(4)
+		button.add_theme_stylebox_override("pressed", active_style)
+		button.add_theme_stylebox_override("normal", active_style)
+		button.add_theme_color_override("font_color", Color(0.9, 1.0, 0.9))
+		button.add_theme_color_override("font_pressed_color", Color(0.9, 1.0, 0.9))
+	else:
+		# Dim dark background for inactive
+		var inactive_style = StyleBoxFlat.new()
+		inactive_style.bg_color = Color(0.2, 0.2, 0.25, 0.9)
+		inactive_style.border_color = Color(0.35, 0.35, 0.4)
+		inactive_style.set_border_width_all(1)
+		inactive_style.set_corner_radius_all(4)
+		button.add_theme_stylebox_override("normal", inactive_style)
+		button.add_theme_stylebox_override("pressed", inactive_style)
+		button.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6))
+		button.add_theme_color_override("font_pressed_color", Color(0.55, 0.55, 0.6))
 
 func _activate_all_modifiers() -> void:
 	# Only activate once
@@ -71,13 +111,12 @@ func _activate_all_modifiers() -> void:
 	for modifier in available_modifiers:
 		var mod_id = modifier["id"]
 		selected_modifiers[mod_id] = true
-		# Update button state
+		# Update button state (button is stored directly now)
 		if modifier_buttons.has(mod_id):
-			var container = modifier_buttons[mod_id]
-			var button = container.get_node("Button")
+			var button = modifier_buttons[mod_id] as Button
 			if button:
 				button.button_pressed = true
-				_update_button_style(button, true)
+				_update_small_button_style(button, true)
 		# Notify server
 		NetworkManager.send_message({
 			"type": "set_modifier",
@@ -86,73 +125,14 @@ func _activate_all_modifiers() -> void:
 		})
 	print("[MODIFIER_PANEL] All modifiers activated by default")
 
-func _create_modifier_button(modifier_data: Dictionary) -> Control:
-	var container = VBoxContainer.new()
-	container.name = "Modifier_" + modifier_data["id"]
-
-	# Create toggle button
-	var button = Button.new()
-	button.name = "Button"
-	button.text = modifier_data["name"]
-	button.toggle_mode = true
-	button.custom_minimum_size = Vector2(200, 40)
-	button.pressed.connect(func(): _on_modifier_toggled(modifier_data["id"], button.button_pressed))
-
-	# Style: inactive by default
-	_update_button_style(button, false)
-
-	container.add_child(button)
-
-	# Add description label
-	var desc_label = Label.new()
-	desc_label.text = modifier_data["description"]
-	desc_label.add_theme_font_size_override("font_size", 10)
-	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_label.custom_minimum_size = Vector2(200, 0)
-	container.add_child(desc_label)
-
-	# Add spacer
-	var spacer = Control.new()
-	spacer.custom_minimum_size = Vector2(0, 10)
-	container.add_child(spacer)
-
-	return container
-
-func _update_button_style(button: Button, active: bool) -> void:
-	if active:
-		# Bright green background for active
-		var active_style = StyleBoxFlat.new()
-		active_style.bg_color = Color(0.1, 0.5, 0.1, 0.9)
-		active_style.border_color = Color(0.3, 1.0, 0.3)
-		active_style.set_border_width_all(2)
-		active_style.set_corner_radius_all(4)
-		active_style.set_content_margin_all(6)
-		button.add_theme_stylebox_override("pressed", active_style)
-		button.add_theme_stylebox_override("normal", active_style)
-		button.add_theme_color_override("font_color", Color(0.8, 1.0, 0.8))
-		button.add_theme_color_override("font_pressed_color", Color(0.8, 1.0, 0.8))
-	else:
-		# Dim dark background for inactive
-		var inactive_style = StyleBoxFlat.new()
-		inactive_style.bg_color = Color(0.15, 0.15, 0.2, 0.9)
-		inactive_style.border_color = Color(0.3, 0.3, 0.4)
-		inactive_style.set_border_width_all(1)
-		inactive_style.set_corner_radius_all(4)
-		inactive_style.set_content_margin_all(6)
-		button.add_theme_stylebox_override("normal", inactive_style)
-		button.add_theme_stylebox_override("pressed", inactive_style)
-		button.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
-		button.add_theme_color_override("font_pressed_color", Color(0.5, 0.5, 0.6))
-
 func _on_modifier_toggled(modifier_id: String, is_pressed: bool) -> void:
 	selected_modifiers[modifier_id] = is_pressed
 
-	# Update button style
+	# Update button style (button is stored directly now)
 	if modifier_buttons.has(modifier_id):
-		var container = modifier_buttons[modifier_id]
-		var button = container.get_node("Button")
+		var button = modifier_buttons[modifier_id] as Button
 		if button:
-			_update_button_style(button, is_pressed)
+			_update_small_button_style(button, is_pressed)
 
 	# Send to server
 	var message = {
@@ -178,21 +158,14 @@ func _handle_modifier_updated(message: Dictionary) -> void:
 	var modifier_id = message.get("modifierType", "")
 	var enabled = message.get("enabled", false)
 
-	# Update UI state
-	if modifier_buttons.has(modifier_id):
-		var container = modifier_buttons[modifier_id]
-		var button = container.get_node("Button")
-		if button:
-			button.button_pressed = enabled
-
 	selected_modifiers[modifier_id] = enabled
 
-	# Update button style
+	# Update UI state (button is stored directly now)
 	if modifier_buttons.has(modifier_id):
-		var container = modifier_buttons[modifier_id]
-		var button = container.get_node("Button")
+		var button = modifier_buttons[modifier_id] as Button
 		if button:
-			_update_button_style(button, enabled)
+			button.button_pressed = enabled
+			_update_small_button_style(button, enabled)
 
 	print("[MODIFIER_PANEL] Server confirmed: %s = %s" % [modifier_id, enabled])
 

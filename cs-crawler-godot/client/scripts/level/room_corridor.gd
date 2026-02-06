@@ -19,12 +19,14 @@ func _get_light_energy() -> float:
 
 func _create_walls() -> void:
 	## Corridors have walls on all sides EXCEPT where connections are
+	print("[CORRIDOR] _create_walls() called for: ", room_data.get("id", "?"))
 	var wall_height = room_size.y
 	var wall_thickness = 0.3
 
 	# Get open directions from connections
 	var open_directions: Array[String] = []
 	var connections = room_data.get("connections", [])
+	print("[CORRIDOR] connections: ", connections)
 	for conn in connections:
 		var dir = conn.get("direction", "")
 		if dir != "":
@@ -39,6 +41,8 @@ func _create_walls() -> void:
 		else:
 			open_directions.append("north")
 			open_directions.append("south")
+
+	print("[CORRIDOR] %s open_directions: %s (size: %s)" % [room_data.get("id", "?"), open_directions, room_size])
 
 	# Create walls only where there are no openings
 	if not "north" in open_directions:

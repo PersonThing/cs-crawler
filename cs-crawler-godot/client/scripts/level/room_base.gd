@@ -91,6 +91,7 @@ func _create_walls() -> void:
 		var dir = conn.get("direction", "")
 		if dir != "" and not dir in open_directions:
 			open_directions.append(dir)
+	var from_own = open_directions.duplicate()
 
 	# Also check for incoming connections from the level manager
 	var level_manager = get_parent()
@@ -99,6 +100,7 @@ func _create_walls() -> void:
 		for dir in incoming:
 			if dir != "" and not dir in open_directions:
 				open_directions.append(dir)
+	var from_incoming = open_directions.duplicate()
 
 	# Additionally, check for adjacent corridors by position
 	if level_manager and level_manager.has_method("get_adjacent_corridor_directions"):
@@ -107,7 +109,7 @@ func _create_walls() -> void:
 			if dir != "" and not dir in open_directions:
 				open_directions.append(dir)
 
-	print("[ROOM] %s (%s) open_directions: %s" % [room_id, my_room_type, open_directions])
+	print("[WALLS] %s: own=%s incoming=%s final=%s" % [room_id, from_own, from_incoming, open_directions])
 
 	# Corridors should have openings on both ends by default
 	if my_room_type == "corridor":

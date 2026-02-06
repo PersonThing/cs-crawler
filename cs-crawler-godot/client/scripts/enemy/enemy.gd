@@ -6,6 +6,8 @@ var mesh_instance: MeshInstance3D = null
 var status_indicator: MeshInstance3D = null
 var rage_particles: GPUParticles3D = null
 var charge_trail: GPUParticles3D = null
+var health_bar_3d: Node3D = null
+var health_bar_fill: MeshInstance3D = null
 
 var enemy_id: String = ""
 var enemy_type: String = "basic"
@@ -36,6 +38,7 @@ var flash_duration: float = 0.1
 func _ready() -> void:
 	_setup_appearance()
 	_setup_status_indicators()
+	_setup_3d_health_bar()
 
 func _setup_appearance() -> void:
 	# Load enemy config for visuals
@@ -106,6 +109,66 @@ func _setup_status_indicators() -> void:
 	status_indicator.material_override = indicator_material
 	add_child(status_indicator)
 
+func _setup_3d_health_bar() -> void:
+	# Create 3D health bar attached to enemy
+	health_bar_3d = Node3D.new()
+	health_bar_3d.name = "HealthBar3D"
+	health_bar_3d.position = Vector3(0, 2.5, 0)
+	add_child(health_bar_3d)
+
+	# Background bar
+	var bg_mesh = MeshInstance3D.new()
+	var bg_box = BoxMesh.new()
+	bg_box.size = Vector3(1.2, 0.15, 0.05)
+	bg_mesh.mesh = bg_box
+	var bg_mat = StandardMaterial3D.new()
+	bg_mat.albedo_color = Color(0.2, 0.2, 0.2, 0.9)
+	bg_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bg_mat.no_depth_test = true  # Render on top of everything
+	bg_mat.render_priority = 10
+	bg_mesh.material_override = bg_mat
+	health_bar_3d.add_child(bg_mesh)
+
+	# Health fill bar
+	health_bar_fill = MeshInstance3D.new()
+	health_bar_fill.name = "HealthFill"
+	var fill_box = BoxMesh.new()
+	fill_box.size = Vector3(1.1, 0.1, 0.06)
+	health_bar_fill.mesh = fill_box
+	health_bar_fill.position = Vector3(0, 0, 0.01)
+	var fill_mat = StandardMaterial3D.new()
+	fill_mat.albedo_color = Color(0.8, 0.1, 0.1)
+	fill_mat.no_depth_test = true  # Render on top of everything
+	fill_mat.render_priority = 11
+	health_bar_fill.material_override = fill_mat
+	health_bar_3d.add_child(health_bar_fill)
+
+func _update_3d_health_bar() -> void:
+	if not health_bar_fill or not health_bar_3d:
+		return
+
+	var health_percent = current_health / max_health if max_health > 0 else 0.0
+	health_bar_fill.scale.x = health_percent
+	health_bar_fill.position.x = -0.55 * (1.0 - health_percent)
+
+	# Update color based on health
+	var fill_mat = health_bar_fill.material_override as StandardMaterial3D
+	if fill_mat:
+		if health_percent > 0.5:
+			fill_mat.albedo_color = Color(0.8, 0.1, 0.1)
+		elif health_percent > 0.25:
+			fill_mat.albedo_color = Color(0.9, 0.5, 0.1)
+		else:
+			fill_mat.albedo_color = Color(0.9, 0.2, 0.2)
+
+	# Billboard: only rotate around Y axis to face camera (keeps position fixed)
+	var camera = get_viewport().get_camera_3d()
+	if camera and health_bar_3d:
+		var cam_pos = camera.global_position
+		var bar_pos = health_bar_3d.global_position
+		var direction = Vector2(cam_pos.x - bar_pos.x, cam_pos.z - bar_pos.z)
+		health_bar_3d.rotation.y = atan2(direction.x, direction.y)
+
 func apply_server_state(state: Dictionary) -> void:
 	# Update position
 	var server_pos = state.get("position", {})
@@ -136,9 +199,11 @@ func apply_server_state(state: Dictionary) -> void:
 	# Update health
 	if state.has("health"):
 		current_health = state.get("health", 100.0)
+		_update_3d_health_bar()
 
 	if state.has("maxHealth"):
 		max_health = state.get("maxHealth", 100.0)
+		_update_3d_health_bar()
 
 	# Update AI state
 	if state.has("aiState"):
@@ -274,6 +339,9 @@ func _process(delta: float) -> void:
 	# Status indicator animation
 	if status_indicator and status_indicator.visible:
 		status_indicator.position.y = 2.2 + sin(Time.get_ticks_msec() * 0.005) * 0.1
+
+	# Update health bar billboard (face camera)
+	_update_3d_health_bar()
 
 	if is_dead:
 		death_timer += delta

@@ -240,6 +240,21 @@ Development is organized into 10 phases. See [docs/implementation-plan.md](docs/
 - **Client**: 60+ FPS (90+ for VR mode)
 - **Network**: <100ms latency (depends on connection)
 
+## Troubleshooting
+
+### VR / OpenXR
+
+**OpenXR initialization fails (returns false)**
+
+If you have multiple VR runtimes installed (e.g., Oculus and SteamVR), you need to set SteamVR as the active OpenXR runtime:
+
+1. Open **SteamVR**
+2. Go to **Settings** (gear icon)
+3. Navigate to **OpenXR**
+4. Click **Set SteamVR as OpenXR Runtime**
+
+This is required because Godot's OpenXR implementation needs the correct runtime to be active.
+
 ## Contributing
 
 1. Read [docs/implementation-plan.md](docs/implementation-plan.md)

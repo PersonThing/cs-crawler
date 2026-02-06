@@ -2,20 +2,20 @@ package game
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
+	"sort"
 )
 
 // RoomType defines the type of room
 type RoomType string
 
 const (
-	RoomTypeStart     RoomType = "start"
-	RoomTypeCombat    RoomType = "combat"
-	RoomTypeTreasure  RoomType = "treasure"
-	RoomTypeCorridor  RoomType = "corridor"
-	RoomTypeBoss      RoomType = "boss"
-	RoomTypeArena     RoomType = "arena"
+	RoomTypeStart    RoomType = "start"
+	RoomTypeCombat   RoomType = "combat"
+	RoomTypeTreasure RoomType = "treasure"
+	RoomTypeCorridor RoomType = "corridor"
+	RoomTypeBoss     RoomType = "boss"
+	RoomTypeArena    RoomType = "arena"
 )
 
 // ConnectionDirection defines which side of a room has a connection
@@ -30,15 +30,15 @@ const (
 
 // Room represents a single room in the level
 type Room struct {
-	ID          string               `json:"id"`
-	Type        RoomType             `json:"type"`
-	Position    Vector3              `json:"position"`    // World position of room center
-	Size        Vector3              `json:"size"`        // Room dimensions (width, height, depth)
-	Rotation    float64              `json:"rotation"`    // Rotation in degrees (0, 90, 180, 270)
-	Connections []RoomConnection     `json:"connections"` // Connected rooms
-	EnemySpawns []EnemySpawnPoint    `json:"enemySpawns"` // Where enemies spawn
-	LootSpawns  []LootSpawnPoint     `json:"lootSpawns"`  // Where loot chests spawn
-	Lighting    RoomLighting         `json:"lighting"`    // Lighting configuration
+	ID          string            `json:"id"`
+	Type        RoomType          `json:"type"`
+	Position    Vector3           `json:"position"`    // World position of room center
+	Size        Vector3           `json:"size"`        // Room dimensions (width, height, depth)
+	Rotation    float64           `json:"rotation"`    // Rotation in degrees (0, 90, 180, 270)
+	Connections []RoomConnection  `json:"connections"` // Connected rooms
+	EnemySpawns []EnemySpawnPoint `json:"enemySpawns"` // Where enemies spawn
+	LootSpawns  []LootSpawnPoint  `json:"lootSpawns"`  // Where loot chests spawn
+	Lighting    RoomLighting      `json:"lighting"`    // Lighting configuration
 }
 
 // RoomConnection defines a connection between two rooms
@@ -65,22 +65,22 @@ type LootSpawnPoint struct {
 
 // RoomLighting defines lighting for a room
 type RoomLighting struct {
-	AmbientColor    [3]float64 `json:"ambientColor"`    // RGB 0-1
-	AmbientIntensity float64   `json:"ambientIntensity"`
-	FogEnabled      bool       `json:"fogEnabled"`
-	FogColor        [3]float64 `json:"fogColor"`
-	FogDensity      float64    `json:"fogDensity"`
+	AmbientColor     [3]float64 `json:"ambientColor"` // RGB 0-1
+	AmbientIntensity float64    `json:"ambientIntensity"`
+	FogEnabled       bool       `json:"fogEnabled"`
+	FogColor         [3]float64 `json:"fogColor"`
+	FogDensity       float64    `json:"fogDensity"`
 }
 
 // Level represents a complete procedurally generated level
 type Level struct {
-	ID          string          `json:"id"`
-	Seed        int64           `json:"seed"`
+	ID          string           `json:"id"`
+	Seed        int64            `json:"seed"`
 	Rooms       map[string]*Room `json:"rooms"`
-	StartRoomID string          `json:"startRoomID"`
-	BossRoomID  string          `json:"bossRoomID"`
-	SpawnPoint  Vector3         `json:"spawnPoint"`
-	Bounds      LevelBounds     `json:"bounds"`
+	StartRoomID string           `json:"startRoomID"`
+	BossRoomID  string           `json:"bossRoomID"`
+	SpawnPoint  Vector3          `json:"spawnPoint"`
+	Bounds      LevelBounds      `json:"bounds"`
 }
 
 // LevelBounds defines the spatial bounds of the level
@@ -89,74 +89,83 @@ type LevelBounds struct {
 	Max Vector3 `json:"max"`
 }
 
-// BSPNode represents a node in the Binary Space Partition tree
-type BSPNode struct {
-	Bounds   Rect
-	Left     *BSPNode
-	Right    *BSPNode
-	Room     *Room
-	IsLeaf   bool
+// Internal types for grid-based generation (not serialized)
+type cellType int
+
+const (
+	cellWall  cellType = 0
+	cellFloor cellType = 1
+)
+
+type gridCell struct {
+	Type   cellType
+	RoomID string
 }
 
-// Rect represents a 2D rectangle for BSP partitioning
-type Rect struct {
-	X      float64
-	Y      float64
-	Width  float64
-	Height float64
+type placedRoom struct {
+	ID      string
+	CenterX int
+	CenterY int
+	Width   int
+	Height  int
 }
 
-// LevelGenerator generates procedural levels
+// LevelGenerator generates procedural levels using random walk
 type LevelGenerator struct {
-	seed        int64
-	rng         *rand.Rand
-	minRoomSize float64
-	maxRoomSize float64
-	roomPadding float64
-	nextRoomID  int
+	seed       int64
+	rng        *rand.Rand
+	cellSize   float64 // World units per grid cell
+	nextRoomID int
 }
 
 // NewLevelGenerator creates a new level generator
 func NewLevelGenerator(seed int64) *LevelGenerator {
 	return &LevelGenerator{
-		seed:        seed,
-		rng:         rand.New(rand.NewSource(seed)),
-		minRoomSize: 12.0,
-		maxRoomSize: 24.0,
-		roomPadding: 4.0,
-		nextRoomID:  0,
+		seed:       seed,
+		rng:        rand.New(rand.NewSource(seed)),
+		cellSize:   4.0, // Each cell is 4x4 world units
+		nextRoomID: 0,
 	}
 }
 
-// GenerateLevel generates a complete level using BSP
-func (lg *LevelGenerator) GenerateLevel(width, height float64, roomCount int) *Level {
+// GenerateLevel generates a complete level using random walk algorithm
+func (lg *LevelGenerator) GenerateLevel(width, height float64, targetRoomCount int) *Level {
 	level := &Level{
-		ID:     fmt.Sprintf("level-%d", lg.seed),
-		Seed:   lg.seed,
-		Rooms:  make(map[string]*Room),
+		ID:    fmt.Sprintf("level-%d", lg.seed),
+		Seed:  lg.seed,
+		Rooms: make(map[string]*Room),
 		Bounds: LevelBounds{
 			Min: Vector3{X: 0, Y: 0, Z: 0},
 			Max: Vector3{X: width, Y: 0, Z: height},
 		},
 	}
 
-	// Create BSP tree
-	rootBounds := Rect{X: 0, Y: 0, Width: width, Height: height}
-	root := lg.createBSPTree(rootBounds, roomCount)
+	// Create grid
+	gridWidth := int(width / lg.cellSize)
+	gridHeight := int(height / lg.cellSize)
+	grid := lg.createGrid(gridWidth, gridHeight)
 
-	// Extract rooms from BSP tree
-	lg.extractRooms(root, level)
+	// Phase 1: Random walk to carve tunnels
+	steps := targetRoomCount * 80 // More steps = more floor space
+	lg.randomWalk(grid, steps)
 
-	// Connect rooms
-	lg.connectRooms(root, level)
+	// Phase 2 & 3: Find room candidates and place rooms
+	placed := lg.placeRooms(grid, targetRoomCount)
 
-	// Assign room types
+	// Phase 4: Label remaining floor cells as corridors
+	lg.labelCorridors(grid)
+
+	// Phase 5: Convert grid to Room objects
+	lg.convertToRooms(grid, placed, level)
+
+	// Phase 6: Create connections between adjacent rooms
+	lg.createConnections(grid, level)
+
+	// Phase 7: Assign room types (start, boss, etc.)
 	lg.assignRoomTypes(level)
 
-	// Generate spawn points for enemies and loot
+	// Generate spawn points and lighting
 	lg.generateSpawnPoints(level)
-
-	// Set lighting for each room
 	lg.generateLighting(level)
 
 	// Set spawn point in start room
@@ -171,246 +180,500 @@ func (lg *LevelGenerator) GenerateLevel(width, height float64, roomCount int) *L
 	return level
 }
 
-// createBSPTree recursively creates a BSP tree
-func (lg *LevelGenerator) createBSPTree(bounds Rect, depth int) *BSPNode {
-	node := &BSPNode{
-		Bounds: bounds,
-		IsLeaf: false,
+// createGrid initializes an empty grid filled with walls
+func (lg *LevelGenerator) createGrid(width, height int) [][]gridCell {
+	grid := make([][]gridCell, width)
+	for x := range grid {
+		grid[x] = make([]gridCell, height)
+		for y := range grid[x] {
+			grid[x][y] = gridCell{Type: cellWall, RoomID: ""}
+		}
 	}
-
-	// Stop splitting if we've reached desired depth or area is too small
-	if depth <= 0 || bounds.Width < lg.minRoomSize*2 || bounds.Height < lg.minRoomSize*2 {
-		node.IsLeaf = true
-		return node
-	}
-
-	// Decide split direction based on aspect ratio
-	splitHorizontal := lg.rng.Float64() < 0.5
-	if bounds.Width > bounds.Height*1.25 {
-		splitHorizontal = false
-	} else if bounds.Height > bounds.Width*1.25 {
-		splitHorizontal = true
-	}
-
-	// Calculate split position (between 40% and 60%)
-	splitRatio := 0.4 + lg.rng.Float64()*0.2
-
-	if splitHorizontal {
-		splitY := bounds.Y + bounds.Height*splitRatio
-		node.Left = lg.createBSPTree(Rect{
-			X:      bounds.X,
-			Y:      bounds.Y,
-			Width:  bounds.Width,
-			Height: splitY - bounds.Y,
-		}, depth-1)
-		node.Right = lg.createBSPTree(Rect{
-			X:      bounds.X,
-			Y:      splitY,
-			Width:  bounds.Width,
-			Height: bounds.Y + bounds.Height - splitY,
-		}, depth-1)
-	} else {
-		splitX := bounds.X + bounds.Width*splitRatio
-		node.Left = lg.createBSPTree(Rect{
-			X:      bounds.X,
-			Y:      bounds.Y,
-			Width:  splitX - bounds.X,
-			Height: bounds.Height,
-		}, depth-1)
-		node.Right = lg.createBSPTree(Rect{
-			X:      splitX,
-			Y:      bounds.Y,
-			Width:  bounds.X + bounds.Width - splitX,
-			Height: bounds.Height,
-		}, depth-1)
-	}
-
-	return node
+	return grid
 }
 
-// extractRooms extracts rooms from BSP leaf nodes
-func (lg *LevelGenerator) extractRooms(node *BSPNode, level *Level) {
-	if node == nil {
-		return
+// randomWalk carves floor cells through the grid using a drunkard's walk
+func (lg *LevelGenerator) randomWalk(grid [][]gridCell, steps int) {
+	width := len(grid)
+	height := len(grid[0])
+
+	// Start near center
+	x, y := width/2, height/2
+	grid[x][y].Type = cellFloor
+
+	// Direction vectors: up, down, right, left
+	directions := [][2]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+
+	for i := 0; i < steps; i++ {
+		// Pick random direction
+		dir := directions[lg.rng.Intn(4)]
+
+		// Move (stay 2 cells from edge to leave room for walls)
+		newX := x + dir[0]
+		newY := y + dir[1]
+
+		if newX >= 2 && newX < width-2 && newY >= 2 && newY < height-2 {
+			x, y = newX, newY
+			grid[x][y].Type = cellFloor
+		}
+	}
+}
+
+// placeRooms finds good spots for rooms and places them
+func (lg *LevelGenerator) placeRooms(grid [][]gridCell, targetCount int) []*placedRoom {
+	width := len(grid)
+	height := len(grid[0])
+	placed := []*placedRoom{}
+
+	// Minimum and maximum room size in cells
+	minSize := 3
+	maxSize := 5
+
+	// Scan for room candidates - areas with enough floor space
+	type candidate struct {
+		x, y          int
+		maxW, maxH    int
+		floorDensity  float64
+	}
+	candidates := []candidate{}
+
+	for x := minSize; x < width-minSize; x++ {
+		for y := minSize; y < height-minSize; y++ {
+			if grid[x][y].Type != cellFloor {
+				continue
+			}
+
+			// Check how much floor space is around this point
+			maxW, maxH := lg.measureFloorArea(grid, x, y, maxSize)
+			if maxW >= minSize && maxH >= minSize {
+				// Calculate floor density in the area
+				density := lg.calculateFloorDensity(grid, x, y, maxW, maxH)
+				candidates = append(candidates, candidate{x, y, maxW, maxH, density})
+			}
+		}
 	}
 
-	if node.IsLeaf {
-		// Create room within the partition bounds
-		padding := lg.roomPadding
-		roomWidth := node.Bounds.Width - padding*2
-		roomHeight := node.Bounds.Height - padding*2
+	// Sort by floor density (prefer areas with more floor)
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].floorDensity > candidates[j].floorDensity
+	})
 
-		if roomWidth < lg.minRoomSize {
-			roomWidth = lg.minRoomSize
-		}
-		if roomHeight < lg.minRoomSize {
-			roomHeight = lg.minRoomSize
+	// Place rooms, avoiding overlaps
+	for _, c := range candidates {
+		if len(placed) >= targetCount {
+			break
 		}
 
-		// Random size within bounds
-		actualWidth := lg.minRoomSize + lg.rng.Float64()*(roomWidth-lg.minRoomSize)
-		actualHeight := lg.minRoomSize + lg.rng.Float64()*(roomHeight-lg.minRoomSize)
+		// Determine room size (random within constraints)
+		roomW := minSize + lg.rng.Intn(c.maxW-minSize+1)
+		roomH := minSize + lg.rng.Intn(c.maxH-minSize+1)
 
-		// Center the room in the partition
-		roomX := node.Bounds.X + (node.Bounds.Width-actualWidth)/2
-		roomY := node.Bounds.Y + (node.Bounds.Height-actualHeight)/2
+		// Check if this room would overlap with existing rooms
+		if lg.wouldOverlap(placed, c.x, c.y, roomW, roomH) {
+			continue
+		}
 
+		// Place the room
+		roomID := fmt.Sprintf("room-%d", lg.nextRoomID)
+		lg.nextRoomID++
+
+		room := &placedRoom{
+			ID:      roomID,
+			CenterX: c.x,
+			CenterY: c.y,
+			Width:   roomW,
+			Height:  roomH,
+		}
+		placed = append(placed, room)
+
+		// Mark cells as belonging to this room
+		for dx := -roomW / 2; dx <= roomW/2; dx++ {
+			for dy := -roomH / 2; dy <= roomH/2; dy++ {
+				gx, gy := c.x+dx, c.y+dy
+				if gx >= 0 && gx < width && gy >= 0 && gy < height {
+					grid[gx][gy].Type = cellFloor
+					grid[gx][gy].RoomID = roomID
+				}
+			}
+		}
+	}
+
+	return placed
+}
+
+// measureFloorArea measures how much floor space exists around a point
+func (lg *LevelGenerator) measureFloorArea(grid [][]gridCell, cx, cy, maxSize int) (int, int) {
+	width := len(grid)
+	height := len(grid[0])
+
+	// Expand outward to find max width/height that has floor
+	maxW, maxH := 1, 1
+
+	for w := 1; w <= maxSize; w++ {
+		hasFloor := true
+		for dy := -maxH / 2; dy <= maxH/2; dy++ {
+			x1, x2 := cx-w/2, cx+w/2
+			y := cy + dy
+			if x1 < 0 || x2 >= width || y < 0 || y >= height {
+				hasFloor = false
+				break
+			}
+			if grid[x1][y].Type != cellFloor || grid[x2][y].Type != cellFloor {
+				hasFloor = false
+				break
+			}
+		}
+		if hasFloor {
+			maxW = w
+		} else {
+			break
+		}
+	}
+
+	for h := 1; h <= maxSize; h++ {
+		hasFloor := true
+		for dx := -maxW / 2; dx <= maxW/2; dx++ {
+			x := cx + dx
+			y1, y2 := cy-h/2, cy+h/2
+			if y1 < 0 || y2 >= height || x < 0 || x >= width {
+				hasFloor = false
+				break
+			}
+			if grid[x][y1].Type != cellFloor || grid[x][y2].Type != cellFloor {
+				hasFloor = false
+				break
+			}
+		}
+		if hasFloor {
+			maxH = h
+		} else {
+			break
+		}
+	}
+
+	return maxW, maxH
+}
+
+// calculateFloorDensity calculates what percentage of an area is floor
+func (lg *LevelGenerator) calculateFloorDensity(grid [][]gridCell, cx, cy, w, h int) float64 {
+	width := len(grid)
+	height := len(grid[0])
+	total := 0
+	floor := 0
+
+	for dx := -w / 2; dx <= w/2; dx++ {
+		for dy := -h / 2; dy <= h/2; dy++ {
+			x, y := cx+dx, cy+dy
+			if x >= 0 && x < width && y >= 0 && y < height {
+				total++
+				if grid[x][y].Type == cellFloor {
+					floor++
+				}
+			}
+		}
+	}
+
+	if total == 0 {
+		return 0
+	}
+	return float64(floor) / float64(total)
+}
+
+// wouldOverlap checks if a room would overlap with existing placed rooms
+func (lg *LevelGenerator) wouldOverlap(placed []*placedRoom, cx, cy, w, h int) bool {
+	// Add padding between rooms
+	padding := 2
+
+	for _, room := range placed {
+		// Check bounding box overlap with padding
+		r1Left := cx - w/2 - padding
+		r1Right := cx + w/2 + padding
+		r1Top := cy - h/2 - padding
+		r1Bottom := cy + h/2 + padding
+
+		r2Left := room.CenterX - room.Width/2
+		r2Right := room.CenterX + room.Width/2
+		r2Top := room.CenterY - room.Height/2
+		r2Bottom := room.CenterY + room.Height/2
+
+		if r1Left < r2Right && r1Right > r2Left && r1Top < r2Bottom && r1Bottom > r2Top {
+			return true
+		}
+	}
+	return false
+}
+
+// labelCorridors flood-fills remaining floor cells as corridor regions
+func (lg *LevelGenerator) labelCorridors(grid [][]gridCell) {
+	width := len(grid)
+	height := len(grid[0])
+	corridorID := 0
+
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			if grid[x][y].Type == cellFloor && grid[x][y].RoomID == "" {
+				// Flood fill this corridor region
+				id := fmt.Sprintf("corridor-%d", corridorID)
+				corridorID++
+				lg.floodFillCorridor(grid, x, y, id)
+			}
+		}
+	}
+}
+
+// floodFillCorridor marks all connected floor cells with the same corridor ID
+func (lg *LevelGenerator) floodFillCorridor(grid [][]gridCell, startX, startY int, corridorID string) {
+	width := len(grid)
+	height := len(grid[0])
+
+	stack := [][2]int{{startX, startY}}
+
+	for len(stack) > 0 {
+		// Pop
+		pos := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		x, y := pos[0], pos[1]
+
+		if x < 0 || x >= width || y < 0 || y >= height {
+			continue
+		}
+		if grid[x][y].Type != cellFloor || grid[x][y].RoomID != "" {
+			continue
+		}
+
+		grid[x][y].RoomID = corridorID
+
+		// Push neighbors
+		stack = append(stack, [2]int{x + 1, y})
+		stack = append(stack, [2]int{x - 1, y})
+		stack = append(stack, [2]int{x, y + 1})
+		stack = append(stack, [2]int{x, y - 1})
+	}
+}
+
+// convertToRooms converts the grid representation to Room objects
+func (lg *LevelGenerator) convertToRooms(grid [][]gridCell, placed []*placedRoom, level *Level) {
+	// Convert placed rooms
+	for _, pr := range placed {
 		room := &Room{
-			ID:   fmt.Sprintf("room-%d", lg.nextRoomID),
+			ID:   pr.ID,
 			Type: RoomTypeCombat, // Will be assigned later
 			Position: Vector3{
-				X: roomX + actualWidth/2,
+				X: float64(pr.CenterX) * lg.cellSize,
 				Y: 0,
-				Z: roomY + actualHeight/2,
+				Z: float64(pr.CenterY) * lg.cellSize,
 			},
 			Size: Vector3{
-				X: actualWidth,
-				Y: 4.0, // Standard room height
-				Z: actualHeight,
+				X: float64(pr.Width) * lg.cellSize,
+				Y: 4.0,
+				Z: float64(pr.Height) * lg.cellSize,
 			},
 			Rotation:    0,
 			Connections: []RoomConnection{},
 			EnemySpawns: []EnemySpawnPoint{},
 			LootSpawns:  []LootSpawnPoint{},
 		}
-
-		lg.nextRoomID++
-		node.Room = room
 		level.Rooms[room.ID] = room
-	} else {
-		lg.extractRooms(node.Left, level)
-		lg.extractRooms(node.Right, level)
-	}
-}
-
-// connectRooms connects rooms through corridors
-func (lg *LevelGenerator) connectRooms(node *BSPNode, level *Level) {
-	if node == nil || node.IsLeaf {
-		return
 	}
 
-	// Recursively connect children first
-	lg.connectRooms(node.Left, level)
-	lg.connectRooms(node.Right, level)
-
-	// Connect left and right subtrees
-	leftRoom := lg.findClosestRoom(node.Left)
-	rightRoom := lg.findClosestRoom(node.Right)
-
-	if leftRoom != nil && rightRoom != nil {
-		lg.createConnection(leftRoom, rightRoom, level)
-	}
-}
-
-// findClosestRoom finds a room in the BSP subtree
-func (lg *LevelGenerator) findClosestRoom(node *BSPNode) *Room {
-	if node == nil {
-		return nil
-	}
-	if node.IsLeaf {
-		return node.Room
-	}
-
-	// Try to find a room in either subtree
-	leftRoom := lg.findClosestRoom(node.Left)
-	if leftRoom != nil {
-		return leftRoom
-	}
-	return lg.findClosestRoom(node.Right)
-}
-
-// createConnection creates a connection between two rooms
-func (lg *LevelGenerator) createConnection(room1, room2 *Room, level *Level) {
-	// Determine connection direction based on relative positions
-	dx := room2.Position.X - room1.Position.X
-	dz := room2.Position.Z - room1.Position.Z
-
-	var dir1, dir2 ConnectionDirection
-	var doorPos1, doorPos2 Vector3
-
-	if math.Abs(dx) > math.Abs(dz) {
-		// Horizontal connection
-		if dx > 0 {
-			dir1 = DirEast
-			dir2 = DirWest
-		} else {
-			dir1 = DirWest
-			dir2 = DirEast
+	// Convert corridor regions
+	corridorBounds := lg.calculateCorridorBounds(grid)
+	for corridorID, bounds := range corridorBounds {
+		room := &Room{
+			ID:   corridorID,
+			Type: RoomTypeCorridor,
+			Position: Vector3{
+				X: bounds.centerX * lg.cellSize,
+				Y: 0,
+				Z: bounds.centerY * lg.cellSize,
+			},
+			Size: Vector3{
+				X: bounds.width * lg.cellSize,
+				Y: 4.0,
+				Z: bounds.height * lg.cellSize,
+			},
+			Rotation:    0,
+			Connections: []RoomConnection{},
+			EnemySpawns: []EnemySpawnPoint{},
+			LootSpawns:  []LootSpawnPoint{},
 		}
-		// Door at room edge
-		midZ := (room1.Position.Z + room2.Position.Z) / 2
-		doorPos1 = Vector3{X: room1.Position.X + room1.Size.X/2*sign(dx), Y: 0, Z: midZ}
-		doorPos2 = Vector3{X: room2.Position.X - room2.Size.X/2*sign(dx), Y: 0, Z: midZ}
-	} else {
-		// Vertical connection
-		if dz > 0 {
-			dir1 = DirNorth
-			dir2 = DirSouth
-		} else {
-			dir1 = DirSouth
-			dir2 = DirNorth
+		level.Rooms[room.ID] = room
+	}
+}
+
+type corridorBounds struct {
+	centerX, centerY float64
+	width, height    float64
+}
+
+// calculateCorridorBounds calculates the bounding box for each corridor region
+func (lg *LevelGenerator) calculateCorridorBounds(grid [][]gridCell) map[string]*corridorBounds {
+	width := len(grid)
+	height := len(grid[0])
+
+	// Track min/max for each corridor
+	corridorCells := make(map[string][][2]int)
+
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			cell := grid[x][y]
+			if cell.Type == cellFloor && cell.RoomID != "" {
+				// Check if it's a corridor (starts with "corridor-")
+				if len(cell.RoomID) > 9 && cell.RoomID[:9] == "corridor-" {
+					corridorCells[cell.RoomID] = append(corridorCells[cell.RoomID], [2]int{x, y})
+				}
+			}
 		}
-		midX := (room1.Position.X + room2.Position.X) / 2
-		doorPos1 = Vector3{X: midX, Y: 0, Z: room1.Position.Z + room1.Size.Z/2*sign(dz)}
-		doorPos2 = Vector3{X: midX, Y: 0, Z: room2.Position.Z - room2.Size.Z/2*sign(dz)}
 	}
 
-	// Add connections to both rooms
-	room1.Connections = append(room1.Connections, RoomConnection{
-		TargetRoomID: room2.ID,
-		Direction:    dir1,
-		DoorPosition: doorPos1,
-	})
-	room2.Connections = append(room2.Connections, RoomConnection{
-		TargetRoomID: room1.ID,
-		Direction:    dir2,
-		DoorPosition: doorPos2,
-	})
+	result := make(map[string]*corridorBounds)
+	for id, cells := range corridorCells {
+		if len(cells) == 0 {
+			continue
+		}
 
-	// Create corridor room between them
-	corridorRoom := &Room{
-		ID:   fmt.Sprintf("corridor-%d", lg.nextRoomID),
-		Type: RoomTypeCorridor,
-		Position: Vector3{
-			X: (room1.Position.X + room2.Position.X) / 2,
-			Y: 0,
-			Z: (room1.Position.Z + room2.Position.Z) / 2,
-		},
-		Size: Vector3{
-			X: math.Max(4.0, math.Abs(dx)-room1.Size.X/2-room2.Size.X/2),
-			Y: 4.0,
-			Z: math.Max(4.0, math.Abs(dz)-room1.Size.Z/2-room2.Size.Z/2),
-		},
-		Connections: []RoomConnection{
-			{TargetRoomID: room1.ID, Direction: dir2, DoorPosition: doorPos1},
-			{TargetRoomID: room2.ID, Direction: dir1, DoorPosition: doorPos2},
-		},
+		minX, maxX := cells[0][0], cells[0][0]
+		minY, maxY := cells[0][1], cells[0][1]
+
+		for _, c := range cells {
+			if c[0] < minX {
+				minX = c[0]
+			}
+			if c[0] > maxX {
+				maxX = c[0]
+			}
+			if c[1] < minY {
+				minY = c[1]
+			}
+			if c[1] > maxY {
+				maxY = c[1]
+			}
+		}
+
+		result[id] = &corridorBounds{
+			centerX: float64(minX+maxX) / 2.0,
+			centerY: float64(minY+maxY) / 2.0,
+			width:   float64(maxX - minX + 1),
+			height:  float64(maxY - minY + 1),
+		}
 	}
-	lg.nextRoomID++
-	level.Rooms[corridorRoom.ID] = corridorRoom
+
+	return result
 }
 
-func sign(x float64) float64 {
-	if x > 0 {
-		return 1
-	} else if x < 0 {
-		return -1
+// createConnections finds adjacent rooms and creates connection entries
+func (lg *LevelGenerator) createConnections(grid [][]gridCell, level *Level) {
+	width := len(grid)
+	height := len(grid[0])
+
+	// Track connections we've already made to avoid duplicates
+	connected := make(map[string]bool)
+
+	for x := 1; x < width-1; x++ {
+		for y := 1; y < height-1; y++ {
+			cellA := grid[x][y]
+			if cellA.Type != cellFloor || cellA.RoomID == "" {
+				continue
+			}
+
+			// Check 4 neighbors
+			neighbors := [][3]interface{}{
+				{x, y + 1, DirNorth},
+				{x, y - 1, DirSouth},
+				{x + 1, y, DirEast},
+				{x - 1, y, DirWest},
+			}
+
+			for _, n := range neighbors {
+				nx, ny := n[0].(int), n[1].(int)
+				dir := n[2].(ConnectionDirection)
+
+				cellB := grid[nx][ny]
+				if cellB.Type != cellFloor || cellB.RoomID == "" {
+					continue
+				}
+
+				if cellA.RoomID == cellB.RoomID {
+					continue // Same room
+				}
+
+				// Create unique connection key
+				key := cellA.RoomID + "->" + cellB.RoomID
+				reverseKey := cellB.RoomID + "->" + cellA.RoomID
+
+				if connected[key] || connected[reverseKey] {
+					continue // Already connected
+				}
+
+				// Add bidirectional connections
+				roomA := level.Rooms[cellA.RoomID]
+				roomB := level.Rooms[cellB.RoomID]
+
+				if roomA == nil || roomB == nil {
+					continue
+				}
+
+				// Door position at the boundary
+				doorPos := Vector3{
+					X: float64(x) * lg.cellSize,
+					Y: 0,
+					Z: float64(y) * lg.cellSize,
+				}
+
+				roomA.Connections = append(roomA.Connections, RoomConnection{
+					TargetRoomID: cellB.RoomID,
+					Direction:    dir,
+					DoorPosition: doorPos,
+				})
+
+				roomB.Connections = append(roomB.Connections, RoomConnection{
+					TargetRoomID: cellA.RoomID,
+					Direction:    oppositeDirection(dir),
+					DoorPosition: doorPos,
+				})
+
+				connected[key] = true
+			}
+		}
 	}
-	return 0
 }
 
-// assignRoomTypes assigns types to rooms
+func oppositeDirection(dir ConnectionDirection) ConnectionDirection {
+	switch dir {
+	case DirNorth:
+		return DirSouth
+	case DirSouth:
+		return DirNorth
+	case DirEast:
+		return DirWest
+	case DirWest:
+		return DirEast
+	}
+	return dir
+}
+
+// assignRoomTypes assigns types to rooms (start, boss, treasure, etc.)
 func (lg *LevelGenerator) assignRoomTypes(level *Level) {
-	// Find the rooms furthest apart for start and boss rooms
-	var startRoom, bossRoom *Room
-	maxDist := 0.0
-
-	rooms := make([]*Room, 0, len(level.Rooms))
+	// Get non-corridor rooms
+	rooms := []*Room{}
 	for _, room := range level.Rooms {
 		if room.Type != RoomTypeCorridor {
 			rooms = append(rooms, room)
 		}
 	}
+
+	if len(rooms) == 0 {
+		return
+	}
+
+	// Sort for determinism
+	sort.Slice(rooms, func(i, j int) bool {
+		return rooms[i].ID < rooms[j].ID
+	})
+
+	// Find the two rooms furthest apart
+	var startRoom, bossRoom *Room
+	maxDist := 0.0
 
 	for i := 0; i < len(rooms); i++ {
 		for j := i + 1; j < len(rooms); j++ {
@@ -433,12 +696,11 @@ func (lg *LevelGenerator) assignRoomTypes(level *Level) {
 	}
 
 	// Assign types to remaining rooms
-	for _, room := range level.Rooms {
-		if room.Type == RoomTypeCorridor || room.ID == level.StartRoomID || room.ID == level.BossRoomID {
+	for _, room := range rooms {
+		if room.Type == RoomTypeStart || room.Type == RoomTypeBoss {
 			continue
 		}
 
-		// Random room type assignment
 		roll := lg.rng.Float64()
 		if roll < 0.15 {
 			room.Type = RoomTypeTreasure

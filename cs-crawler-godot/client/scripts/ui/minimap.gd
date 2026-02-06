@@ -1,10 +1,10 @@
 extends Control
 ## Minimap UI - shows 2D overhead view of the world with player positions
 
-const MAP_SIZE: float = 150.0  # Size of the minimap in pixels
-const WORLD_SCALE: float = 1.0  # World units per pixel (higher = zoomed out more)
-const DOT_SIZE: float = 8.0  # Size of player dots
-const ROOM_ALPHA: float = 0.4  # Transparency of room shapes
+const MAP_SIZE: float = 500.0  # Size of the minimap in pixels
+const WORLD_SCALE: float = 0.2  # World units per pixel (higher = zoomed out more)
+const DOT_SIZE: float = 12.0  # Size of player dots
+const ROOM_ALPHA: float = 0.9  # Transparency of room shapes
 
 var game_world: Node3D = null
 var local_player: Node3D = null
@@ -128,14 +128,22 @@ func _draw_rooms() -> void:
 			var rooms_data = level_manager.level_data.get("rooms", [])
 			for room_data in rooms_data:
 				_draw_room(room_data)
+			# Draw connections
+			_draw_connections(rooms_data)
 		return
 
 	# Draw each room
 	var rooms = level_manager.rooms
+	var rooms_data = []
 	for room_id in rooms:
 		var room = rooms[room_id]
 		if room.has_meta("room_data"):
-			_draw_room(room.get_meta("room_data"))
+			var room_data = room.get_meta("room_data")
+			_draw_room(room_data)
+			rooms_data.append(room_data)
+
+	# Draw connections
+	_draw_connections(rooms_data)
 
 func _draw_room(room_data: Dictionary) -> void:
 	var pos_data = room_data.get("position", {})
@@ -154,28 +162,95 @@ func _draw_room(room_data: Dictionary) -> void:
 	)
 
 	# Create room rectangle
-	var room_rect = ColorRect.new()
+	var room_rect = Panel.new()
 	room_rect.mouse_filter = MOUSE_FILTER_IGNORE
 
-	# Color based on room type
+	# Add border for better visibility
+	var room_style = StyleBoxFlat.new()
+	room_style.border_width_left = 2
+	room_style.border_width_right = 2
+	room_style.border_width_top = 2
+	room_style.border_width_bottom = 2
+	room_style.border_color = Color(0, 0, 0, 1)  # Black border
+
+	# Color based on room type - DISTINCT COLORS for debugging
 	match room_type:
 		"start":
-			room_rect.color = Color(0.3, 0.5, 0.7, ROOM_ALPHA)
+			room_style.bg_color = Color(0.0, 1.0, 0.0, ROOM_ALPHA)  # BRIGHT GREEN
 		"boss":
-			room_rect.color = Color(0.7, 0.2, 0.2, ROOM_ALPHA)
+			room_style.bg_color = Color(1.0, 0.0, 0.0, ROOM_ALPHA)  # BRIGHT RED
 		"treasure":
-			room_rect.color = Color(0.7, 0.6, 0.2, ROOM_ALPHA)
+			room_style.bg_color = Color(1.0, 1.0, 0.0, ROOM_ALPHA)  # BRIGHT YELLOW
 		"corridor":
-			room_rect.color = Color(0.3, 0.3, 0.35, ROOM_ALPHA)
+			room_style.bg_color = Color(0.5, 0.5, 0.5, ROOM_ALPHA)  # GRAY
+		"arena":
+			room_style.bg_color = Color(1.0, 0.0, 1.0, ROOM_ALPHA)  # MAGENTA
+		"combat":
+			room_style.bg_color = Color(0.0, 0.5, 1.0, ROOM_ALPHA)  # BRIGHT BLUE
 		_:
-			room_rect.color = Color(0.4, 0.4, 0.45, ROOM_ALPHA)
+			room_style.bg_color = Color(1.0, 0.5, 0.0, ROOM_ALPHA)  # ORANGE (unknown)
+
+	room_rect.add_theme_stylebox_override("panel", room_style)
 
 	# Convert world coords to minimap coords (will be updated in _process)
 	room_rect.size = Vector2(room_size.x / WORLD_SCALE, room_size.z / WORLD_SCALE)
 	room_rect.set_meta("world_pos", world_pos)
 	room_rect.set_meta("world_size", room_size)
 
+	# Add label showing room ID and type
+	var label = Label.new()
+	label.text = room_data.get("id", "?") + "\n" + room_type[0].to_upper()
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	label.add_theme_constant_override("outline_size", 2)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchors_preset(PRESET_FULL_RECT)
+	label.mouse_filter = MOUSE_FILTER_IGNORE
+	room_rect.add_child(label)
+
 	rooms_container.add_child(room_rect)
+
+func _draw_connections(rooms_data: Array) -> void:
+	## Draw connection lines between rooms
+	# Create a lookup for room positions
+	var room_positions = {}
+	for room_data in rooms_data:
+		var room_id = room_data.get("id", "")
+		var pos_data = room_data.get("position", {})
+		room_positions[room_id] = Vector3(
+			pos_data.get("x", 0.0),
+			0,
+			pos_data.get("z", 0.0)
+		)
+
+	# Draw connection lines
+	for room_data in rooms_data:
+		var room_id = room_data.get("id", "")
+		var connections = room_data.get("connections", [])
+		var room_pos = room_positions.get(room_id, Vector3.ZERO)
+
+		for conn in connections:
+			var target_id = conn.get("targetRoomID", "")
+			if not room_positions.has(target_id):
+				continue
+
+			# Only draw each connection once (from lower ID to higher ID)
+			if room_id > target_id:
+				continue
+
+			var target_pos = room_positions[target_id]
+
+			# Create a line visual using a ColorRect
+			var line = ColorRect.new()
+			line.color = Color(1.0, 1.0, 1.0, 0.7)  # White connection lines
+			line.mouse_filter = MOUSE_FILTER_IGNORE
+			line.set_meta("world_start", room_pos)
+			line.set_meta("world_end", target_pos)
+			line.set_meta("is_connection_line", true)
+
+			rooms_container.add_child(line)
 
 func _world_to_minimap(world_pos: Vector3, center_pos: Vector3) -> Vector2:
 	## Convert world position to minimap position, centered on center_pos
@@ -209,7 +284,25 @@ func _process(_delta: float) -> void:
 
 	# Update room positions (relative to player center)
 	for room_rect in rooms_container.get_children():
-		if room_rect.has_meta("world_pos"):
+		if room_rect.has_meta("is_connection_line"):
+			# Update connection line
+			var world_start: Vector3 = room_rect.get_meta("world_start")
+			var world_end: Vector3 = room_rect.get_meta("world_end")
+
+			var start_pos = _world_to_minimap(world_start, center_pos)
+			var end_pos = _world_to_minimap(world_end, center_pos)
+
+			# Calculate line position, rotation, and length
+			var diff = end_pos - start_pos
+			var length = diff.length()
+			var angle = diff.angle()
+
+			room_rect.position = start_pos
+			room_rect.size = Vector2(length, 3.0)  # 3px thick line
+			room_rect.rotation = angle
+			room_rect.pivot_offset = Vector2(0, 1.5)
+
+		elif room_rect.has_meta("world_pos"):
 			var world_pos: Vector3 = room_rect.get_meta("world_pos")
 			var world_size: Vector3 = room_rect.get_meta("world_size")
 

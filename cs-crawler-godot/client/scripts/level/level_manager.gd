@@ -438,11 +438,21 @@ func get_adjacent_corridor_directions(target_room_id: String) -> Array[String]:
 	var tw = target_size.get("x", 16.0)
 	var td = target_size.get("z", 16.0)
 
+	# Room edges
+	var room_east_edge = tx + tw/2
+	var room_west_edge = tx - tw/2
+	var room_north_edge = tz + td/2
+	var room_south_edge = tz - td/2
+
+	print("[ADJ] Checking %s: pos=(%.1f,%.1f) size=(%.1f,%.1f) edges E=%.1f W=%.1f N=%.1f S=%.1f" % [
+		target_room_id, tx, tz, tw, td, room_east_edge, room_west_edge, room_north_edge, room_south_edge])
+
 	# Check each corridor
 	for room_data in rooms_data:
 		if room_data.get("type", "") != "corridor":
 			continue
 
+		var corr_id = room_data.get("id", "")
 		var corr_pos = room_data.get("position", {})
 		var corr_size = room_data.get("size", {})
 		var cx = corr_pos.get("x", 0.0)
@@ -450,26 +460,48 @@ func get_adjacent_corridor_directions(target_room_id: String) -> Array[String]:
 		var cw = corr_size.get("x", 4.0)
 		var cd = corr_size.get("z", 4.0)
 
-		# Check if corridor is adjacent (within touching distance)
-		var dx = cx - tx
-		var dz = cz - tz
-		var threshold = 2.0  # Allow some tolerance
+		var threshold = 5.0  # Allow generous tolerance for edge alignment
 
-		# Check east
-		if abs(dx - (tw/2 + cw/2)) < threshold and abs(dz) < (td/2 + cd/2):
+		# Corridor edges
+		var corr_east_edge = cx + cw/2
+		var corr_west_edge = cx - cw/2
+		var corr_north_edge = cz + cd/2
+		var corr_south_edge = cz - cd/2
+
+		print("[ADJ]   vs %s: pos=(%.1f,%.1f) size=(%.1f,%.1f) edges E=%.1f W=%.1f N=%.1f S=%.1f" % [
+			corr_id, cx, cz, cw, cd, corr_east_edge, corr_west_edge, corr_north_edge, corr_south_edge])
+
+		# Check if corridor touches room's east side
+		var east_dist = abs(corr_west_edge - room_east_edge)
+		var east_overlap = corr_south_edge < room_north_edge and corr_north_edge > room_south_edge
+		if east_dist < threshold and east_overlap:
+			print("[ADJ]     -> EAST match (dist=%.1f)" % east_dist)
 			if not "east" in directions:
 				directions.append("east")
-		# Check west
-		if abs(dx + (tw/2 + cw/2)) < threshold and abs(dz) < (td/2 + cd/2):
+
+		# Check if corridor touches room's west side
+		var west_dist = abs(corr_east_edge - room_west_edge)
+		var west_overlap = corr_south_edge < room_north_edge and corr_north_edge > room_south_edge
+		if west_dist < threshold and west_overlap:
+			print("[ADJ]     -> WEST match (dist=%.1f)" % west_dist)
 			if not "west" in directions:
 				directions.append("west")
-		# Check north
-		if abs(dz - (td/2 + cd/2)) < threshold and abs(dx) < (tw/2 + cw/2):
+
+		# Check if corridor touches room's north side
+		var north_dist = abs(corr_south_edge - room_north_edge)
+		var north_overlap = corr_west_edge < room_east_edge and corr_east_edge > room_west_edge
+		if north_dist < threshold and north_overlap:
+			print("[ADJ]     -> NORTH match (dist=%.1f)" % north_dist)
 			if not "north" in directions:
 				directions.append("north")
-		# Check south
-		if abs(dz + (td/2 + cd/2)) < threshold and abs(dx) < (tw/2 + cw/2):
+
+		# Check if corridor touches room's south side
+		var south_dist = abs(corr_north_edge - room_south_edge)
+		var south_overlap = corr_west_edge < room_east_edge and corr_east_edge > room_west_edge
+		if south_dist < threshold and south_overlap:
+			print("[ADJ]     -> SOUTH match (dist=%.1f)" % south_dist)
 			if not "south" in directions:
 				directions.append("south")
 
+	print("[ADJ] %s final adjacent directions: %s" % [target_room_id, directions])
 	return directions

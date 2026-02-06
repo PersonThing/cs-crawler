@@ -11,7 +11,7 @@ services:
       POSTGRES_DB: crawler
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./server/migrations:/docker-entrypoint-initdb.d
+      - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U crawler"]
       interval: 10s
@@ -23,7 +23,7 @@ services:
   # Game server (with hot reload)
   gameserver:
     build:
-      context: ./server
+      context: ./
       dockerfile: Dockerfile.dev
     container_name: cs-crawler-server
     ports:
@@ -40,8 +40,8 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./server:/app
-      - ./config:/app/config
+      - ./:/app
+      - ../config:/app/config
     networks:
       - crawler_network
     restart: unless-stopped

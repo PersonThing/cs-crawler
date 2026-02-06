@@ -12,9 +12,14 @@ extends Node3D
 var xr_interface: XRInterface = null
 var xr_origin: XROrigin3D = null
 var xr_camera: XRCamera3D = null
+var xr_left_controller: XRController3D = null
+var xr_right_controller: XRController3D = null
 var is_xr_active: bool = false
 var vr_hud_viewport: SubViewport = null
 var vr_hud_sprite: Sprite3D = null
+var vr_joystick_input: Vector2 = Vector2.ZERO
+var vr_cursor_position: Vector3 = Vector3.ZERO
+var vr_trigger_was_pressed: bool = false
 
 # Screen shake
 var screen_shake_amount: float = 0.0
@@ -22,6 +27,7 @@ var screen_shake_decay: float = 5.0
 
 # Camera settings (loaded from config)
 var camera_base_offset: Vector3 = Vector3(0, 20, 7.3)
+var vr_camera_offset: Vector3 = Vector3(0, 8, 12)  # Lower and further back for VR
 var camera_deadzone: float = 3.0
 var camera_follow_speed: float = 4.0
 var camera_focus_point: Vector3 = Vector3.ZERO
@@ -56,8 +62,10 @@ var ground_item_script = preload("res://scripts/ground_item.gd")
 var ai_debug_overlay_script = preload("res://scripts/ui/ai_debug_overlay.gd")
 var game_chat_script = preload("res://scripts/ui/game_chat.gd")
 var minimap_script = preload("res://scripts/ui/minimap.gd")
+var pause_menu_script = preload("res://scripts/ui/pause_menu.gd")
 
 var local_player: Node3D = null
+var pause_menu: CanvasLayer = null
 var ai_debug_overlay: CanvasLayer = null
 var game_chat: Control = null
 var minimap: Control = null
@@ -397,14 +405,21 @@ func _setup_fixed_camera() -> void:
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 
 func _setup_xr() -> void:
-	# Only attempt XR when launched with --xr flag
-	if not OS.get_cmdline_args().has("--xr"):
-		print("[WORLD] XR not requested, using flat camera")
-		is_xr_active = false
-		return
+	print("[WORLD] Attempting to initialize OpenXR...")
+	print("[WORLD] Available XR interfaces: ", XRServer.get_interfaces())
 
 	xr_interface = XRServer.find_interface("OpenXR")
-	if xr_interface and xr_interface.initialize():
+	print("[WORLD] Found OpenXR interface: ", xr_interface)
+
+	if xr_interface:
+		var init_result = xr_interface.initialize()
+		print("[WORLD] OpenXR initialize() returned: ", init_result)
+
+		if not init_result:
+			print("[WORLD] OpenXR initialization failed, using flat camera")
+			is_xr_active = false
+			return
+
 		print("[WORLD] OpenXR initialized successfully")
 		get_viewport().use_xr = true
 		is_xr_active = true
@@ -418,8 +433,19 @@ func _setup_xr() -> void:
 		xr_camera.name = "XRCamera3D"
 		xr_origin.add_child(xr_camera)
 
+		# Create XR controllers for input
+		xr_left_controller = XRController3D.new()
+		xr_left_controller.name = "LeftController"
+		xr_left_controller.tracker = "left_hand"
+		xr_origin.add_child(xr_left_controller)
+
+		xr_right_controller = XRController3D.new()
+		xr_right_controller.name = "RightController"
+		xr_right_controller.tracker = "right_hand"
+		xr_origin.add_child(xr_right_controller)
+
 		# Scale up the VR view so the player sees the world from above
-		xr_origin.scale = Vector3(10, 10, 10)
+		xr_origin.scale = Vector3(2, 2, 2)
 
 		# Use XR camera for all raycasting and UI projection
 		camera = xr_camera
@@ -427,7 +453,7 @@ func _setup_xr() -> void:
 		# Disable the flat camera
 		$Camera3D.current = false
 	else:
-		print("[WORLD] OpenXR initialization failed, using flat camera")
+		print("[WORLD] OpenXR interface not found, using flat camera")
 		is_xr_active = false
 
 func _get_hud_parent() -> Node:
@@ -923,9 +949,9 @@ func _update_camera_with_deadzone(delta: float) -> void:
 		target_pos += shake_offset
 
 	if is_xr_active:
-		# VR mode: position the XR origin.
-		# The headset adds relative head rotation on top of this base orientation.
-		xr_origin.global_position = xr_origin.global_position.lerp(target_pos, delta * camera_follow_speed)
+		# VR mode: position the XR origin with VR-specific offset
+		var vr_target = camera_focus_point + vr_camera_offset
+		xr_origin.global_position = xr_origin.global_position.lerp(vr_target, delta * camera_follow_speed)
 	else:
 		# Flat mode: move camera directly (rotation is fixed, only position changes)
 		camera.global_position = camera.global_position.lerp(target_pos, delta * camera_follow_speed)
@@ -1541,6 +1567,46 @@ func _clear_click_indicator() -> void:
 func _process(delta: float) -> void:
 	if _fps_label.visible:
 		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
+
+	# Read VR joystick input from right controller (for direct movement)
+	if is_xr_active and xr_right_controller:
+		var raw_input = xr_right_controller.get_vector2("primary")
+		vr_joystick_input = Vector2(raw_input.x, -raw_input.y)  # Invert Y axis
+
+	# Handle VR cursor with left controller pointing and trigger click
+	if is_xr_active and xr_left_controller and is_instance_valid(local_player):
+		# Raycast from controller to ground
+		var controller_pos = xr_left_controller.global_position
+		var controller_forward = -xr_left_controller.global_transform.basis.z
+		var ray_end = controller_pos + controller_forward * 100.0
+
+		var space_state = get_world_3d().direct_space_state
+		var query = PhysicsRayQueryParameters3D.create(controller_pos, ray_end)
+		query.collision_mask = 1 << 3  # Layer 4: Environment
+
+		var result = space_state.intersect_ray(query)
+		if result:
+			vr_cursor_position = result.position
+			var reticle_pos = Vector3(vr_cursor_position.x, 0.02, vr_cursor_position.z)
+
+			# Update the hover reticle (same as mouse hover)
+			_hover_reticle.global_position = reticle_pos
+			_hover_reticle.visible = true
+
+			# Spawn trail ghost if moved enough
+			if reticle_pos.distance_to(_hover_reticle_last_pos) > HOVER_TRAIL_MIN_DIST:
+				_spawn_hover_trail(reticle_pos)
+				_hover_reticle_last_pos = reticle_pos
+		else:
+			_hover_reticle.visible = false
+
+		# Check trigger for click
+		var trigger_pressed = xr_left_controller.get_float("trigger") > 0.5
+		if trigger_pressed and not vr_trigger_was_pressed and _hover_reticle.visible:
+			# Trigger just pressed - click at cursor position
+			local_player.set_move_target(vr_cursor_position)
+			_show_click_indicator(vr_cursor_position)
+		vr_trigger_was_pressed = trigger_pressed
 
 	if is_instance_valid(local_player):
 		# Clear click indicator when player stops following path

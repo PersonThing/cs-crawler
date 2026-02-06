@@ -12,8 +12,7 @@ func TestNewLevelGenerator(t *testing.T) {
 
 	assert.Equal(t, int64(12345), gen.seed)
 	assert.NotNil(t, gen.rng)
-	assert.Equal(t, 12.0, gen.minRoomSize)
-	assert.Equal(t, 24.0, gen.maxRoomSize)
+	assert.Equal(t, 4.0, gen.cellSize) // Grid cell size in world units
 }
 
 func TestGenerateLevel(t *testing.T) {
