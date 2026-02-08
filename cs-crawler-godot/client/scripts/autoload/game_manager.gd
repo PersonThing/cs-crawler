@@ -18,7 +18,9 @@ var local_player_id: String = ""
 var username: String = ""
 var local_player_data: Dictionary = {}
 var game_config: Dictionary = {}
-var pending_level_data: Dictionary = {}  # Level data received during scene transition
+var pending_level_data: Dictionary = {}  # Legacy (unused)
+var pending_board_data: Dictionary = {}  # Board summary received during scene transition
+var pending_tile_data: Array = []  # Tile data received during scene transition
 
 func _ready() -> void:
 	print("GameManager initialized")

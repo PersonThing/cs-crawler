@@ -1,507 +1,375 @@
 extends Node3D
-## Level Manager - handles procedural level assembly from server data
+## Hex Tile Manager - manages hex-based world tiles streamed from server
 
-signal level_loaded(level_data: Dictionary)
-signal room_entered(room_id: String, room_type: String)
+signal tile_loaded(coord: Vector3i, tile_data: Dictionary)
+signal player_tile_changed(coord: Vector3i)
 
-# Room prefab scenes - loaded dynamically to handle missing files gracefully
-var room_prefabs: Dictionary = {}
-var prefabs_loaded: bool = false
+# Hex geometry constants (must match server: HexSize = 12.0, flat-top)
+const HEX_SIZE: float = 12.0  # Outer radius
+const HEX_INNER: float = HEX_SIZE * 0.866025  # sqrt(3)/2 * size
+const HEX_LAYER_Y: float = -20.0  # Y offset per layer
 
-# Level data from server
-var level_data: Dictionary = {}
-var rooms: Dictionary = {}  # room_id -> Room node
-var current_room_id: String = ""
+# Loaded tiles: "q,r,layer" -> { node: Node3D, data: Dictionary }
+var tiles: Dictionary = {}
 
-# Navigation mesh
-var nav_region: NavigationRegion3D = null
+# Board summary from server (minimap data)
+var board_data: Dictionary = {}
+var board_tiles_summary: Array = []
+
+# Current player tile
+var current_player_tile: Vector3i = Vector3i.ZERO
 
 func _ready() -> void:
 	name = "LevelManager"
-	_load_room_prefabs()
 
-func _load_room_prefabs() -> void:
-	## Load room prefabs dynamically
-	if prefabs_loaded:
-		return
+# ---- Hex math (must match server) ----
 
-	print("[LEVEL] Loading room prefabs...")
-	var room_types = ["start", "combat", "corridor", "treasure", "boss", "arena"]
-	for room_type in room_types:
-		var path = "res://scenes/rooms/room_%s.tscn" % room_type
-		if ResourceLoader.exists(path):
-			room_prefabs[room_type] = load(path)
-			print("[LEVEL] Loaded room prefab: ", room_type)
-		else:
-			print("[LEVEL] WARNING: Room prefab not found: ", path)
+func hex_to_world(q: int, r: int, layer: int = 0) -> Vector3:
+	## Convert axial hex (q,r,layer) to world position (flat-top orientation)
+	var x: float = HEX_SIZE * (3.0 / 2.0 * q)
+	var z: float = HEX_SIZE * (sqrt(3.0) / 2.0 * q + sqrt(3.0) * r)
+	var y: float = layer * HEX_LAYER_Y
+	return Vector3(x, y, z)
 
-	prefabs_loaded = true
-	print("[LEVEL] Prefabs loaded: ", room_prefabs.keys())
+func world_to_hex(pos: Vector3, layer: int = 0) -> Vector3i:
+	## Convert world position to axial hex coordinate
+	var q_frac: float = (2.0 / 3.0 * pos.x) / HEX_SIZE
+	var r_frac: float = (-1.0 / 3.0 * pos.x + sqrt(3.0) / 3.0 * pos.z) / HEX_SIZE
+	# Cube round
+	var s_frac: float = -q_frac - r_frac
+	var qi: int = roundi(q_frac)
+	var ri: int = roundi(r_frac)
+	var si: int = roundi(s_frac)
+	var q_diff: float = abs(qi - q_frac)
+	var r_diff: float = abs(ri - r_frac)
+	var s_diff: float = abs(si - s_frac)
+	if q_diff > r_diff and q_diff > s_diff:
+		qi = -ri - si
+	elif r_diff > s_diff:
+		ri = -qi - si
+	return Vector3i(qi, ri, layer)
 
-func load_level(data: Dictionary) -> void:
-	## Load level from server data and instantiate rooms
-	print("[LEVEL] Loading level: ", data.get("id", "unknown"))
-	print("[LEVEL] Data keys: ", data.keys())
+func coord_key(q: int, r: int, layer: int) -> String:
+	return "%d,%d,%d" % [q, r, layer]
 
-	# Ensure prefabs are loaded
-	if not prefabs_loaded:
-		_load_room_prefabs()
+func coord_key_v(coord: Vector3i) -> String:
+	return "%d,%d,%d" % [coord.x, coord.y, coord.z]
 
-	level_data = data
+# ---- Board data (minimap summary) ----
 
-	# Clear existing rooms
-	_clear_level()
+func load_board(data: Dictionary) -> void:
+	## Receive board summary from server
+	board_data = data
+	board_tiles_summary = data.get("tiles", [])
+	print("[TILES] Board loaded: %d tile summaries" % board_tiles_summary.size())
 
-	# Create navigation region
-	_setup_navigation()
+# ---- Tile streaming ----
 
-	# Instantiate rooms
-	var rooms_data = data.get("rooms", [])
-	print("[LEVEL] Rooms data count: ", rooms_data.size())
-	for room_data in rooms_data:
-		print("[LEVEL] Creating room: ", room_data.get("id", "unknown"), " type: ", room_data.get("type", "unknown"))
-		_create_room(room_data)
+func load_tile(tile_data: Dictionary) -> void:
+	## Load a single tile from server data
+	var coord_data = tile_data.get("coord", {})
+	var q: int = int(coord_data.get("q", 0))
+	var r: int = int(coord_data.get("r", 0))
+	var layer: int = int(coord_data.get("layer", 0))
+	var key: String = coord_key(q, r, layer)
 
-	# Create corridor connections between rooms
-	_create_corridors()
+	if tiles.has(key):
+		return  # Already loaded
 
-	# Bake navigation mesh
-	_bake_navigation()
+	# Create tile node
+	var tile_node: Node3D = _create_tile_node(tile_data, q, r, layer)
+	add_child(tile_node)
 
-	level_loaded.emit(data)
-	print("[LEVEL] Level loaded with %d rooms" % rooms.size())
+	tiles[key] = { "node": tile_node, "data": tile_data }
+	tile_loaded.emit(Vector3i(q, r, layer), tile_data)
+	print("[TILES] Loaded tile (%d,%d) biome=%s type=%s" % [q, r, tile_data.get("biome", "?"), tile_data.get("tileType", "?")])
 
-func _clear_level() -> void:
-	## Clear all existing rooms
-	for room_id in rooms:
-		if is_instance_valid(rooms[room_id]):
-			rooms[room_id].queue_free()
-	rooms.clear()
+# ---- Tile node creation ----
 
-	# Clear old navigation region
-	if nav_region:
-		nav_region.queue_free()
-		nav_region = null
+func _create_tile_node(tile_data: Dictionary, q: int, r: int, layer: int) -> Node3D:
+	var node = Node3D.new()
+	node.name = "Tile_%d_%d_%d" % [q, r, layer]
 
-func _setup_navigation() -> void:
-	## Setup navigation region for pathfinding
-	nav_region = NavigationRegion3D.new()
-	nav_region.name = "LevelNavigation"
-	add_child(nav_region)
+	var center: Vector3 = hex_to_world(q, r, layer)
+	node.position = center
 
-	var nav_mesh = NavigationMesh.new()
-	nav_mesh.agent_radius = 0.5
-	nav_mesh.agent_height = 1.8
-	nav_mesh.cell_size = 0.25
-	nav_mesh.cell_height = 0.25
-	nav_region.navigation_mesh = nav_mesh
+	# Create hex floor
+	_create_hex_floor(node, tile_data)
 
-func _create_room(room_data: Dictionary) -> void:
-	## Create a room instance from data
-	var room_id = room_data.get("id", "")
-	var room_type = room_data.get("type", "combat")
-
-	print("[LEVEL] _create_room called for: ", room_id, " type: ", room_type)
-	print("[LEVEL] Available prefabs: ", room_prefabs.keys())
-
-	# Get prefab for room type
-	var prefab = room_prefabs.get(room_type)
-	if prefab == null:
-		print("[LEVEL] Prefab not found for type: ", room_type, ", trying combat fallback")
-		prefab = room_prefabs.get("combat")  # Fallback
-
-	if prefab == null:
-		print("[LEVEL] ERROR: No prefab available, creating simple floor")
-		_create_simple_room(room_data)
-		return
-
-	# Instantiate room
-	var room = prefab.instantiate()
-	room.name = room_id
-
-	# Set position
-	var pos_data = room_data.get("position", {})
-	room.position = Vector3(
-		pos_data.get("x", 0.0),
-		pos_data.get("y", 0.0),
-		pos_data.get("z", 0.0)
-	)
-
-	# Set size (scale room floor)
-	var size_data = room_data.get("size", {})
-	var room_size = Vector3(
-		size_data.get("x", 16.0),
-		size_data.get("y", 4.0),
-		size_data.get("z", 16.0)
-	)
-
-	# Add to scene FIRST so get_parent() works during setup
-	add_child(room)
-	rooms[room_id] = room
-
-	# Store room data for later use (AFTER adding to tree so parent is accessible)
-	if room.has_method("setup"):
-		room.setup(room_data)
-	else:
-		room.set_meta("room_data", room_data)
-		room.set_meta("room_size", room_size)
+	# Place terrain features
+	var features = tile_data.get("features", [])
+	for feature in features:
+		_create_feature(node, feature, center)
 
 	# Apply lighting
-	var lighting = room_data.get("lighting", {})
-	_apply_room_lighting(room, lighting)
+	var lighting = tile_data.get("lighting", {})
+	_apply_tile_lighting(node, lighting)
 
-	print("[LEVEL] Created room: %s (%s) at %s" % [room_id, room_type, room.position])
+	# Create floor collision for raycasting / navigation
+	_create_hex_collision(node)
 
-func _apply_room_lighting(room: Node3D, lighting: Dictionary) -> void:
-	## Apply lighting settings to a room
-	# Find or create room light
-	var light = room.get_node_or_null("RoomLight")
-	if not light:
-		light = DirectionalLight3D.new()
-		light.name = "RoomLight"
-		room.add_child(light)
+	return node
 
-	# Apply ambient color
-	var ambient_color = lighting.get("ambientColor", [0.6, 0.6, 0.6])
+func _create_hex_floor(parent: Node3D, tile_data: Dictionary) -> void:
+	## Create a hexagonal floor mesh
+	var mesh_instance = MeshInstance3D.new()
+	mesh_instance.name = "HexFloor"
+
+	# Build hex polygon mesh (flat-top, 6 vertices + center)
+	var surface_tool = SurfaceTool.new()
+	surface_tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	var vertices: Array[Vector3] = []
+	vertices.append(Vector3.ZERO)  # Center
+	for i in range(6):
+		var angle_deg: float = 60.0 * i
+		var angle_rad: float = deg_to_rad(angle_deg)
+		vertices.append(Vector3(HEX_SIZE * cos(angle_rad), 0, HEX_SIZE * sin(angle_rad)))
+
+	# Normal is UP for all vertices
+	surface_tool.set_normal(Vector3.UP)
+
+	# Fan triangles from center
+	for i in range(6):
+		var next_i: int = (i + 1) % 6
+		surface_tool.add_vertex(vertices[0])
+		surface_tool.add_vertex(vertices[i + 1])
+		surface_tool.add_vertex(vertices[next_i + 1])
+
+	var mesh: ArrayMesh = surface_tool.commit()
+	mesh_instance.mesh = mesh
+
+	# Material from biome ground color
+	var mat = StandardMaterial3D.new()
+	var biome: String = tile_data.get("biome", "grassland")
+	var tile_type: String = tile_data.get("tileType", "overworld")
+
+	match biome:
+		"grassland":
+			mat.albedo_color = Color(0.4, 0.6, 0.3)
+		"forest":
+			mat.albedo_color = Color(0.25, 0.35, 0.2)
+		"hills":
+			mat.albedo_color = Color(0.5, 0.45, 0.35)
+		"town":
+			mat.albedo_color = Color(0.55, 0.5, 0.4)
+		_:
+			mat.albedo_color = Color(0.4, 0.4, 0.4)
+
+	# Darken dungeon tiles
+	if tile_type == "dungeon":
+		mat.albedo_color = mat.albedo_color.darkened(0.5)
+
+	mat.roughness = 0.9
+	mesh_instance.material_override = mat
+
+	parent.add_child(mesh_instance)
+
+func _create_hex_collision(parent: Node3D) -> void:
+	## Create a collision shape for raycasting (layer 4: Environment)
+	var static_body = StaticBody3D.new()
+	static_body.collision_layer = 8  # Layer 4
+	static_body.collision_mask = 0
+
+	# Use a cylinder approximation for the hex
+	var collision = CollisionShape3D.new()
+	var shape = CylinderShape3D.new()
+	shape.radius = HEX_SIZE
+	shape.height = 0.2
+	collision.shape = shape
+	collision.position = Vector3(0, -0.1, 0)
+
+	static_body.add_child(collision)
+	parent.add_child(static_body)
+
+func _create_feature(parent: Node3D, feature: Dictionary, tile_center: Vector3) -> void:
+	## Create a terrain feature (tree, rock, etc.)
+	var feature_type: String = feature.get("type", "")
+	var pos_data: Dictionary = feature.get("position", {})
+	var local_pos = Vector3(
+		pos_data.get("x", 0.0) - tile_center.x,
+		pos_data.get("y", 0.0) - tile_center.y,
+		pos_data.get("z", 0.0) - tile_center.z
+	)
+	var rotation_deg: float = feature.get("rotation", 0.0)
+	var scale_val: float = feature.get("scale", 1.0)
+
+	var feature_node = Node3D.new()
+	feature_node.position = local_pos
+	feature_node.rotation_degrees.y = rotation_deg
+
+	match feature_type:
+		"tree_oak":
+			_build_tree_oak(feature_node, scale_val)
+		"rock_small":
+			_build_rock(feature_node, scale_val, 0.4, 0.5)
+		"rock_large":
+			_build_rock(feature_node, scale_val, 0.8, 1.0)
+		"bush":
+			_build_bush(feature_node, scale_val)
+		"flower_patch":
+			_build_flower_patch(feature_node, scale_val)
+		"ruin_pillar":
+			_build_ruin_pillar(feature_node, scale_val)
+		"campfire":
+			_build_campfire(feature_node, scale_val)
+		"market_stall":
+			_build_market_stall(feature_node, scale_val)
+
+	parent.add_child(feature_node)
+
+func _build_tree_oak(node: Node3D, s: float) -> void:
+	var trunk = MeshInstance3D.new()
+	var trunk_mesh = CylinderMesh.new()
+	trunk_mesh.top_radius = 0.15 * s
+	trunk_mesh.bottom_radius = 0.25 * s
+	trunk_mesh.height = 2.0 * s
+	trunk.mesh = trunk_mesh
+	trunk.position.y = 1.0 * s
+	var trunk_mat = StandardMaterial3D.new()
+	trunk_mat.albedo_color = Color(0.4, 0.25, 0.1)
+	trunk.material_override = trunk_mat
+	node.add_child(trunk)
+
+	var canopy = MeshInstance3D.new()
+	var canopy_mesh = SphereMesh.new()
+	canopy_mesh.radius = 1.2 * s
+	canopy_mesh.height = 2.0 * s
+	canopy.mesh = canopy_mesh
+	canopy.position.y = 2.5 * s
+	var canopy_mat = StandardMaterial3D.new()
+	canopy_mat.albedo_color = Color(0.2, 0.5, 0.15)
+	canopy.material_override = canopy_mat
+	node.add_child(canopy)
+
+func _build_rock(node: Node3D, s: float, base_radius: float, base_height: float) -> void:
+	var mesh_instance = MeshInstance3D.new()
+	var rock_mesh = SphereMesh.new()
+	rock_mesh.radius = base_radius * s
+	rock_mesh.height = base_height * s
+	mesh_instance.mesh = rock_mesh
+	mesh_instance.position.y = (base_height * s) / 2.0
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.5, 0.48, 0.45)
+	mat.roughness = 1.0
+	mesh_instance.material_override = mat
+	node.add_child(mesh_instance)
+
+func _build_bush(node: Node3D, s: float) -> void:
+	var mesh_instance = MeshInstance3D.new()
+	var bush_mesh = SphereMesh.new()
+	bush_mesh.radius = 0.5 * s
+	bush_mesh.height = 0.6 * s
+	mesh_instance.mesh = bush_mesh
+	mesh_instance.position.y = 0.25 * s
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.25, 0.45, 0.15)
+	mesh_instance.material_override = mat
+	node.add_child(mesh_instance)
+
+func _build_flower_patch(node: Node3D, s: float) -> void:
+	var mesh_instance = MeshInstance3D.new()
+	var flower_mesh = BoxMesh.new()
+	flower_mesh.size = Vector3(0.6 * s, 0.1 * s, 0.6 * s)
+	mesh_instance.mesh = flower_mesh
+	mesh_instance.position.y = 0.05
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.8, 0.6, 0.2)
+	mesh_instance.material_override = mat
+	node.add_child(mesh_instance)
+
+func _build_ruin_pillar(node: Node3D, s: float) -> void:
+	var mesh_instance = MeshInstance3D.new()
+	var pillar_mesh = CylinderMesh.new()
+	pillar_mesh.top_radius = 0.3 * s
+	pillar_mesh.bottom_radius = 0.35 * s
+	pillar_mesh.height = 3.0 * s
+	mesh_instance.mesh = pillar_mesh
+	mesh_instance.position.y = 1.5 * s
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.55, 0.5, 0.45)
+	mesh_instance.material_override = mat
+	node.add_child(mesh_instance)
+
+func _build_campfire(node: Node3D, s: float) -> void:
+	var mesh_instance = MeshInstance3D.new()
+	var base_mesh = TorusMesh.new()
+	base_mesh.inner_radius = 0.3 * s
+	base_mesh.outer_radius = 0.5 * s
+	mesh_instance.mesh = base_mesh
+	mesh_instance.position.y = 0.1
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.35, 0.3, 0.25)
+	mesh_instance.material_override = mat
+	node.add_child(mesh_instance)
+
+	var fire_light = OmniLight3D.new()
+	fire_light.light_color = Color(1.0, 0.7, 0.3)
+	fire_light.light_energy = 2.0
+	fire_light.omni_range = 6.0
+	fire_light.position.y = 0.5
+	node.add_child(fire_light)
+
+func _build_market_stall(node: Node3D, s: float) -> void:
+	var mesh_instance = MeshInstance3D.new()
+	var stall_mesh = BoxMesh.new()
+	stall_mesh.size = Vector3(2.0 * s, 2.0 * s, 1.5 * s)
+	mesh_instance.mesh = stall_mesh
+	mesh_instance.position.y = 1.0 * s
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.55, 0.4, 0.2)
+	mesh_instance.material_override = mat
+	node.add_child(mesh_instance)
+
+	var awning = MeshInstance3D.new()
+	var awning_mesh = BoxMesh.new()
+	awning_mesh.size = Vector3(2.4 * s, 0.1, 2.0 * s)
+	awning.mesh = awning_mesh
+	awning.position.y = 2.2 * s
+	var awning_mat = StandardMaterial3D.new()
+	awning_mat.albedo_color = Color(0.7, 0.2, 0.15)
+	awning.material_override = awning_mat
+	node.add_child(awning)
+
+func _apply_tile_lighting(node: Node3D, lighting: Dictionary) -> void:
+	## Apply per-tile ambient lighting
+	var ambient_color = lighting.get("ambientColor", [0.8, 0.8, 0.8])
+	var intensity: float = lighting.get("ambientIntensity", 0.7)
+
+	var light = DirectionalLight3D.new()
+	light.name = "TileLight"
 	if ambient_color is Array and ambient_color.size() >= 3:
 		light.light_color = Color(ambient_color[0], ambient_color[1], ambient_color[2])
+	light.light_energy = intensity * 1.5
+	light.shadow_enabled = false
+	light.position = Vector3(0, 5, 0)
+	node.add_child(light)
 
-	# Apply intensity
-	var intensity = lighting.get("ambientIntensity", 0.5)
-	light.light_energy = intensity * 2.0
-
-	# Apply fog if enabled
-	var fog_enabled = lighting.get("fogEnabled", false)
+	# Fog metadata (for world environment to read)
+	var fog_enabled: bool = lighting.get("fogEnabled", false)
 	if fog_enabled:
-		# Fog will be handled by the world environment
-		room.set_meta("fog_enabled", true)
-		var fog_color = lighting.get("fogColor", [0.1, 0.1, 0.1])
-		var fog_density = lighting.get("fogDensity", 0.01)
-		room.set_meta("fog_color", fog_color)
-		room.set_meta("fog_density", fog_density)
+		node.set_meta("fog_enabled", true)
+		node.set_meta("fog_color", lighting.get("fogColor", [0.1, 0.1, 0.1]))
+		node.set_meta("fog_density", lighting.get("fogDensity", 0.01))
 
-func _create_simple_room(room_data: Dictionary) -> void:
-	## Create a simple fallback room when prefabs aren't available
-	var room_id = room_data.get("id", "")
-	var room_type = room_data.get("type", "combat")
+# ---- Player tile tracking ----
 
-	var room = Node3D.new()
-	room.name = room_id
-
-	# Set position
-	var pos_data = room_data.get("position", {})
-	room.position = Vector3(
-		pos_data.get("x", 0.0),
-		pos_data.get("y", 0.0),
-		pos_data.get("z", 0.0)
-	)
-
-	# Get size
-	var size_data = room_data.get("size", {})
-	var room_size = Vector3(
-		size_data.get("x", 16.0),
-		size_data.get("y", 4.0),
-		size_data.get("z", 16.0)
-	)
-
-	# Create floor
-	var floor_mesh = MeshInstance3D.new()
-	floor_mesh.name = "Floor"
-	var mesh = BoxMesh.new()
-	mesh.size = Vector3(room_size.x, 0.2, room_size.z)
-	floor_mesh.mesh = mesh
-
-	var mat = StandardMaterial3D.new()
-	# Color by room type
-	match room_type:
-		"start":
-			mat.albedo_color = Color(0.4, 0.45, 0.5)
-		"boss":
-			mat.albedo_color = Color(0.4, 0.2, 0.2)
-		"treasure":
-			mat.albedo_color = Color(0.5, 0.45, 0.3)
-		"corridor":
-			mat.albedo_color = Color(0.25, 0.25, 0.25)
-		_:
-			mat.albedo_color = Color(0.35, 0.32, 0.28)
-
-	floor_mesh.material_override = mat
-	floor_mesh.position = Vector3(0, -0.1, 0)
-
-	# Add collision
-	var static_body = StaticBody3D.new()
-	static_body.collision_layer = 8  # Layer 4: Environment
-	var collision = CollisionShape3D.new()
-	var shape = BoxShape3D.new()
-	shape.size = Vector3(room_size.x, 0.2, room_size.z)
-	collision.shape = shape
-	static_body.add_child(collision)
-	floor_mesh.add_child(static_body)
-
-	room.add_child(floor_mesh)
-
-	# Add a light
-	var light = OmniLight3D.new()
-	light.name = "RoomLight"
-	light.position = Vector3(0, room_size.y - 0.5, 0)
-	light.light_energy = 1.0
-	light.omni_range = max(room_size.x, room_size.z) * 0.8
-	room.add_child(light)
-
-	# Store metadata
-	room.set_meta("room_data", room_data)
-	room.set_meta("room_size", room_size)
-
-	add_child(room)
-	rooms[room_id] = room
-	print("[LEVEL] Created simple room: %s (%s) at %s" % [room_id, room_type, room.position])
-
-func _create_corridors() -> void:
-	## Create visual corridor connections between rooms
-	for room_id in rooms:
-		var room = rooms[room_id]
-		var room_data = room.get_meta("room_data") if room.has_meta("room_data") else {}
-		var connections = room_data.get("connections", [])
-
-		for conn in connections:
-			var target_id = conn.get("targetRoomID", "")
-			if not rooms.has(target_id):
-				continue
-
-			# Only create corridor from lower ID to higher ID to avoid duplicates
-			if room_id > target_id:
-				continue
-
-			var door_pos = conn.get("doorPosition", {})
-			var door_world_pos = Vector3(
-				door_pos.get("x", 0.0),
-				door_pos.get("y", 0.0),
-				door_pos.get("z", 0.0)
-			)
-
-			# Create door frame visual
-			_create_door_frame(door_world_pos, conn.get("direction", "north"))
-
-func _create_door_frame(pos: Vector3, direction: String) -> void:
-	## Create a simple door frame mesh at the connection point
-	var door = MeshInstance3D.new()
-	door.name = "DoorFrame"
-
-	# Create a simple doorway frame using a box mesh
-	var mesh = BoxMesh.new()
-	mesh.size = Vector3(3.0, 3.5, 0.5)
-	door.mesh = mesh
-
-	# Material
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.3, 0.25, 0.2)
-	door.material_override = mat
-
-	# Position and rotate based on direction
-	door.position = pos
-	door.position.y = 1.75
-
-	match direction:
-		"north", "south":
-			door.rotation_degrees.y = 0
-		"east", "west":
-			door.rotation_degrees.y = 90
-
-	add_child(door)
-
-func _bake_navigation() -> void:
-	## Build navigation mesh from room floors
-	if not nav_region:
-		return
-
-	var nav_mesh = NavigationMesh.new()
-	nav_mesh.agent_radius = 0.5
-	nav_mesh.agent_height = 1.8
-	nav_mesh.cell_size = 0.25
-	nav_mesh.cell_height = 0.25
-
-	# Collect floor polygons from all rooms
-	var vertices = PackedVector3Array()
-	var polygons: Array[PackedInt32Array] = []
-
-	for room_id in rooms:
-		var room = rooms[room_id]
-		var room_size = room.get_meta("room_size") if room.has_meta("room_size") else Vector3(16, 4, 16)
-		var room_pos = room.position
-
-		# Create floor polygon for this room
-		var base_idx = vertices.size()
-		var half_x = room_size.x / 2
-		var half_z = room_size.z / 2
-
-		vertices.append(Vector3(room_pos.x - half_x, 0, room_pos.z - half_z))
-		vertices.append(Vector3(room_pos.x + half_x, 0, room_pos.z - half_z))
-		vertices.append(Vector3(room_pos.x + half_x, 0, room_pos.z + half_z))
-		vertices.append(Vector3(room_pos.x - half_x, 0, room_pos.z + half_z))
-
-		polygons.append(PackedInt32Array([base_idx, base_idx + 1, base_idx + 2, base_idx + 3]))
-
-	# Set vertices and polygons
-	nav_mesh.set_vertices(vertices)
-	for poly in polygons:
-		nav_mesh.add_polygon(poly)
-
-	nav_region.navigation_mesh = nav_mesh
-	print("[LEVEL] Navigation mesh created with %d polygons" % polygons.size())
+func update_player_tile(player_pos: Vector3) -> void:
+	## Called each frame to check if the player has changed tiles
+	var new_tile: Vector3i = world_to_hex(player_pos)
+	if new_tile != current_player_tile:
+		current_player_tile = new_tile
+		player_tile_changed.emit(new_tile)
 
 func get_spawn_point() -> Vector3:
-	## Get the player spawn point from level data
-	var spawn_data = level_data.get("spawnPoint", {})
-	return Vector3(
-		spawn_data.get("x", 0.0),
-		spawn_data.get("y", 0.0),
-		spawn_data.get("z", 0.0)
-	)
+	## Return the town center (0,0,0) world position
+	return hex_to_world(0, 0, 0)
 
-func get_room_at_position(pos: Vector3) -> Node3D:
-	## Find which room contains the given position
-	for room_id in rooms:
-		var room = rooms[room_id]
-		var room_size = room.get_meta("room_size") if room.has_meta("room_size") else Vector3(16, 4, 16)
-		var room_pos = room.position
+func get_tile_at(coord: Vector3i) -> Dictionary:
+	var key: String = coord_key_v(coord)
+	if tiles.has(key):
+		return tiles[key].get("data", {})
+	return {}
 
-		var half_x = room_size.x / 2
-		var half_z = room_size.z / 2
-
-		if pos.x >= room_pos.x - half_x and pos.x <= room_pos.x + half_x:
-			if pos.z >= room_pos.z - half_z and pos.z <= room_pos.z + half_z:
-				return room
-
-	return null
-
-func check_room_transitions(player_pos: Vector3) -> void:
-	## Check if player has entered a new room
-	var room = get_room_at_position(player_pos)
-	if room and room.name != current_room_id:
-		current_room_id = room.name
-		var room_data = room.get_meta("room_data") if room.has_meta("room_data") else {}
-		room_entered.emit(current_room_id, room_data.get("type", "unknown"))
-
-func get_incoming_connection_directions(target_room_id: String) -> Array[String]:
-	## Find all connections from other rooms that point to this room
-	## Returns the OPPOSITE direction (e.g., if another room connects "east" to us, we need "west" open)
-	var incoming: Array[String] = []
-	var rooms_data = level_data.get("rooms", [])
-
-	for room_data in rooms_data:
-		var source_room_id = room_data.get("id", "")
-		if source_room_id == target_room_id:
-			continue
-
-		var connections = room_data.get("connections", [])
-		for conn in connections:
-			if conn.get("targetRoomID", "") == target_room_id:
-				var dir = conn.get("direction", "")
-				var opposite_dir = _get_opposite_direction(dir)
-				if opposite_dir != "" and not opposite_dir in incoming:
-					incoming.append(opposite_dir)
-
-	return incoming
-
-func _get_opposite_direction(dir: String) -> String:
-	## Get the opposite direction
-	match dir:
-		"north": return "south"
-		"south": return "north"
-		"east": return "west"
-		"west": return "east"
-		_: return ""
-
-func get_adjacent_corridor_directions(target_room_id: String) -> Array[String]:
-	## Find corridors that are spatially adjacent to this room and return directions
-	var directions: Array[String] = []
-	var rooms_data = level_data.get("rooms", [])
-
-	# Find target room data
-	var target_data: Dictionary = {}
-	for room_data in rooms_data:
-		if room_data.get("id", "") == target_room_id:
-			target_data = room_data
-			break
-
-	if target_data.is_empty():
-		return directions
-
-	# Skip if target is itself a corridor
-	if target_data.get("type", "") == "corridor":
-		return directions
-
-	var target_pos = target_data.get("position", {})
-	var target_size = target_data.get("size", {})
-	var tx = target_pos.get("x", 0.0)
-	var tz = target_pos.get("z", 0.0)
-	var tw = target_size.get("x", 16.0)
-	var td = target_size.get("z", 16.0)
-
-	# Room edges
-	var room_east_edge = tx + tw/2
-	var room_west_edge = tx - tw/2
-	var room_north_edge = tz + td/2
-	var room_south_edge = tz - td/2
-
-	print("[ADJ] Checking %s: pos=(%.1f,%.1f) size=(%.1f,%.1f) edges E=%.1f W=%.1f N=%.1f S=%.1f" % [
-		target_room_id, tx, tz, tw, td, room_east_edge, room_west_edge, room_north_edge, room_south_edge])
-
-	# Check each corridor
-	for room_data in rooms_data:
-		if room_data.get("type", "") != "corridor":
-			continue
-
-		var corr_id = room_data.get("id", "")
-		var corr_pos = room_data.get("position", {})
-		var corr_size = room_data.get("size", {})
-		var cx = corr_pos.get("x", 0.0)
-		var cz = corr_pos.get("z", 0.0)
-		var cw = corr_size.get("x", 4.0)
-		var cd = corr_size.get("z", 4.0)
-
-		var threshold = 5.0  # Allow generous tolerance for edge alignment
-
-		# Corridor edges
-		var corr_east_edge = cx + cw/2
-		var corr_west_edge = cx - cw/2
-		var corr_north_edge = cz + cd/2
-		var corr_south_edge = cz - cd/2
-
-		print("[ADJ]   vs %s: pos=(%.1f,%.1f) size=(%.1f,%.1f) edges E=%.1f W=%.1f N=%.1f S=%.1f" % [
-			corr_id, cx, cz, cw, cd, corr_east_edge, corr_west_edge, corr_north_edge, corr_south_edge])
-
-		# Check if corridor touches room's east side
-		var east_dist = abs(corr_west_edge - room_east_edge)
-		var east_overlap = corr_south_edge < room_north_edge and corr_north_edge > room_south_edge
-		if east_dist < threshold and east_overlap:
-			print("[ADJ]     -> EAST match (dist=%.1f)" % east_dist)
-			if not "east" in directions:
-				directions.append("east")
-
-		# Check if corridor touches room's west side
-		var west_dist = abs(corr_east_edge - room_west_edge)
-		var west_overlap = corr_south_edge < room_north_edge and corr_north_edge > room_south_edge
-		if west_dist < threshold and west_overlap:
-			print("[ADJ]     -> WEST match (dist=%.1f)" % west_dist)
-			if not "west" in directions:
-				directions.append("west")
-
-		# Check if corridor touches room's north side
-		var north_dist = abs(corr_south_edge - room_north_edge)
-		var north_overlap = corr_west_edge < room_east_edge and corr_east_edge > room_west_edge
-		if north_dist < threshold and north_overlap:
-			print("[ADJ]     -> NORTH match (dist=%.1f)" % north_dist)
-			if not "north" in directions:
-				directions.append("north")
-
-		# Check if corridor touches room's south side
-		var south_dist = abs(corr_north_edge - room_south_edge)
-		var south_overlap = corr_west_edge < room_east_edge and corr_east_edge > room_west_edge
-		if south_dist < threshold and south_overlap:
-			print("[ADJ]     -> SOUTH match (dist=%.1f)" % south_dist)
-			if not "south" in directions:
-				directions.append("south")
-
-	print("[ADJ] %s final adjacent directions: %s" % [target_room_id, directions])
-	return directions
+func is_tile_loaded(q: int, r: int, layer: int = 0) -> bool:
+	return tiles.has(coord_key(q, r, layer))

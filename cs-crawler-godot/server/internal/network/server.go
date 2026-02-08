@@ -178,16 +178,38 @@ func (s *Server) broadcastLoop() {
 	}
 }
 
-// broadcastWorldStates sends current state to all connected clients
+// broadcastWorldStates sends scoped state to each connected client
 func (s *Server) broadcastWorldStates() {
-	worlds := s.gameServer.GetWorlds()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-	for worldID, world := range worlds {
-		state := world.GetWorldState()
+	for client := range s.clients {
+		if client.worldID == "" || client.playerID == "" {
+			continue
+		}
+
+		world, ok := s.gameServer.GetWorld(client.worldID)
+		if !ok {
+			continue
+		}
+
+		// Send scoped world state (only entities in player's active tiles)
+		state := world.GetWorldStateForPlayer(client.playerID)
+		if state == nil {
+			continue
+		}
 		state["type"] = "world_state"
 		state["timestamp"] = time.Now().UnixMilli()
+		client.Send(state)
 
-		s.BroadcastToWorld(worldID, state)
+		// Stream any new tiles the player has moved near
+		newTiles := world.GetNewTilesForPlayer(client.playerID)
+		for _, tile := range newTiles {
+			client.Send(map[string]interface{}{
+				"type": "tile_data",
+				"tile": tile.Serialize(),
+			})
+		}
 	}
 }
 

@@ -51,6 +51,9 @@ type Player struct {
 	// Abilities
 	Abilities *AbilityManager
 
+	// Tile tracking
+	CurrentTile HexCoord
+
 	// State
 	LastUpdate time.Time
 }
