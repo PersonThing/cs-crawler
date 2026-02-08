@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"log"
-	"math"
 	"math/rand"
 	"sync"
 	"time"
@@ -11,15 +10,17 @@ import (
 	"github.com/yourusername/cs-crawler-godot/server/internal/config"
 )
 
-// World represents a game instance
+// World represents a game instance built on a hex board
 type World struct {
 	ID      string
 	mu      sync.RWMutex
 	created time.Time
 
-	// Procedural level
-	Level         *Level
-	levelSent     map[string]bool // Track which players have received level data
+	// Hex board (replaces old Level)
+	Board *Board
+
+	// Track which tile data each player has received
+	playerTilesSent map[string]map[HexCoord]bool // playerID -> set of sent tile coords
 
 	// Entities
 	players     map[string]*Player
@@ -37,12 +38,12 @@ type World struct {
 	nextItemID int
 }
 
-// NewWorld creates a new game world
+// NewWorld creates a new game world with a hex board
 func NewWorld(id string) *World {
 	w := &World{
 		ID:                id,
 		created:           time.Now(),
-		levelSent:         make(map[string]bool),
+		playerTilesSent:   make(map[string]map[HexCoord]bool),
 		players:           make(map[string]*Player),
 		enemies:           make(map[string]*Enemy),
 		projectiles:       make(map[string]*Projectile),
@@ -54,130 +55,16 @@ func NewWorld(id string) *World {
 		nextItemID:        1,
 	}
 
-	// Generate procedural level
+	// Generate hex board (3 rings = 37 tiles)
 	seed := time.Now().UnixNano()
-	levelGen := NewLevelGenerator(seed)
-	w.Level = levelGen.GenerateLevel(100.0, 100.0, 4) // 100x100 world, ~8-12 rooms
+	w.Board = NewBoard(seed, 3)
 
-	log.Printf("[WORLD] Generated level with %d rooms, seed: %d", len(w.Level.Rooms), seed)
+	// Generate the town tile immediately
+	w.Board.EnsureTileGenerated(HexCoord{Q: 0, R: 0, Layer: 0})
 
-	// Spawn enemies based on level spawn points
-	w.spawnLevelEnemies()
+	log.Printf("[WORLD] Created hex world with %d tiles, seed: %d", len(w.Board.Tiles), seed)
 
 	return w
-}
-
-// spawnLevelEnemies spawns enemies based on the procedural level
-func (w *World) spawnLevelEnemies() {
-	if w.Level == nil {
-		log.Println("[WORLD] No level data, using fallback spawning")
-		w.spawnInitialEnemies()
-		return
-	}
-
-	spawnTime := time.Now().UnixNano()
-	enemyCount := 0
-
-	for _, room := range w.Level.Rooms {
-		for spawnIdx, spawn := range room.EnemySpawns {
-			for i := 0; i < spawn.Count; i++ {
-				// Pick random enemy type from spawn point
-				enemyType := spawn.EnemyTypes[rand.Intn(len(spawn.EnemyTypes))]
-
-				// Spread enemies around spawn position
-				offsetX := (rand.Float64() - 0.5) * 3.0
-				offsetZ := (rand.Float64() - 0.5) * 3.0
-
-				pos := Vector3{
-					X: spawn.Position.X + offsetX,
-					Y: spawn.Position.Y,
-					Z: spawn.Position.Z + offsetZ,
-				}
-
-				enemyID := fmt.Sprintf("enemy-%d-%s-%d-%d", spawnTime, room.ID, spawnIdx, i)
-				enemy := NewEnemy(enemyID, enemyType, pos)
-				w.enemies[enemyID] = enemy
-				enemyCount++
-			}
-		}
-	}
-
-	log.Printf("[WORLD] Spawned %d enemies from level spawn points", enemyCount)
-}
-
-// spawnInitialEnemies spawns starting enemies in the world
-func (w *World) spawnInitialEnemies() {
-	// Load spawn pattern from config
-	pattern, ok := config.GetSpawnPattern("default")
-	if !ok {
-		log.Println("[WORLD] Spawn pattern 'default' not found, using fallback")
-		w.spawnCirclePattern(5, "basic", 10.0, Vector3{X: 0, Y: 0, Z: 0})
-		return
-	}
-
-	// Spawn based on pattern type
-	switch pattern.Pattern {
-	case "circle":
-		center := Vector3{X: 0, Y: 0, Z: 0}
-		if len(pattern.CenterPosition) >= 3 {
-			center = Vector3{
-				X: pattern.CenterPosition[0],
-				Y: pattern.CenterPosition[1],
-				Z: pattern.CenterPosition[2],
-			}
-		}
-		w.spawnCirclePattern(pattern.Count, pattern.EnemyType, pattern.Radius, center)
-	case "grid":
-		w.spawnGridPattern(pattern)
-	default:
-		log.Printf("[WORLD] Unknown spawn pattern: %s", pattern.Pattern)
-	}
-}
-
-// spawnCirclePattern spawns enemies in a circle
-func (w *World) spawnCirclePattern(count int, enemyType string, radius float64, center Vector3) {
-	for i := 0; i < count; i++ {
-		angle := float64(i) * (2 * math.Pi / float64(count))
-		x := center.X + radius*math.Cos(angle)
-		z := center.Z + radius*math.Sin(angle)
-
-		// Generate unique enemy ID using timestamp to avoid ID collisions during respawns
-		enemy := NewEnemy(
-			fmt.Sprintf("enemy-%d-%d", time.Now().UnixNano(), i),
-			enemyType,
-			Vector3{X: x, Y: center.Y, Z: z},
-		)
-		w.enemies[enemy.ID] = enemy
-	}
-	log.Printf("[WORLD] Spawned %d enemies in circle pattern", count)
-}
-
-// spawnGridPattern spawns enemies in a grid
-func (w *World) spawnGridPattern(pattern *config.SpawnPattern) {
-	if len(pattern.EnemyTypes) == 0 {
-		log.Println("[WORLD] Grid pattern requires enemyTypes")
-		return
-	}
-
-	enemyIndex := 0
-	spawnTime := time.Now().UnixNano()
-	for row := 0; row < pattern.Rows; row++ {
-		for col := 0; col < pattern.Columns; col++ {
-			x := float64(col) * pattern.Spacing
-			z := float64(row) * pattern.Spacing
-
-			enemyType := pattern.EnemyTypes[enemyIndex%len(pattern.EnemyTypes)]
-			// Generate unique enemy ID using timestamp to avoid ID collisions during respawns
-			enemy := NewEnemy(
-				fmt.Sprintf("enemy-grid-%d-%d-%d", spawnTime, row, col),
-				enemyType,
-				Vector3{X: x, Y: 0, Z: z},
-			)
-			w.enemies[enemy.ID] = enemy
-			enemyIndex++
-		}
-	}
-	log.Printf("[WORLD] Spawned %d enemies in grid pattern", pattern.Rows*pattern.Columns)
 }
 
 // Update processes one world tick
@@ -191,6 +78,11 @@ func (w *World) Update(delta time.Duration) {
 	w.damageEvents = w.damageEvents[:0]
 	w.deathEvents = w.deathEvents[:0]
 	w.abilityCastEvents = w.abilityCastEvents[:0]
+
+	// Update player tile tracking and generate/activate nearby tiles
+	for _, player := range w.players {
+		w.updatePlayerTiles(player)
+	}
 
 	// Update players
 	for _, player := range w.players {
@@ -209,24 +101,25 @@ func (w *World) Update(delta time.Duration) {
 	var spawnRequests []SpawnEnemyRequest
 
 	for _, enemy := range w.enemies {
-		// Run AI and get attack result
+		// Only update enemies in active tiles
+		if !w.isEntityInActiveTile(enemy.Position, 0) {
+			continue
+		}
+
 		attackResult := enemy.UpdateAI(aiContext)
 		if attackResult == nil {
 			continue
 		}
 
-		// Handle different attack results
+		// Handle different attack results (same as before)
 		if attackResult.IsExplosion {
-			// Exploder enemy - deal AoE damage to all players in radius
 			for _, player := range w.players {
 				distance := Distance2D(enemy.Position, player.Position)
 				if distance <= attackResult.ExplosionRadius {
-					// Deal damage to player
 					player.Health -= attackResult.Damage
 					if player.Health < 0 {
 						player.Health = 0
 					}
-					// Record damage event
 					w.damageEvents = append(w.damageEvents, DamageEvent{
 						TargetID: player.ID,
 						Damage:   attackResult.Damage,
@@ -234,16 +127,14 @@ func (w *World) Update(delta time.Duration) {
 					})
 				}
 			}
-			// Kill the exploder
 			enemy.Dead = true
 			enemy.Health = 0
 			w.deathEvents = append(w.deathEvents, DeathEvent{
 				EntityID:   enemy.ID,
 				EntityType: "enemy",
-				KillerID:   enemy.ID, // Self-destruct
+				KillerID:   enemy.ID,
 			})
 		} else if attackResult.IsProjectile {
-			// Spawn enemy projectile towards player
 			projectileID := fmt.Sprintf("proj-enemy-%s-%d", enemy.ID, time.Now().UnixNano())
 			projectile := NewEnemyProjectile(
 				projectileID,
@@ -254,7 +145,6 @@ func (w *World) Update(delta time.Duration) {
 				attackResult.DamageType,
 			)
 			w.projectiles[projectileID] = projectile
-			// Record ability cast event
 			w.abilityCastEvents = append(w.abilityCastEvents, AbilityCastEvent{
 				CasterID:    enemy.ID,
 				CasterType:  "enemy",
@@ -264,7 +154,6 @@ func (w *World) Update(delta time.Duration) {
 				Direction:   attackResult.Direction,
 			})
 		} else if attackResult.ApplyBuff != nil {
-			// Support enemy - buff nearby allies
 			buff := attackResult.ApplyBuff
 			for _, ally := range w.enemies {
 				if ally.ID == enemy.ID || ally.Dead {
@@ -276,19 +165,15 @@ func (w *World) Update(delta time.Duration) {
 				}
 			}
 		} else if len(attackResult.SpawnEnemies) > 0 {
-			// Summoner enemy - queue spawn requests
 			spawnRequests = append(spawnRequests, attackResult.SpawnEnemies...)
 		} else if attackResult.TargetID != "" {
-			// Melee attack - deal direct damage to player
 			player, exists := w.players[attackResult.TargetID]
 			if exists {
-				// Apply damage with buff multiplier
 				damage := attackResult.Damage * enemy.DamageBuff
 				player.Health -= damage
 				if player.Health < 0 {
 					player.Health = 0
 				}
-				// Record damage event
 				w.damageEvents = append(w.damageEvents, DamageEvent{
 					TargetID: player.ID,
 					Damage:   damage,
@@ -307,11 +192,9 @@ func (w *World) Update(delta time.Duration) {
 
 	// Update projectiles and check collisions
 	for id, projectile := range w.projectiles {
-		// Update homing projectiles
 		if projectile.IsHoming {
-			// Find nearest enemy
 			var nearest *Enemy
-			minDistance := 100.0 // Max homing range
+			minDistance := 100.0
 			for _, enemy := range w.enemies {
 				if enemy.IsDead() {
 					continue
@@ -322,7 +205,6 @@ func (w *World) Update(delta time.Duration) {
 					nearest = enemy
 				}
 			}
-
 			if nearest != nil {
 				projectile.UpdateHoming(nearest.Position, deltaSeconds)
 			}
@@ -330,27 +212,22 @@ func (w *World) Update(delta time.Duration) {
 
 		projectile.Update(deltaSeconds)
 
-		// Check if this is an enemy projectile (hits players)
 		if projectile.IsEnemyProjectile {
-			// Check collision with players
 			for _, player := range w.players {
 				if player.Health <= 0 {
 					continue
 				}
 				distance := Distance2D(projectile.Position, player.Position)
-				if distance <= projectile.Radius+0.5 { // Player radius ~0.5
-					// Deal damage to player
+				if distance <= projectile.Radius+0.5 {
 					player.Health -= projectile.Damage
 					if player.Health < 0 {
 						player.Health = 0
 					}
-					// Record damage event
 					w.damageEvents = append(w.damageEvents, DamageEvent{
 						TargetID: player.ID,
 						Damage:   projectile.Damage,
 						Type:     projectile.DamageType,
 					})
-					// Destroy projectile
 					delete(w.projectiles, id)
 					break
 				}
@@ -358,14 +235,11 @@ func (w *World) Update(delta time.Duration) {
 			continue
 		}
 
-		// Check collision with enemies (player projectiles)
 		if enemy := CheckProjectileCollision(projectile, w.enemies, projectile.Radius); enemy != nil {
-			// Skip if already hit this enemy (for piercing projectiles)
 			if projectile.HasHitEnemy(enemy.ID) {
 				continue
 			}
 
-			// Apply damage
 			damageInfo := DamageInfo{
 				Amount:   projectile.Damage,
 				Type:     projectile.DamageType,
@@ -375,7 +249,6 @@ func (w *World) Update(delta time.Duration) {
 
 			died := ApplyDamage(enemy, damageInfo)
 
-			// Apply status effect if projectile has one
 			if projectile.StatusEffectInfo != nil {
 				statusEffect := NewStatusEffect(
 					projectile.StatusEffectInfo.Type,
@@ -386,38 +259,32 @@ func (w *World) Update(delta time.Duration) {
 				enemy.ApplyStatusEffect(statusEffect)
 			}
 
-			// Record damage event
 			w.damageEvents = append(w.damageEvents, DamageEvent{
 				TargetID: enemy.ID,
 				Damage:   damageInfo.Amount,
 				Type:     damageInfo.Type,
 			})
 
-			// Record death event if enemy died
 			if died {
 				w.deathEvents = append(w.deathEvents, DeathEvent{
 					EntityID:   enemy.ID,
 					EntityType: "enemy",
 					KillerID:   projectile.OwnerID,
 				})
-				// Drop loot
 				w.dropLoot(enemy)
 			}
 
-			// Handle piercing
 			if projectile.IsPiercing {
 				projectile.MarkEnemyHit(enemy.ID)
 				if !projectile.CanPierce() {
 					delete(w.projectiles, id)
 				}
 			} else {
-				// Destroy projectile on hit (non-piercing)
 				delete(w.projectiles, id)
 			}
 			continue
 		}
 
-		// Destroy projectile if lifetime expired
 		if projectile.ShouldDestroy() {
 			delete(w.projectiles, id)
 		}
@@ -425,162 +292,98 @@ func (w *World) Update(delta time.Duration) {
 
 	// Update minions
 	for id, minion := range w.minions {
-		// Get owner position
 		owner, ownerExists := w.players[minion.OwnerID]
 		if !ownerExists {
-			// Owner disconnected, remove minion
 			delete(w.minions, id)
 			continue
 		}
 
-		// Update minion (movement for pets)
 		minion.Update(deltaSeconds, owner.Position)
 
-		// Check if minion can cast
 		if minion.CanCast() {
-			// Find nearest enemy
 			target := minion.FindNearestEnemy(w.enemies, minion.Ability.Range)
 			if target != nil {
-				// Minion casts ability towards target
 				direction := minion.GetDirectionTo(target.Position)
 
-				// Handle ability based on category
 				switch minion.Ability.Category {
 				case AbilityCategoryProjectile:
-					// Create projectile from minion
 					projectileID := fmt.Sprintf("proj-minion-%s-%d", id, time.Now().UnixNano())
 					spawnPosition := minion.Position
-					spawnPosition.Y = 0.5 // Lower than player projectiles
+					spawnPosition.Y = 0.5
 
 					minionProjectile := NewProjectile(
-						projectileID,
-						minion.OwnerID, // Credit owner for damage
-						spawnPosition,
+						projectileID, minion.OwnerID, spawnPosition,
 						Vector3{
 							X: direction.X * minion.Ability.Speed,
 							Y: 0,
 							Z: direction.Z * minion.Ability.Speed,
 						},
-						minion.Ability.Damage,
-						minion.Ability.DamageType,
+						minion.Ability.Damage, minion.Ability.DamageType,
 						string(minion.AbilityType),
 					)
-
 					minionProjectile.StatusEffectInfo = minion.Ability.StatusEffect
 					w.projectiles[projectileID] = minionProjectile
 
 				case AbilityCategoryInstant:
-					// Instant ability (e.g., Lightning) - check line collision immediately
 					hitTargets := make([]string, 0)
 					for _, enemy := range w.enemies {
 						if CheckLineCollision(minion.Position, direction, minion.Ability.Range, minion.Ability.Radius, enemy) {
 							damageInfo := DamageInfo{
-								Amount:   minion.Ability.Damage,
-								Type:     minion.Ability.DamageType,
-								SourceID: minion.OwnerID,
-								TargetID: enemy.ID,
+								Amount: minion.Ability.Damage, Type: minion.Ability.DamageType,
+								SourceID: minion.OwnerID, TargetID: enemy.ID,
 							}
-
 							died := ApplyDamage(enemy, damageInfo)
 							hitTargets = append(hitTargets, enemy.ID)
-
-							// Apply status effect if present
 							if minion.Ability.StatusEffect != nil {
-								statusEffect := NewStatusEffect(
+								enemy.ApplyStatusEffect(NewStatusEffect(
 									minion.Ability.StatusEffect.Type,
 									minion.Ability.StatusEffect.Duration,
 									minion.Ability.StatusEffect.Magnitude,
 									minion.OwnerID,
-								)
-								enemy.ApplyStatusEffect(statusEffect)
+								))
 							}
-
-							// Record damage event
-							w.damageEvents = append(w.damageEvents, DamageEvent{
-								TargetID: enemy.ID,
-								Damage:   damageInfo.Amount,
-								Type:     damageInfo.Type,
-							})
-
-							// Record death event if enemy died
+							w.damageEvents = append(w.damageEvents, DamageEvent{TargetID: enemy.ID, Damage: damageInfo.Amount, Type: damageInfo.Type})
 							if died {
-								w.deathEvents = append(w.deathEvents, DeathEvent{
-									EntityID:   enemy.ID,
-									EntityType: "enemy",
-									KillerID:   minion.OwnerID,
-								})
-								// Drop loot
+								w.deathEvents = append(w.deathEvents, DeathEvent{EntityID: enemy.ID, EntityType: "enemy", KillerID: minion.OwnerID})
 								w.dropLoot(enemy)
 							}
 						}
 					}
-
-					// Record ability cast event
 					w.abilityCastEvents = append(w.abilityCastEvents, AbilityCastEvent{
-						CasterID:    id,
-						CasterType:  string(minion.Type),
-						OwnerID:     minion.OwnerID,
-						AbilityType: string(minion.AbilityType),
-						Position:    minion.Position,
-						Direction:   direction,
-						HitTargets:  hitTargets,
+						CasterID: id, CasterType: string(minion.Type), OwnerID: minion.OwnerID,
+						AbilityType: string(minion.AbilityType), Position: minion.Position,
+						Direction: direction, HitTargets: hitTargets,
 					})
 
 				case AbilityCategoryMelee:
-					// Melee ability (e.g., BasicAttack) - check cone collision immediately
 					hitTargets := make([]string, 0)
 					for _, enemy := range w.enemies {
 						if CheckConeCollision(minion.Position, direction, minion.Ability.Range, minion.Ability.Angle, enemy) {
 							damageInfo := DamageInfo{
-								Amount:   minion.Ability.Damage,
-								Type:     minion.Ability.DamageType,
-								SourceID: minion.OwnerID,
-								TargetID: enemy.ID,
+								Amount: minion.Ability.Damage, Type: minion.Ability.DamageType,
+								SourceID: minion.OwnerID, TargetID: enemy.ID,
 							}
-
 							died := ApplyDamage(enemy, damageInfo)
 							hitTargets = append(hitTargets, enemy.ID)
-
-							// Apply status effect if present
 							if minion.Ability.StatusEffect != nil {
-								statusEffect := NewStatusEffect(
+								enemy.ApplyStatusEffect(NewStatusEffect(
 									minion.Ability.StatusEffect.Type,
 									minion.Ability.StatusEffect.Duration,
 									minion.Ability.StatusEffect.Magnitude,
 									minion.OwnerID,
-								)
-								enemy.ApplyStatusEffect(statusEffect)
+								))
 							}
-
-							// Record damage event
-							w.damageEvents = append(w.damageEvents, DamageEvent{
-								TargetID: enemy.ID,
-								Damage:   damageInfo.Amount,
-								Type:     damageInfo.Type,
-							})
-
-							// Record death event if enemy died
+							w.damageEvents = append(w.damageEvents, DamageEvent{TargetID: enemy.ID, Damage: damageInfo.Amount, Type: damageInfo.Type})
 							if died {
-								w.deathEvents = append(w.deathEvents, DeathEvent{
-									EntityID:   enemy.ID,
-									EntityType: "enemy",
-									KillerID:   minion.OwnerID,
-								})
-								// Drop loot
+								w.deathEvents = append(w.deathEvents, DeathEvent{EntityID: enemy.ID, EntityType: "enemy", KillerID: minion.OwnerID})
 								w.dropLoot(enemy)
 							}
 						}
 					}
-
-					// Record ability cast event
 					w.abilityCastEvents = append(w.abilityCastEvents, AbilityCastEvent{
-						CasterID:    id,
-						CasterType:  string(minion.Type),
-						OwnerID:     minion.OwnerID,
-						AbilityType: string(minion.AbilityType),
-						Position:    minion.Position,
-						Direction:   direction,
-						HitTargets:  hitTargets,
+						CasterID: id, CasterType: string(minion.Type), OwnerID: minion.OwnerID,
+						AbilityType: string(minion.AbilityType), Position: minion.Position,
+						Direction: direction, HitTargets: hitTargets,
 					})
 				}
 
@@ -588,41 +391,150 @@ func (w *World) Update(delta time.Duration) {
 			}
 		}
 
-		// Remove minion if expired
 		if minion.ShouldDestroy() {
 			delete(w.minions, id)
 		}
 	}
 
-	// Remove dead enemies (with a small delay to allow client to show death)
+	// Remove dead enemies after delay
 	for id, enemy := range w.enemies {
 		if enemy.IsDead() && time.Since(enemy.LastUpdate) > 2*time.Second {
 			delete(w.enemies, id)
 		}
 	}
 
-	// Check if all remaining enemies are dead or if there are no enemies (for respawning)
-	if len(w.enemies) == 0 {
-		log.Println("[WORLD] All enemies removed, respawning...")
-		w.spawnLevelEnemies()
-	} else {
-		allDead := true
-		for _, enemy := range w.enemies {
-			if !enemy.IsDead() {
-				allDead = false
-				break
+	// Respawn enemies in active tiles that have been cleared
+	w.checkTileRespawns()
+}
+
+// updatePlayerTiles ensures tiles around a player are generated and tracks what
+// tile data needs to be sent.
+func (w *World) updatePlayerTiles(player *Player) {
+	layer := 0 // TODO: determine from player Y position
+	currentHex := WorldToHex(player.Position, layer)
+	player.CurrentTile = currentHex
+
+	// Ensure current tile and neighbors are generated
+	coords := w.Board.GetActiveTilesForPlayer(player.Position, layer)
+	for _, coord := range coords {
+		tile := w.Board.EnsureTileGenerated(coord)
+		if tile != nil {
+			tile.Active = true
+			if !tile.Explored {
+				tile.Explored = true
 			}
-		}
-		// If all remaining enemies are dead (waiting for removal), respawn now
-		if allDead {
-			log.Println("[WORLD] All enemies dead (waiting for cleanup), respawning...")
-			// Clear dead enemies immediately
-			for id := range w.enemies {
-				delete(w.enemies, id)
-			}
-			w.spawnLevelEnemies()
 		}
 	}
+}
+
+// isEntityInActiveTile checks if a world position is in an active tile
+func (w *World) isEntityInActiveTile(pos Vector3, layer int) bool {
+	coord := WorldToHex(pos, layer)
+	tile := w.Board.GetTile(coord)
+	return tile != nil && tile.Active
+}
+
+// checkTileRespawns checks tiles that need enemy respawning
+func (w *World) checkTileRespawns() {
+	// Build a map of which tiles have living enemies
+	tilesWithEnemies := make(map[HexCoord]bool)
+	for _, enemy := range w.enemies {
+		if !enemy.IsDead() {
+			coord := WorldToHex(enemy.Position, 0)
+			tilesWithEnemies[coord] = true
+		}
+	}
+
+	// Check active non-town tiles
+	for coord, tile := range w.Board.Tiles {
+		if !tile.Active || !tile.Generated {
+			continue
+		}
+		if tile.TileType == TileTypeTown {
+			continue
+		}
+		if tilesWithEnemies[coord] {
+			continue
+		}
+		// No enemies in this active tile - check if there should be
+		if len(tile.Spawns) > 0 {
+			// Check if any player is nearby (within 2 hexes)
+			playerNearby := false
+			for _, player := range w.players {
+				if HexDistance(WorldToHex(player.Position, 0), coord) <= 2 {
+					playerNearby = true
+					break
+				}
+			}
+			if playerNearby {
+				w.spawnTileEnemies(tile)
+			}
+		}
+	}
+}
+
+// spawnTileEnemies spawns enemies for a single tile based on its spawn points
+func (w *World) spawnTileEnemies(tile *Tile) {
+	spawnTime := time.Now().UnixNano()
+	count := 0
+
+	for spawnIdx, spawn := range tile.Spawns {
+		for i := 0; i < spawn.Count; i++ {
+			enemyType := spawn.EnemyTypes[rand.Intn(len(spawn.EnemyTypes))]
+			offsetX := (rand.Float64() - 0.5) * 3.0
+			offsetZ := (rand.Float64() - 0.5) * 3.0
+
+			pos := Vector3{
+				X: spawn.Position.X + offsetX,
+				Y: spawn.Position.Y,
+				Z: spawn.Position.Z + offsetZ,
+			}
+
+			enemyID := fmt.Sprintf("enemy-%d-tile-%d-%d-%d", spawnTime, tile.Coord.Q, spawnIdx, i)
+			enemy := NewEnemy(enemyID, enemyType, pos)
+			w.enemies[enemyID] = enemy
+			count++
+		}
+	}
+
+	if count > 0 {
+		log.Printf("[WORLD] Spawned %d enemies in tile (%d,%d)", count, tile.Coord.Q, tile.Coord.R)
+	}
+}
+
+// GetNewTilesForPlayer returns tiles that need to be sent to a player
+// (tiles in their vicinity that haven't been sent yet).
+func (w *World) GetNewTilesForPlayer(playerID string) []*Tile {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	player, ok := w.players[playerID]
+	if !ok {
+		return nil
+	}
+
+	sent := w.playerTilesSent[playerID]
+	if sent == nil {
+		sent = make(map[HexCoord]bool)
+		w.playerTilesSent[playerID] = sent
+	}
+
+	layer := 0
+	coords := w.Board.GetActiveTilesForPlayer(player.Position, layer)
+	var newTiles []*Tile
+
+	for _, coord := range coords {
+		if sent[coord] {
+			continue
+		}
+		tile := w.Board.GetTile(coord)
+		if tile != nil && tile.Generated {
+			newTiles = append(newTiles, tile)
+			sent[coord] = true
+		}
+	}
+
+	return newTiles
 }
 
 // AddPlayer adds a player to the world
@@ -632,39 +544,27 @@ func (w *World) AddPlayer(player *Player) {
 
 	w.players[player.ID] = player
 
-	// Set player spawn position based on level
-	if w.Level != nil {
-		player.Position = w.Level.SpawnPoint
+	// Set player spawn position to town center
+	if w.Board != nil {
+		player.Position = w.Board.GetSpawnPoint()
 		player.Position.Y = 0
+		player.CurrentTile = HexCoord{Q: 0, R: 0, Layer: 0}
 	}
+
+	// Initialize tile tracking for this player
+	w.playerTilesSent[player.ID] = make(map[HexCoord]bool)
 }
 
-// NeedsLevelData returns true if a player hasn't received level data yet
-func (w *World) NeedsLevelData(playerID string) bool {
+// GetBoardData returns the board summary for a newly joined player
+func (w *World) GetBoardData() map[string]interface{} {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
-	return !w.levelSent[playerID]
-}
-
-// MarkLevelSent marks that a player has received level data
-func (w *World) MarkLevelSent(playerID string) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	w.levelSent[playerID] = true
-}
-
-// GetLevelData returns the serialized level data
-func (w *World) GetLevelData() map[string]interface{} {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
-
-	if w.Level == nil {
+	if w.Board == nil {
 		return nil
 	}
 
-	return w.Level.Serialize()
+	return w.Board.SerializeBoardSummary()
 }
 
 // GetPlayer returns a specific player by ID
@@ -681,6 +581,7 @@ func (w *World) RemovePlayer(playerID string) {
 	defer w.mu.Unlock()
 
 	delete(w.players, playerID)
+	delete(w.playerTilesSent, playerID)
 }
 
 // GetPlayers returns all players (thread-safe copy)
@@ -740,7 +641,110 @@ func (w *World) GetEvents() ([]DamageEvent, []DeathEvent, []AbilityCastEvent) {
 	return damages, deaths, abilityCasts
 }
 
-// GetWorldState returns serializable world state
+// GetWorldStateForPlayer returns world state scoped to a player's vicinity.
+// Only includes entities within the player's active tiles.
+func (w *World) GetWorldStateForPlayer(playerID string) map[string]interface{} {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	player, ok := w.players[playerID]
+	if !ok {
+		return nil
+	}
+
+	// Get active tile coords for this player
+	layer := 0
+	activeTiles := make(map[HexCoord]bool)
+	for _, coord := range w.Board.GetActiveTilesForPlayer(player.Position, layer) {
+		activeTiles[coord] = true
+	}
+
+	// Filter entities to those in active tiles
+	players := make([]map[string]interface{}, 0)
+	for _, p := range w.players {
+		pCoord := WorldToHex(p.Position, layer)
+		if activeTiles[pCoord] {
+			players = append(players, p.Serialize())
+		}
+	}
+
+	enemies := make([]map[string]interface{}, 0)
+	for _, e := range w.enemies {
+		eCoord := WorldToHex(e.Position, layer)
+		if activeTiles[eCoord] {
+			enemies = append(enemies, e.Serialize())
+		}
+	}
+
+	projectiles := make([]map[string]interface{}, 0)
+	for _, proj := range w.projectiles {
+		pCoord := WorldToHex(proj.Position, layer)
+		if activeTiles[pCoord] {
+			projectiles = append(projectiles, proj.Serialize())
+		}
+	}
+
+	minions := make([]map[string]interface{}, 0)
+	for _, minion := range w.minions {
+		mCoord := WorldToHex(minion.Position, layer)
+		if activeTiles[mCoord] {
+			minions = append(minions, minion.Serialize())
+		}
+	}
+
+	// Filter events too
+	damageEvents := make([]map[string]interface{}, 0)
+	for _, event := range w.damageEvents {
+		damageEvents = append(damageEvents, map[string]interface{}{
+			"targetID": event.TargetID,
+			"damage":   event.Damage,
+			"type":     string(event.Type),
+		})
+	}
+
+	deathEvents := make([]map[string]interface{}, 0)
+	for _, event := range w.deathEvents {
+		deathEvents = append(deathEvents, map[string]interface{}{
+			"entityID":   event.EntityID,
+			"entityType": event.EntityType,
+			"killerID":   event.KillerID,
+		})
+	}
+
+	abilityCastEvents := make([]map[string]interface{}, 0)
+	for _, event := range w.abilityCastEvents {
+		abilityCastEvents = append(abilityCastEvents, map[string]interface{}{
+			"casterID":    event.CasterID,
+			"casterType":  event.CasterType,
+			"ownerID":     event.OwnerID,
+			"abilityType": event.AbilityType,
+			"position":    event.Position,
+			"direction":   event.Direction,
+			"hitTargets":  event.HitTargets,
+		})
+	}
+
+	groundItems := make([]map[string]interface{}, 0)
+	for _, groundItem := range w.groundItems {
+		giCoord := WorldToHex(groundItem.Position, layer)
+		if activeTiles[giCoord] {
+			groundItems = append(groundItems, groundItem.Serialize())
+		}
+	}
+
+	return map[string]interface{}{
+		"players":           players,
+		"enemies":           enemies,
+		"projectiles":       projectiles,
+		"minions":           minions,
+		"groundItems":       groundItems,
+		"damageEvents":      damageEvents,
+		"deathEvents":       deathEvents,
+		"abilityCastEvents": abilityCastEvents,
+	}
+}
+
+// GetWorldState returns full world state (kept for backwards compatibility during transition)
 func (w *World) GetWorldState() map[string]interface{} {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -765,7 +769,6 @@ func (w *World) GetWorldState() map[string]interface{} {
 		minions = append(minions, minion.Serialize())
 	}
 
-	// Include events
 	damageEvents := make([]map[string]interface{}, 0, len(w.damageEvents))
 	for _, event := range w.damageEvents {
 		damageEvents = append(damageEvents, map[string]interface{}{
@@ -797,7 +800,6 @@ func (w *World) GetWorldState() map[string]interface{} {
 		})
 	}
 
-	// Serialize ground items
 	groundItems := make([]map[string]interface{}, 0, len(w.groundItems))
 	for _, groundItem := range w.groundItems {
 		groundItems = append(groundItems, groundItem.Serialize())
@@ -817,15 +819,11 @@ func (w *World) GetWorldState() map[string]interface{} {
 
 // dropLoot creates loot when an enemy dies
 func (w *World) dropLoot(enemy *Enemy) {
-	// Drop chance (70% to drop an item)
 	if rand.Float64() > 0.7 {
 		return
 	}
 
-	// Generate item based on enemy level (for now, use fixed level 1)
 	itemLevel := 1
-
-	// Random item type
 	itemTypes := []ItemType{
 		ItemTypeWeapon1H, ItemTypeWeapon2H,
 		ItemTypeHead, ItemTypeChest, ItemTypeHands, ItemTypeFeet,
@@ -833,13 +831,11 @@ func (w *World) dropLoot(enemy *Enemy) {
 	}
 	itemType := itemTypes[rand.Intn(len(itemTypes))]
 
-	// Generate item
 	itemID := fmt.Sprintf("item-%d", w.nextItemID)
 	w.nextItemID++
 
 	item := NewItem(itemID, itemType, itemLevel)
 
-	// Create ground item near enemy position, spread out from other items
 	dropPos := w.findOpenDropPosition(enemy.Position)
 	groundItemID := fmt.Sprintf("ground-%d", time.Now().UnixNano())
 	groundItem := NewGroundItem(groundItemID, item, dropPos)
@@ -850,21 +846,17 @@ func (w *World) dropLoot(enemy *Enemy) {
 	}
 }
 
-// findOpenDropPosition finds a nearby position that doesn't overlap existing ground items
 func (w *World) findOpenDropPosition(origin Vector3) Vector3 {
-	const minDist = 0.8  // Minimum distance between ground items
-	const gridStep = 1.0 // Grid spacing
+	const minDist = 0.8
+	const gridStep = 1.0
 
-	// Check if origin is clear
 	if w.isDropPositionClear(origin, minDist) {
 		return origin
 	}
 
-	// Grid-based search expanding outward in rings
 	for ring := 1; ring <= 6; ring++ {
 		for x := -ring; x <= ring; x++ {
 			for z := -ring; z <= ring; z++ {
-				// Only check cells on the current ring's edge
 				if abs(x) != ring && abs(z) != ring {
 					continue
 				}
@@ -880,7 +872,6 @@ func (w *World) findOpenDropPosition(origin Vector3) Vector3 {
 		}
 	}
 
-	// Fallback: random offset
 	return Vector3{
 		X: origin.X + (rand.Float64()-0.5)*3.0,
 		Y: origin.Y,
@@ -921,20 +912,17 @@ func (w *World) PickupItem(playerID, groundItemID string) error {
 		return fmt.Errorf("ground item not found")
 	}
 
-	// Check if player is close enough to pick up
 	distance := Distance2D(player.Position, groundItem.Position)
 	if distance > 3.0 {
 		return fmt.Errorf("too far from item")
 	}
 
-	// Try to auto-equip if the matching slot is empty
 	item := groundItem.Item
 	autoEquipped := false
 
 	if player.Inventory != nil {
 		slot, err := player.Inventory.getEquipmentSlot(item)
 		if err == nil && player.Inventory.Equipment[slot] == nil {
-			// Slot is empty, auto-equip
 			_, equipErr := player.EquipItem(item)
 			if equipErr == nil {
 				autoEquipped = true
@@ -945,7 +933,6 @@ func (w *World) PickupItem(playerID, groundItemID string) error {
 		}
 	}
 
-	// If not auto-equipped, add to bag
 	if !autoEquipped {
 		if player.Inventory.IsFull() {
 			return fmt.Errorf("inventory is full")
@@ -957,7 +944,6 @@ func (w *World) PickupItem(playerID, groundItemID string) error {
 		}
 	}
 
-	// Remove from ground
 	delete(w.groundItems, groundItemID)
 	if config.Server.Debug.LogItemPickups {
 		log.Printf("[WORLD] Player %s picked up %s (auto-equipped: %v)", playerID, item.Name, autoEquipped)
@@ -1024,7 +1010,6 @@ func (w *World) DropItemFromInventory(playerID string, source string, slotRaw in
 		return fmt.Errorf("invalid source: %s", source)
 	}
 
-	// Create ground item near player position, spread out from other items
 	dropPos := w.findOpenDropPosition(player.Position)
 	groundItemID := fmt.Sprintf("ground-%d", time.Now().UnixNano())
 	groundItem := NewGroundItem(groundItemID, item, dropPos)

@@ -35,7 +35,7 @@ var camera_focus_point: Vector3 = Vector3.ZERO
 var player_scene = preload("res://scenes/player/player.tscn")
 var level_manager_script = preload("res://scripts/level/level_manager.gd")
 var level_manager: Node3D = null
-var has_level_data: bool = false
+var has_board_data: bool = false
 
 # Mouse tracking for click-and-drag movement
 var _is_mouse_held: bool = false
@@ -124,16 +124,17 @@ func _ready() -> void:
 	else:
 		print("[WORLD] Waiting for joined message...")
 
-	# Check if level data was received during scene transition
-	if GameManager.pending_level_data.size() > 0:
-		print("[WORLD] Found pending level data from scene transition")
-		_handle_level_data(GameManager.pending_level_data)
-		GameManager.pending_level_data = {}  # Clear after processing
-	else:
-		print("[WORLD] No pending level data, will wait for level_data message")
-		# Start a timer to check if we need to create a fallback level
-		var timer = get_tree().create_timer(3.0)
-		timer.timeout.connect(_check_level_loaded)
+	# Check if board data was received during scene transition
+	if GameManager.pending_board_data.size() > 0:
+		print("[WORLD] Found pending board data from scene transition")
+		_handle_board_data(GameManager.pending_board_data)
+		GameManager.pending_board_data = {}
+	for pending_tile in GameManager.pending_tile_data:
+		_handle_tile_data(pending_tile)
+	GameManager.pending_tile_data = []
+
+	if not has_board_data:
+		print("[WORLD] Waiting for board_data message from server...")
 
 func _setup_level_manager() -> void:
 	## Setup the procedural level manager
@@ -543,8 +544,10 @@ func _on_message_received(message: Dictionary) -> void:
 	match msg_type:
 		"joined":
 			_handle_joined(message)
-		"level_data":
-			_handle_level_data(message)
+		"board_data":
+			_handle_board_data(message)
+		"tile_data":
+			_handle_tile_data(message)
 		"world_state":
 			_handle_world_state(message)
 		"ability_cast":
@@ -556,76 +559,19 @@ func _on_message_received(message: Dictionary) -> void:
 		"item_unequipped":
 			_handle_inventory_update(message)
 
-func _check_level_loaded() -> void:
-	## Called after timeout to check if level was loaded
-	if not has_level_data:
-		print("[WORLD] No level data received after 3 seconds, creating fallback level")
-		_create_fallback_level()
-
-func _create_fallback_level() -> void:
-	## Create a simple fallback level for testing
-	print("[WORLD] Creating fallback test level")
-
-	# Hide the old ground
-	var old_ground = get_node_or_null("Ground")
-	if old_ground:
-		old_ground.visible = false
-
-	# Create simple test level data
-	var test_level_data = {
-		"id": "fallback-level",
-		"seed": 12345,
-		"startRoomID": "room-0",
-		"bossRoomID": "room-1",
-		"spawnPoint": {"x": 0.0, "y": 0.0, "z": 0.0},
-		"rooms": [
-			{
-				"id": "room-0",
-				"type": "start",
-				"position": {"x": 0.0, "y": 0.0, "z": 0.0},
-				"size": {"x": 20.0, "y": 4.0, "z": 20.0},
-				"rotation": 0,
-				"connections": [{"targetRoomID": "room-1", "direction": "east", "doorPosition": {"x": 10.0, "y": 0.0, "z": 0.0}}],
-				"enemySpawns": [],
-				"lootSpawns": [],
-				"lighting": {"ambientColor": [0.8, 0.9, 1.0], "ambientIntensity": 0.6, "fogEnabled": false}
-			},
-			{
-				"id": "room-1",
-				"type": "combat",
-				"position": {"x": 30.0, "y": 0.0, "z": 0.0},
-				"size": {"x": 20.0, "y": 4.0, "z": 20.0},
-				"rotation": 0,
-				"connections": [{"targetRoomID": "room-0", "direction": "west", "doorPosition": {"x": 20.0, "y": 0.0, "z": 0.0}}],
-				"enemySpawns": [],
-				"lootSpawns": [],
-				"lighting": {"ambientColor": [0.6, 0.5, 0.4], "ambientIntensity": 0.4, "fogEnabled": true, "fogColor": [0.1, 0.1, 0.1], "fogDensity": 0.01}
-			}
-		]
-	}
+func _handle_board_data(message: Dictionary) -> void:
+	## Handle board summary from server (minimap data for all tiles)
+	print("[WORLD] Received board data: ", message.keys())
+	print("[WORLD] Tile summaries: ", message.get("tiles", []).size())
 
 	if level_manager:
-		level_manager.load_level(test_level_data)
-		has_level_data = true
-	else:
-		print("[WORLD] ERROR: Level manager is null, cannot create fallback level")
-
-func _handle_level_data(message: Dictionary) -> void:
-	## Handle procedural level data from server
-	print("[WORLD] Received level data: ", message.keys())
-	print("[WORLD] Level ID: ", message.get("id", "none"))
-	print("[WORLD] Rooms count: ", message.get("rooms", []).size())
-
-	if level_manager:
-		print("[WORLD] Level manager exists, loading level...")
-		level_manager.load_level(message)
-		has_level_data = true
+		level_manager.load_board(message)
+		has_board_data = true
 
 		# Hide the old ground plane if it exists
 		var old_ground = get_node_or_null("Ground")
 		if old_ground:
 			old_ground.visible = false
-			print("[WORLD] Hidden old ground plane")
 
 		# Update spawn point if we have a local player
 		if is_instance_valid(local_player):
@@ -634,11 +580,20 @@ func _handle_level_data(message: Dictionary) -> void:
 			camera_focus_point = spawn_point
 			print("[WORLD] Moved player to spawn point: ", spawn_point)
 
-		# Update minimap with level data
+		# Update minimap with board data
 		if minimap:
 			minimap.set_level_manager(level_manager)
 	else:
 		print("[WORLD] ERROR: Level manager is null!")
+
+func _handle_tile_data(message: Dictionary) -> void:
+	## Handle a single tile streamed from server
+	var tile = message.get("tile", {})
+	if tile.is_empty():
+		return
+
+	if level_manager:
+		level_manager.load_tile(tile)
 
 func _handle_joined(message: Dictionary) -> void:
 	var player_id = message.get("playerID", "")
@@ -670,11 +625,11 @@ func _spawn_local_player(player_id: String) -> void:
 	if local_player.has_signal("damage_taken"):
 		local_player.damage_taken.connect(_on_player_damage_taken)
 
-	# Use level spawn point if available
-	if has_level_data and level_manager:
+	# Use board spawn point if available
+	if has_board_data and level_manager:
 		var spawn_point = level_manager.get_spawn_point()
 		local_player.global_position = spawn_point
-		print("[WORLD] Using level spawn point: ", spawn_point)
+		print("[WORLD] Using board spawn point: ", spawn_point)
 
 	# Initialize camera focus point at player spawn
 	camera_focus_point = local_player.global_position
@@ -1609,6 +1564,10 @@ func _process(delta: float) -> void:
 		vr_trigger_was_pressed = trigger_pressed
 
 	if is_instance_valid(local_player):
+		# Track player hex tile changes
+		if level_manager:
+			level_manager.update_player_tile(local_player.global_position)
+
 		# Clear click indicator when player stops following path
 		if not local_player.is_following_path and not _is_mouse_held:
 			_clear_click_indicator()

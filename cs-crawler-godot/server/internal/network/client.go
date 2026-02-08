@@ -249,13 +249,24 @@ func (c *Client) handleJoin(msg map[string]interface{}) {
 
 	c.Send(joinResponse)
 
-	// Send level data to new player
-	levelData := world.GetLevelData()
-	if levelData != nil {
-		levelData["type"] = "level_data"
-		c.Send(levelData)
-		world.MarkLevelSent(c.playerID)
-		log.Printf("[LEVEL] Sent level data to player %s", c.playerID)
+	// Send board summary (minimap data) to new player
+	boardData := world.GetBoardData()
+	if boardData != nil {
+		boardData["type"] = "board_data"
+		c.Send(boardData)
+		log.Printf("[BOARD] Sent board data to player %s", c.playerID)
+	}
+
+	// Send initial tiles around the player's spawn
+	newTiles := world.GetNewTilesForPlayer(c.playerID)
+	for _, tile := range newTiles {
+		c.Send(map[string]interface{}{
+			"type": "tile_data",
+			"tile": tile.Serialize(),
+		})
+	}
+	if len(newTiles) > 0 {
+		log.Printf("[BOARD] Sent %d initial tiles to player %s", len(newTiles), c.playerID)
 	}
 
 	log.Printf("Player %s (%s) joined world %s", username, c.playerID, worldID)
@@ -1205,12 +1216,20 @@ func (c *Client) joinGameWorld(worldID string) {
 
 	c.Send(joinResponse)
 
-	// Send level data
-	levelData := world.GetLevelData()
-	if levelData != nil {
-		levelData["type"] = "level_data"
-		c.Send(levelData)
-		world.MarkLevelSent(c.playerID)
+	// Send board summary (minimap data)
+	boardData := world.GetBoardData()
+	if boardData != nil {
+		boardData["type"] = "board_data"
+		c.Send(boardData)
+	}
+
+	// Send initial tiles around the player's spawn
+	newTiles := world.GetNewTilesForPlayer(c.playerID)
+	for _, tile := range newTiles {
+		c.Send(map[string]interface{}{
+			"type": "tile_data",
+			"tile": tile.Serialize(),
+		})
 	}
 
 	log.Printf("[LOBBY] Player %s joined game world %s", c.username, worldID)
