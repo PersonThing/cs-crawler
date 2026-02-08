@@ -135,15 +135,39 @@ for character AI decision-making.
 
 ## 6. Embedded LLM for Character AI
 
-### 6.1 Model Selection
-- **Primary candidates**: Qwen3-1.7B or Llama 3.2 3B, INT4 quantized
-- **NVIDIA-specific option**: Nemotron-4 4B (already shipping in games, optimized for in-game inference)
-- **VR fallback**: Qwen3-1.7B or smaller (1B) to leave GPU headroom for stereo rendering at 90fps
-- VRAM budget: 1-2 GB for model weights + ~0.2 GB KV cache (short 256-512 token context)
+### 6.0 Target Hardware Profile
+- **GPU**: NVIDIA GeForce RTX 4070 Ti (Ada Lovelace, 12 GB VRAM, CUDA 12.7)
+- **Idle desktop VRAM usage**: ~4 GB (OS, Chrome, VS Code, etc.)
+- **Estimated VRAM available while gaming**: 5-7 GB after Godot renderer
+- **Architecture advantages**: Ada Lovelace supports NVIGI SDK, TensorRT-LLM, and CIG scheduling
+
+### 6.1 Model Selection (Recommended for RTX 4070 Ti)
+- **Primary recommendation**: Nemotron-4 4B, INT4 quantized (~2 GB VRAM)
+  - Purpose-built for in-game character AI on GeForce cards
+  - Already shipping in real games (Mecha BREAK, inZOI)
+  - Optimized for NVIGI SDK with Compute-in-Graphics scheduling
+- **Strong alternative**: Llama 3.2 3B, INT4 quantized (~1.5-2 GB VRAM)
+  - Better community/ecosystem support, more fine-tuning resources
+  - Works with llama.cpp if NVIDIA-agnostic runtime is preferred
+- **VR mode fallback**: Qwen3-1.7B, INT4 quantized (~1 GB VRAM)
+  - For when stereo rendering at 90fps leaves less GPU headroom
+  - Still capable enough for grammar-constrained action selection
+- **Expected inference speed on 4070 Ti**:
+  - 3B model: ~100-150 tok/s → grammar-constrained decisions in 30-50ms
+  - 1.7B model: ~150-250 tok/s → grammar-constrained decisions in 20-35ms
+- **VRAM budget**: 1-2 GB model weights + ~0.2 GB KV cache (short 256-512 token context)
+  - Leaves 9-10 GB for rendering + OS, comfortable margin even in VR
 
 ### 6.2 Runtime
-- **General**: llama.cpp (C/C++, CUDA/Vulkan/Metal/CPU, native grammar constraints, Godot-compatible)
-- **NVIDIA-only**: NVIGI SDK (Compute-in-Graphics scheduling for GPU sharing between rendering and inference)
+- **Primary (NVIDIA path)**: NVIGI SDK
+  - Compute-in-Graphics (CIG) scheduling shares GPU between rendering and inference
+  - Purpose-built for the "inference alongside game renderer" problem on GeForce
+  - Supports TensorRT backend for optimized inference on Ada Lovelace
+  - Requires NVIDIA driver 555.85+ (current: 566.36, compatible)
+- **Fallback (cross-platform)**: llama.cpp
+  - C/C++, CUDA/Vulkan/Metal/CPU, native grammar constraints
+  - Godot-compatible, wider hardware support for other players' machines
+  - Vulkan backend performs within ~3% of CUDA
 
 ### 6.3 Architecture
 ```
