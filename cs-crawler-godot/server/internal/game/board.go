@@ -57,7 +57,31 @@ func (b *Board) generateLayout() {
 		b.Tiles[entranceCoord].TileType = TileTypeDungeonEntrance
 	}
 
-	log.Printf("[BOARD] Generated layout: %d tiles, %d rings, seed %d", len(b.Tiles), b.Rings, b.Seed)
+	// Generate dungeons beneath each dungeon entrance
+	for coord, tile := range b.Tiles {
+		if tile.TileType == TileTypeDungeonEntrance {
+			b.generateDungeonForEntrance(coord, tile)
+		}
+	}
+
+	log.Printf("[BOARD] Generated layout: %d tiles (including dungeons), %d rings, seed %d", len(b.Tiles), b.Rings, b.Seed)
+}
+
+// generateDungeonForEntrance creates a dungeon beneath a dungeon entrance tile.
+func (b *Board) generateDungeonForEntrance(entranceCoord HexCoord, entranceTile *Tile) {
+	dungeonTiles := GenerateDungeon(entranceCoord, entranceTile.Biome, entranceTile.Difficulty, b.rng)
+	if len(dungeonTiles) == 0 {
+		return
+	}
+
+	// Link entrance to first dungeon tile
+	firstDungeonCoord := dungeonTiles[0].Coord
+	entranceTile.DungeonTargetTile = &firstDungeonCoord
+
+	// Add all dungeon tiles to the board
+	for _, dt := range dungeonTiles {
+		b.Tiles[dt.Coord] = dt
+	}
 }
 
 // assignBiome picks a biome for a tile based on its position.
@@ -111,11 +135,13 @@ func (b *Board) EnsureTileGenerated(coord HexCoord) *Tile {
 
 // GetActiveTilesForPlayer returns the set of tile coordinates that should
 // be active for a player at the given position. This includes their current
-// tile and all immediate neighbors.
+// tile and all immediate neighbors on the same layer.
 func (b *Board) GetActiveTilesForPlayer(pos Vector3, layer int) []HexCoord {
 	current := WorldToHex(pos, layer)
 	result := []HexCoord{current}
 	for _, n := range HexNeighbors(current) {
+		// Ensure neighbor is on same layer
+		n.Layer = layer
 		if b.Tiles[n] != nil {
 			result = append(result, n)
 		}
@@ -137,11 +163,16 @@ func (b *Board) GetTileDataForPlayer(pos Vector3, layer int) []*Tile {
 	return tiles
 }
 
-// SerializeBoardSummary returns a lightweight overview of all tiles
-// for the client's minimap and board view.
+// SerializeBoardSummary returns a lightweight overview of all overworld tiles
+// for the client's minimap and board view. Dungeon tiles are excluded from
+// the summary since they're discovered through gameplay.
 func (b *Board) SerializeBoardSummary() map[string]interface{} {
 	tiles := make([]map[string]interface{}, 0, len(b.Tiles))
 	for _, tile := range b.Tiles {
+		// Only include overworld layer in board summary
+		if tile.Coord.Layer != 0 {
+			continue
+		}
 		tiles = append(tiles, tile.SerializeSummary())
 	}
 

@@ -102,7 +102,7 @@ func (w *World) Update(delta time.Duration) {
 
 	for _, enemy := range w.enemies {
 		// Only update enemies in active tiles
-		if !w.isEntityInActiveTile(enemy.Position, 0) {
+		if !w.isEntityInActiveTile(enemy.Position) {
 			continue
 		}
 
@@ -407,10 +407,19 @@ func (w *World) Update(delta time.Duration) {
 	w.checkTileRespawns()
 }
 
+// layerFromY determines the layer based on Y position.
+// Layer 0 is Y >= -10, layer -1 is Y < -10.
+func layerFromY(y float64) int {
+	if y < -10.0 {
+		return -1
+	}
+	return 0
+}
+
 // updatePlayerTiles ensures tiles around a player are generated and tracks what
 // tile data needs to be sent.
 func (w *World) updatePlayerTiles(player *Player) {
-	layer := 0 // TODO: determine from player Y position
+	layer := layerFromY(player.Position.Y)
 	currentHex := WorldToHex(player.Position, layer)
 	player.CurrentTile = currentHex
 
@@ -428,7 +437,8 @@ func (w *World) updatePlayerTiles(player *Player) {
 }
 
 // isEntityInActiveTile checks if a world position is in an active tile
-func (w *World) isEntityInActiveTile(pos Vector3, layer int) bool {
+func (w *World) isEntityInActiveTile(pos Vector3) bool {
+	layer := layerFromY(pos.Y)
 	coord := WorldToHex(pos, layer)
 	tile := w.Board.GetTile(coord)
 	return tile != nil && tile.Active
@@ -440,7 +450,8 @@ func (w *World) checkTileRespawns() {
 	tilesWithEnemies := make(map[HexCoord]bool)
 	for _, enemy := range w.enemies {
 		if !enemy.IsDead() {
-			coord := WorldToHex(enemy.Position, 0)
+			layer := layerFromY(enemy.Position.Y)
+			coord := WorldToHex(enemy.Position, layer)
 			tilesWithEnemies[coord] = true
 		}
 	}
@@ -458,10 +469,11 @@ func (w *World) checkTileRespawns() {
 		}
 		// No enemies in this active tile - check if there should be
 		if len(tile.Spawns) > 0 {
-			// Check if any player is nearby (within 2 hexes)
+			// Check if any player is nearby (within 2 hexes) on same layer
 			playerNearby := false
 			for _, player := range w.players {
-				if HexDistance(WorldToHex(player.Position, 0), coord) <= 2 {
+				playerLayer := layerFromY(player.Position.Y)
+				if playerLayer == coord.Layer && HexDistance(WorldToHex(player.Position, playerLayer), coord) <= 2 {
 					playerNearby = true
 					break
 				}
@@ -519,7 +531,7 @@ func (w *World) GetNewTilesForPlayer(playerID string) []*Tile {
 		w.playerTilesSent[playerID] = sent
 	}
 
-	layer := 0
+	layer := layerFromY(player.Position.Y)
 	coords := w.Board.GetActiveTilesForPlayer(player.Position, layer)
 	var newTiles []*Tile
 
@@ -535,6 +547,74 @@ func (w *World) GetNewTilesForPlayer(playerID string) []*Tile {
 	}
 
 	return newTiles
+}
+
+// EnterDungeon moves a player from a dungeon entrance to the dungeon below.
+// Returns the new position and true on success, or zero and false if not at an entrance.
+func (w *World) EnterDungeon(playerID string) (Vector3, bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	player, ok := w.players[playerID]
+	if !ok {
+		return Vector3{}, false
+	}
+
+	// Find the tile the player is on
+	layer := layerFromY(player.Position.Y)
+	hex := WorldToHex(player.Position, layer)
+	tile := w.Board.GetTile(hex)
+	if tile == nil || tile.TileType != TileTypeDungeonEntrance {
+		return Vector3{}, false
+	}
+
+	if tile.DungeonTargetTile == nil {
+		log.Printf("[WORLD] Entrance tile (%d,%d) has no dungeon target", hex.Q, hex.R)
+		return Vector3{}, false
+	}
+
+	// Get the target dungeon tile's world position
+	targetCoord := *tile.DungeonTargetTile
+	targetTile := w.Board.GetTile(targetCoord)
+	if targetTile == nil {
+		log.Printf("[WORLD] Dungeon target tile not found: (%d,%d,%d)", targetCoord.Q, targetCoord.R, targetCoord.Layer)
+		return Vector3{}, false
+	}
+
+	// Move player to dungeon entrance room
+	newPos := HexToWorld(targetCoord)
+	player.Position = newPos
+	player.CurrentTile = targetCoord
+
+	log.Printf("[WORLD] Player %s entered dungeon at (%d,%d,%d)", playerID, targetCoord.Q, targetCoord.R, targetCoord.Layer)
+	return newPos, true
+}
+
+// ExitDungeon moves a player from a dungeon exit back to the overworld.
+// Returns the new position and true on success, or zero and false if not at an exit.
+func (w *World) ExitDungeon(playerID string) (Vector3, bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	player, ok := w.players[playerID]
+	if !ok {
+		return Vector3{}, false
+	}
+
+	layer := layerFromY(player.Position.Y)
+	hex := WorldToHex(player.Position, layer)
+	tile := w.Board.GetTile(hex)
+	if tile == nil || tile.DungeonExitTarget == nil {
+		return Vector3{}, false
+	}
+
+	targetCoord := *tile.DungeonExitTarget
+	newPos := HexToWorld(targetCoord)
+	player.Position = newPos
+	player.CurrentTile = targetCoord
+
+	log.Printf("[WORLD] Player %s exited dungeon to (%d,%d,%d)", playerID, targetCoord.Q, targetCoord.R, targetCoord.Layer)
+	return newPos, true
 }
 
 // AddPlayer adds a player to the world
@@ -653,7 +733,7 @@ func (w *World) GetWorldStateForPlayer(playerID string) map[string]interface{} {
 	}
 
 	// Get active tile coords for this player
-	layer := 0
+	layer := layerFromY(player.Position.Y)
 	activeTiles := make(map[HexCoord]bool)
 	for _, coord := range w.Board.GetActiveTilesForPlayer(player.Position, layer) {
 		activeTiles[coord] = true
@@ -662,7 +742,8 @@ func (w *World) GetWorldStateForPlayer(playerID string) map[string]interface{} {
 	// Filter entities to those in active tiles
 	players := make([]map[string]interface{}, 0)
 	for _, p := range w.players {
-		pCoord := WorldToHex(p.Position, layer)
+		pLayer := layerFromY(p.Position.Y)
+		pCoord := WorldToHex(p.Position, pLayer)
 		if activeTiles[pCoord] {
 			players = append(players, p.Serialize())
 		}
@@ -670,7 +751,8 @@ func (w *World) GetWorldStateForPlayer(playerID string) map[string]interface{} {
 
 	enemies := make([]map[string]interface{}, 0)
 	for _, e := range w.enemies {
-		eCoord := WorldToHex(e.Position, layer)
+		eLayer := layerFromY(e.Position.Y)
+		eCoord := WorldToHex(e.Position, eLayer)
 		if activeTiles[eCoord] {
 			enemies = append(enemies, e.Serialize())
 		}
@@ -678,7 +760,8 @@ func (w *World) GetWorldStateForPlayer(playerID string) map[string]interface{} {
 
 	projectiles := make([]map[string]interface{}, 0)
 	for _, proj := range w.projectiles {
-		pCoord := WorldToHex(proj.Position, layer)
+		pLayer := layerFromY(proj.Position.Y)
+		pCoord := WorldToHex(proj.Position, pLayer)
 		if activeTiles[pCoord] {
 			projectiles = append(projectiles, proj.Serialize())
 		}
@@ -686,7 +769,8 @@ func (w *World) GetWorldStateForPlayer(playerID string) map[string]interface{} {
 
 	minions := make([]map[string]interface{}, 0)
 	for _, minion := range w.minions {
-		mCoord := WorldToHex(minion.Position, layer)
+		mLayer := layerFromY(minion.Position.Y)
+		mCoord := WorldToHex(minion.Position, mLayer)
 		if activeTiles[mCoord] {
 			minions = append(minions, minion.Serialize())
 		}
@@ -726,7 +810,8 @@ func (w *World) GetWorldStateForPlayer(playerID string) map[string]interface{} {
 
 	groundItems := make([]map[string]interface{}, 0)
 	for _, groundItem := range w.groundItems {
-		giCoord := WorldToHex(groundItem.Position, layer)
+		giLayer := layerFromY(groundItem.Position.Y)
+		giCoord := WorldToHex(groundItem.Position, giLayer)
 		if activeTiles[giCoord] {
 			groundItems = append(groundItems, groundItem.Serialize())
 		}

@@ -558,6 +558,10 @@ func _on_message_received(message: Dictionary) -> void:
 			_handle_inventory_update(message)
 		"item_unequipped":
 			_handle_inventory_update(message)
+		"dungeon_entered":
+			_handle_dungeon_entered(message)
+		"dungeon_exited":
+			_handle_dungeon_exited(message)
 
 func _handle_board_data(message: Dictionary) -> void:
 	## Handle board summary from server (minimap data for all tiles)
@@ -594,6 +598,26 @@ func _handle_tile_data(message: Dictionary) -> void:
 
 	if level_manager:
 		level_manager.load_tile(tile)
+
+func _handle_dungeon_entered(message: Dictionary) -> void:
+	## Server confirmed dungeon entry - teleport player to dungeon position
+	var pos_data = message.get("position", {})
+	var new_pos = Vector3(pos_data.get("x", 0.0), pos_data.get("y", 0.0), pos_data.get("z", 0.0))
+
+	if is_instance_valid(local_player):
+		local_player.global_position = new_pos
+		camera_focus_point = new_pos
+		print("[WORLD] Entered dungeon at position: ", new_pos)
+
+func _handle_dungeon_exited(message: Dictionary) -> void:
+	## Server confirmed dungeon exit - teleport player back to overworld
+	var pos_data = message.get("position", {})
+	var new_pos = Vector3(pos_data.get("x", 0.0), pos_data.get("y", 0.0), pos_data.get("z", 0.0))
+
+	if is_instance_valid(local_player):
+		local_player.global_position = new_pos
+		camera_focus_point = new_pos
+		print("[WORLD] Exited dungeon to position: ", new_pos)
 
 func _handle_joined(message: Dictionary) -> void:
 	var player_id = message.get("playerID", "")
@@ -1411,6 +1435,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		_fps_label.visible = not _fps_label.visible
 		get_viewport().set_input_as_handled()
 		return
+
+	# E key: interact with dungeon entrance/exit
+	if event is InputEventKey and event.pressed and event.keycode == KEY_E:
+		if is_instance_valid(local_player) and level_manager:
+			var player_tile = level_manager.current_player_tile
+			if level_manager.is_dungeon_entrance(player_tile):
+				NetworkManager.send_message({"type": "enter_dungeon"})
+				print("[WORLD] Requesting dungeon entry...")
+				get_viewport().set_input_as_handled()
+				return
+			elif level_manager.has_dungeon_exit(player_tile):
+				NetworkManager.send_message({"type": "exit_dungeon"})
+				print("[WORLD] Requesting dungeon exit...")
+				get_viewport().set_input_as_handled()
+				return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:

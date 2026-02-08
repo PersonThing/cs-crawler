@@ -215,6 +215,10 @@ func _create_feature(parent: Node3D, feature: Dictionary, tile_center: Vector3) 
 			_build_campfire(feature_node, scale_val)
 		"market_stall":
 			_build_market_stall(feature_node, scale_val)
+		"brazier":
+			_build_brazier(feature_node, scale_val)
+		"staircase":
+			_build_staircase(feature_node, scale_val)
 
 	parent.add_child(feature_node)
 
@@ -331,6 +335,84 @@ func _build_market_stall(node: Node3D, s: float) -> void:
 	awning.material_override = awning_mat
 	node.add_child(awning)
 
+func _build_brazier(node: Node3D, s: float) -> void:
+	# Base pedestal
+	var base = MeshInstance3D.new()
+	var base_mesh = CylinderMesh.new()
+	base_mesh.top_radius = 0.3 * s
+	base_mesh.bottom_radius = 0.35 * s
+	base_mesh.height = 1.0 * s
+	base.mesh = base_mesh
+	base.position.y = 0.5 * s
+	var base_mat = StandardMaterial3D.new()
+	base_mat.albedo_color = Color(0.3, 0.25, 0.2)
+	base_mat.metallic = 0.4
+	base.material_override = base_mat
+	node.add_child(base)
+
+	# Fire bowl on top
+	var bowl = MeshInstance3D.new()
+	var bowl_mesh = SphereMesh.new()
+	bowl_mesh.radius = 0.25 * s
+	bowl_mesh.height = 0.3 * s
+	bowl.mesh = bowl_mesh
+	bowl.position.y = 1.1 * s
+	var bowl_mat = StandardMaterial3D.new()
+	bowl_mat.albedo_color = Color(1.0, 0.6, 0.1)
+	bowl_mat.emission_enabled = true
+	bowl_mat.emission = Color(1.0, 0.5, 0.0)
+	bowl_mat.emission_energy_multiplier = 3.0
+	bowl.material_override = bowl_mat
+	node.add_child(bowl)
+
+	# Point light
+	var light = OmniLight3D.new()
+	light.light_color = Color(1.0, 0.6, 0.2)
+	light.light_energy = 2.5
+	light.omni_range = 8.0
+	light.position.y = 1.3 * s
+	node.add_child(light)
+
+func _build_staircase(node: Node3D, s: float) -> void:
+	# Spiral staircase visual - stack of offset cylinders
+	for i in range(4):
+		var step = MeshInstance3D.new()
+		var step_mesh = CylinderMesh.new()
+		step_mesh.top_radius = (0.8 - i * 0.05) * s
+		step_mesh.bottom_radius = (0.85 - i * 0.05) * s
+		step_mesh.height = 0.3 * s
+		step.mesh = step_mesh
+		step.position.y = i * 0.3 * s
+		var step_mat = StandardMaterial3D.new()
+		step_mat.albedo_color = Color(0.5, 0.45, 0.4)
+		step_mat.roughness = 0.8
+		step.material_override = step_mat
+		node.add_child(step)
+
+	# Glow marker at top
+	var glow = MeshInstance3D.new()
+	var glow_mesh = SphereMesh.new()
+	glow_mesh.radius = 0.2 * s
+	glow_mesh.height = 0.3 * s
+	glow.mesh = glow_mesh
+	glow.position.y = 1.4 * s
+	var glow_mat = StandardMaterial3D.new()
+	glow_mat.albedo_color = Color(0.3, 0.8, 1.0, 0.8)
+	glow_mat.emission_enabled = true
+	glow_mat.emission = Color(0.3, 0.7, 1.0)
+	glow_mat.emission_energy_multiplier = 4.0
+	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glow.material_override = glow_mat
+	node.add_child(glow)
+
+	# Light
+	var light = OmniLight3D.new()
+	light.light_color = Color(0.3, 0.7, 1.0)
+	light.light_energy = 2.0
+	light.omni_range = 5.0
+	light.position.y = 1.5 * s
+	node.add_child(light)
+
 func _apply_tile_lighting(node: Node3D, lighting: Dictionary) -> void:
 	## Apply per-tile ambient lighting
 	var ambient_color = lighting.get("ambientColor", [0.8, 0.8, 0.8])
@@ -373,3 +455,18 @@ func get_tile_at(coord: Vector3i) -> Dictionary:
 
 func is_tile_loaded(q: int, r: int, layer: int = 0) -> bool:
 	return tiles.has(coord_key(q, r, layer))
+
+func get_tile_data_at(coord: Vector3i) -> Dictionary:
+	## Returns the raw tile data dictionary at coord, or empty
+	var key: String = coord_key_v(coord)
+	if tiles.has(key):
+		return tiles[key].get("data", {})
+	return {}
+
+func is_dungeon_entrance(coord: Vector3i) -> bool:
+	var data = get_tile_data_at(coord)
+	return data.get("tileType", "") == "dungeon_entrance"
+
+func has_dungeon_exit(coord: Vector3i) -> bool:
+	var data = get_tile_data_at(coord)
+	return data.has("dungeonExitPos")

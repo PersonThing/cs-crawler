@@ -132,6 +132,10 @@ func (c *Client) handleMessage(data []byte) {
 		c.handleSwapEquipment(msg)
 	case "drop_item":
 		c.handleDropItem(msg)
+	case "enter_dungeon":
+		c.handleEnterDungeon(msg)
+	case "exit_dungeon":
+		c.handleExitDungeon(msg)
 	// Lobby messages
 	case "list_games":
 		c.handleListGames(msg)
@@ -972,6 +976,68 @@ func (c *Client) handleDropItem(msg map[string]interface{}) {
 	if config.Server.Debug.LogItemDrops {
 		log.Printf("[DROP] Player %s dropped item from %s", c.playerID, source)
 	}
+}
+
+// handleEnterDungeon moves the player into the dungeon beneath their current tile
+func (c *Client) handleEnterDungeon(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	newPos, ok := world.EnterDungeon(c.playerID)
+	if !ok {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "NOT_AT_ENTRANCE",
+			"message": "You must be at a dungeon entrance to enter",
+		})
+		return
+	}
+
+	c.Send(map[string]interface{}{
+		"type": "dungeon_entered",
+		"position": map[string]interface{}{
+			"x": newPos.X, "y": newPos.Y, "z": newPos.Z,
+		},
+	})
+
+	log.Printf("[DUNGEON] Player %s entered dungeon", c.playerID)
+}
+
+// handleExitDungeon moves the player back to the overworld from a dungeon exit
+func (c *Client) handleExitDungeon(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	newPos, ok := world.ExitDungeon(c.playerID)
+	if !ok {
+		c.Send(map[string]interface{}{
+			"type":    "error",
+			"code":    "NOT_AT_EXIT",
+			"message": "You must be at a dungeon exit to leave",
+		})
+		return
+	}
+
+	c.Send(map[string]interface{}{
+		"type": "dungeon_exited",
+		"position": map[string]interface{}{
+			"x": newPos.X, "y": newPos.Y, "z": newPos.Z,
+		},
+	})
+
+	log.Printf("[DUNGEON] Player %s exited dungeon", c.playerID)
 }
 
 // =====================
