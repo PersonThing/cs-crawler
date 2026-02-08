@@ -159,11 +159,11 @@ func TestHexToWorldLayer(t *testing.T) {
 	if surface.Y != 0 {
 		t.Errorf("surface Y should be 0, got %f", surface.Y)
 	}
-	if depth1.Y != 20.0 {
-		t.Errorf("depth 1 Y should be 20, got %f", depth1.Y)
+	if depth1.Y != -20.0 {
+		t.Errorf("depth 1 Y should be -20, got %f", depth1.Y)
 	}
-	if depth2.Y != 40.0 {
-		t.Errorf("depth 2 Y should be 40, got %f", depth2.Y)
+	if depth2.Y != -40.0 {
+		t.Errorf("depth 2 Y should be -40, got %f", depth2.Y)
 	}
 }
 

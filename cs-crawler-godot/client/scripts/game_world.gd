@@ -131,20 +131,21 @@ func _ready() -> void:
 	_setup_fps_label()
 	_setup_player_labels()
 	_setup_ai_debug_overlay()
-	_setup_player_health_bar()
+	_setup_damage_flash()
 	_setup_game_chat()
 	_setup_minimap()
+	_setup_pause_menu()
 
 	# Check if we're already joined (main menu handled the join)
 	if GameManager.local_player_id != "":
-		print("[WORLD] Local player ID already set: ", GameManager.local_player_id)
+		DebugPanel.msg("Player ID: %s" % GameManager.local_player_id)
 		_spawn_local_player(GameManager.local_player_id)
 	else:
-		print("[WORLD] Waiting for joined message...")
+		DebugPanel.msg("Waiting for joined message...")
 
 	# Check if board data was received during scene transition
 	if GameManager.pending_board_data.size() > 0:
-		print("[WORLD] Found pending board data from scene transition")
+		DebugPanel.msg("Found pending board data from scene transition")
 		_handle_board_data(GameManager.pending_board_data)
 		GameManager.pending_board_data = {}
 	for pending_tile in GameManager.pending_tile_data:
@@ -152,7 +153,7 @@ func _ready() -> void:
 	GameManager.pending_tile_data = []
 
 	if not has_board_data:
-		print("[WORLD] Waiting for board_data message from server...")
+		DebugPanel.msg("[color=orange]Waiting for board_data from server...[/color]")
 
 func _setup_level_manager() -> void:
 	## Setup the procedural level manager
@@ -235,7 +236,14 @@ func _setup_minimap() -> void:
 	minimap.name = "Minimap"
 	minimap.set_script(minimap_script)
 	minimap.set_game_world(self)
+	minimap.level_manager = level_manager
 	_get_hud_parent().add_child(minimap)
+
+func _setup_pause_menu() -> void:
+	pause_menu = CanvasLayer.new()
+	pause_menu.name = "PauseMenu"
+	pause_menu.set_script(pause_menu_script)
+	add_child(pause_menu)
 
 func _setup_player_health_bar() -> void:
 	# Create 2D UI container for player health (same style as enemy health bars)
@@ -304,6 +312,14 @@ func _setup_player_health_bar() -> void:
 	damage_flash.name = "DamageFlash"
 	damage_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
 	damage_flash.color = Color(1, 0, 0, 0)  # Start invisible
+	damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_get_hud_parent().add_child(damage_flash)
+
+func _setup_damage_flash() -> void:
+	damage_flash = ColorRect.new()
+	damage_flash.name = "DamageFlash"
+	damage_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	damage_flash.color = Color(1, 0, 0, 0)
 	damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_get_hud_parent().add_child(damage_flash)
 
@@ -568,9 +584,16 @@ func _setup_modifier_panel() -> void:
 
 		_get_hud_parent().add_child(modifier_panel)
 
+var _msg_counts: Dictionary = {}
+
 func _on_message_received(message: Dictionary) -> void:
 	var msg_type = message.get("type", "")
-	#print("[WORLD] Message received: ", msg_type)
+
+	# Track message counts for debug panel
+	_msg_counts[msg_type] = _msg_counts.get(msg_type, 0) + 1
+	if msg_type != "world_state":
+		DebugPanel.msg("msg: [color=white]%s[/color]" % msg_type)
+	DebugPanel.watch("messages", _msg_counts)
 
 	match msg_type:
 		"joined":
@@ -600,39 +623,54 @@ func _on_message_received(message: Dictionary) -> void:
 
 func _handle_board_data(message: Dictionary) -> void:
 	## Handle board summary from server (minimap data for all tiles)
-	print("[WORLD] Received board data: ", message.keys())
-	print("[WORLD] Tile summaries: ", message.get("tiles", []).size())
+	var tile_count = message.get("tiles", []).size()
+	DebugPanel.msg("[color=green]board_data received: %d tile summaries[/color]" % tile_count)
+	DebugPanel.watch("board_tiles", tile_count)
+
+	# Log dungeon entrance locations
+	for tile_summary in message.get("tiles", []):
+		if tile_summary.get("tileType", "") == "dungeon_entrance":
+			var c = tile_summary.get("coord", {})
+			DebugPanel.msg("[color=magenta]Dungeon entrance at hex (%s,%s)[/color]" % [c.get("q", "?"), c.get("r", "?")])
 
 	if level_manager:
 		level_manager.load_board(message)
 		has_board_data = true
-
-		# Hide the old ground plane if it exists
-		var old_ground = get_node_or_null("Ground")
-		if old_ground:
-			old_ground.visible = false
 
 		# Update spawn point if we have a local player
 		if is_instance_valid(local_player):
 			var spawn_point = level_manager.get_spawn_point()
 			local_player.global_position = spawn_point
 			camera_focus_point = spawn_point
-			print("[WORLD] Moved player to spawn point: ", spawn_point)
+			DebugPanel.msg("Spawn point: %s" % str(spawn_point))
 
 		# Update minimap with board data
 		if minimap:
 			minimap.set_level_manager(level_manager)
 	else:
-		print("[WORLD] ERROR: Level manager is null!")
+		DebugPanel.msg("[color=red]ERROR: Level manager is null![/color]")
 
 func _handle_tile_data(message: Dictionary) -> void:
 	## Handle a single tile streamed from server
 	var tile = message.get("tile", {})
 	if tile.is_empty():
+		DebugPanel.msg("[color=orange]tile_data: empty tile[/color]")
 		return
+
+	var coord = tile.get("coord", {})
+	DebugPanel.msg("tile_data: (%s,%s) %s" % [coord.get("q", "?"), coord.get("r", "?"), tile.get("biome", "?")])
+	DebugPanel.watch("tiles_loaded", level_manager.tiles.size() if level_manager else 0)
+
+	# Log dungeon entrances from tile_data (since board_data may not arrive)
+	if tile.get("tileType", "") == "dungeon_entrance":
+		DebugPanel.msg("[color=magenta]Dungeon entrance at hex (%s,%s) from tile_data[/color]" % [coord.get("q", "?"), coord.get("r", "?")])
 
 	if level_manager:
 		level_manager.load_tile(tile)
+
+	# Update minimap with this tile
+	if minimap:
+		minimap.add_tile(tile)
 
 func _setup_character_ai_ui() -> void:
 	# Mood indicator (top-right)
@@ -771,6 +809,7 @@ func _spawn_local_player(player_id: String) -> void:
 	local_player = player_scene.instantiate()
 	local_player.is_local = true
 	local_player.player_id = player_id
+	local_player.username = GameManager.username if GameManager.username != "" else "Player"
 	players_container.add_child(local_player)
 
 	# Get username from GameManager and update nameplate
@@ -835,10 +874,10 @@ func _handle_world_state(state: Dictionary) -> void:
 				var remote_player = player_scene.instantiate()
 				remote_player.is_local = false
 				remote_player.player_id = pid
+				remote_player.username = player_data.get("username", "Player")
 				remote_players[pid] = remote_player
 				players_container.add_child(remote_player)
-				var username = player_data.get("username", "Player")
-				_add_player_label(pid, remote_player, username)
+				_add_player_label(pid, remote_player, remote_player.username)
 
 			if is_instance_valid(remote_players[pid]):
 				remote_players[pid].apply_server_state(player_data)
@@ -1061,7 +1100,8 @@ func _update_camera_with_deadzone(delta: float) -> void:
 
 	# Smooth lerp focus point towards player (always following, just delayed)
 	var new_focus_2d = focus_pos_2d.lerp(player_pos_2d, delta * camera_follow_speed)
-	camera_focus_point = Vector3(new_focus_2d.x, 0, new_focus_2d.y)
+	var focus_y = lerp(camera_focus_point.y, local_player.global_position.y, delta * camera_follow_speed)
+	camera_focus_point = Vector3(new_focus_2d.x, focus_y, new_focus_2d.y)
 
 	# Position camera above focus point
 	var target_pos = camera_focus_point + camera_base_offset
@@ -1503,17 +1543,21 @@ func _setup_navigation_mesh() -> void:
 	nav_mesh.cell_size = 0.25
 	nav_mesh.cell_height = 0.25  # Match cell_size to avoid rasterization errors
 
-	# Create single polygon covering ground (fallback for when no level data)
+	# Create polygons covering full world area at overworld (y=0) and dungeon (y=-20)
 	var vertices = PackedVector3Array([
-		Vector3(-50, 0, -50),
-		Vector3(50, 0, -50),
-		Vector3(50, 0, 50),
-		Vector3(-50, 0, 50)
+		Vector3(-500, 0, -500),
+		Vector3(500, 0, -500),
+		Vector3(500, 0, 500),
+		Vector3(-500, 0, 500),
+		Vector3(-500, -20, -500),
+		Vector3(500, -20, -500),
+		Vector3(500, -20, 500),
+		Vector3(-500, -20, 500)
 	])
 
-	# Set vertices first, then add polygon using indices
 	nav_mesh.set_vertices(vertices)
 	nav_mesh.add_polygon(PackedInt32Array([0, 1, 2, 3]))
+	nav_mesh.add_polygon(PackedInt32Array([4, 5, 6, 7]))
 	nav_region.navigation_mesh = nav_mesh
 
 func _setup_hover_reticle() -> void:
@@ -1567,13 +1611,20 @@ func _spawn_hover_trail(pos: Vector3) -> void:
 	, 0.25, 0.0, 0.3)
 	tween.tween_callback(ghost.queue_free)
 
+func _get_ground_collision_mask() -> int:
+	## Return the physics collision mask for the player's current layer
+	## Overworld (y >= -10) -> Layer 4 (bit 3), Dungeon (y < -10) -> Layer 6 (bit 5)
+	if is_instance_valid(local_player) and local_player.global_position.y < -10.0:
+		return 1 << 5
+	return 1 << 3
+
 func _raycast_ground(screen_pos: Vector2) -> Variant:
 	## Returns the ground hit position or null
 	var from = camera.project_ray_origin(screen_pos)
 	var to = from + camera.project_ray_normal(screen_pos) * 1000.0
 	var space_state = get_world_3d().direct_space_state
 	var ground_query = PhysicsRayQueryParameters3D.create(from, to)
-	ground_query.collision_mask = 1 << 3  # Layer 4: Environment
+	ground_query.collision_mask = _get_ground_collision_mask()
 	var result = space_state.intersect_ray(ground_query)
 	if result:
 		return result.position
@@ -1622,25 +1673,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_is_mouse_held = false
 			_clear_click_indicator()
 
-	elif event is InputEventMouseMotion:
-		# Update hover reticle
-		if is_instance_valid(local_player):
-			var hit_pos = _raycast_ground(event.position)
-			if hit_pos != null:
-				var reticle_pos = Vector3(hit_pos.x, 0.02, hit_pos.z)
-				_hover_reticle.global_position = reticle_pos
-				_hover_reticle.visible = true
-				# Spawn trail ghost if moved enough
-				if reticle_pos.distance_to(_hover_reticle_last_pos) > HOVER_TRAIL_MIN_DIST:
-					_spawn_hover_trail(reticle_pos)
-					_hover_reticle_last_pos = reticle_pos
-			else:
-				_hover_reticle.visible = false
-
-		# Click-and-drag: continuously update move target while held
-		if _is_mouse_held and is_instance_valid(local_player):
-			_handle_ground_move(event.position)
-			get_viewport().set_input_as_handled()
+	# Hover reticle and click-drag are now handled in _process() so they
+	# update continuously even when the mouse is stationary but camera moves.
 
 func _handle_ground_click(screen_pos: Vector2) -> void:
 	var from = camera.project_ray_origin(screen_pos)
@@ -1681,7 +1715,7 @@ func _handle_ground_move(screen_pos: Vector2) -> void:
 func _show_click_indicator(pos: Vector3) -> void:
 	_clear_click_indicator()
 	_active_click_indicator = Node3D.new()
-	_active_click_indicator.position = Vector3(pos.x, 0.02, pos.z)
+	_active_click_indicator.position = Vector3(pos.x, pos.y + 0.02, pos.z)
 	add_child(_active_click_indicator)
 
 	_active_click_mesh = MeshInstance3D.new()
@@ -1703,7 +1737,7 @@ func _show_click_indicator(pos: Vector3) -> void:
 
 func _update_click_indicator(pos: Vector3) -> void:
 	if is_instance_valid(_active_click_indicator):
-		_active_click_indicator.global_position = Vector3(pos.x, 0.02, pos.z)
+		_active_click_indicator.global_position = Vector3(pos.x, pos.y + 0.02, pos.z)
 	else:
 		_show_click_indicator(pos)
 
@@ -1731,7 +1765,7 @@ func _process(delta: float) -> void:
 
 		var space_state = get_world_3d().direct_space_state
 		var query = PhysicsRayQueryParameters3D.create(controller_pos, ray_end)
-		query.collision_mask = 1 << 3  # Layer 4: Environment
+		query.collision_mask = _get_ground_collision_mask()
 
 		var result = space_state.intersect_ray(query)
 		if result:
@@ -1756,6 +1790,25 @@ func _process(delta: float) -> void:
 			local_player.set_move_target(vr_cursor_position)
 			_show_click_indicator(vr_cursor_position)
 		vr_trigger_was_pressed = trigger_pressed
+
+	# Continuously update hover reticle and click-drag target based on current
+	# mouse position (camera moves even when cursor is stationary)
+	if not is_xr_active and is_instance_valid(local_player) and camera:
+		var mouse_pos = get_viewport().get_mouse_position()
+		var hit_pos = _raycast_ground(mouse_pos)
+		if hit_pos != null:
+			var reticle_pos = Vector3(hit_pos.x, hit_pos.y + 0.02, hit_pos.z)
+			_hover_reticle.global_position = reticle_pos
+			_hover_reticle.visible = true
+			if reticle_pos.distance_to(_hover_reticle_last_pos) > HOVER_TRAIL_MIN_DIST:
+				_spawn_hover_trail(reticle_pos)
+				_hover_reticle_last_pos = reticle_pos
+			# Update click-drag move target while mouse is held
+			if _is_mouse_held:
+				local_player.set_move_target(hit_pos)
+				_update_click_indicator(hit_pos)
+		else:
+			_hover_reticle.visible = false
 
 	if is_instance_valid(local_player):
 		# Track player hex tile changes
@@ -1821,4 +1874,3 @@ func _physics_process(delta: float) -> void:
 	if is_instance_valid(local_player):
 		_update_camera_with_deadzone(delta)
 	_update_player_labels()
-	_update_player_health_bar_2d()

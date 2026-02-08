@@ -414,8 +414,8 @@ func (w *World) Update(delta time.Duration) {
 	// Process character AI for players with auto-combat enabled
 	w.processCharacterAI(delta.Seconds())
 
-	// Respawn enemies in active tiles that have been cleared
-	w.checkTileRespawns()
+	// NOTE: Enemy respawning disabled - enemies no longer respawn after being killed
+	// w.checkTileRespawns()
 }
 
 // processCharacterAI runs autonomous combat decisions for players with auto-combat enabled.

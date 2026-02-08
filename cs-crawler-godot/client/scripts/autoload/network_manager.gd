@@ -49,7 +49,6 @@ func send_message(message: Dictionary) -> void:
 		return
 
 	var json_string = JSON.stringify(message)
-	print("[NET] Sending: ", message.get("type", "unknown"), " | ", json_string)
 	var err = _client.send_text(json_string)
 
 	if err != OK:
@@ -79,10 +78,6 @@ func _process(_delta: float) -> void:
 
 				if parse_result == OK:
 					var message = json.data
-					var msg_type = message.get("type", "UNKNOWN")
-					print("[NET] Received message type: ", msg_type)
-					if msg_type == "level_data":
-						print("[NET] LEVEL DATA RECEIVED! Rooms: ", message.get("rooms", []).size())
 					message_received.emit(message)
 				else:
 					push_error("Failed to parse JSON: " + json_string)

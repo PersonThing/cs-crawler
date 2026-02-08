@@ -7,7 +7,7 @@ signal player_tile_changed(coord: Vector3i)
 # Hex geometry constants (must match server: HexSize = 12.0, flat-top)
 const HEX_SIZE: float = 12.0  # Outer radius
 const HEX_INNER: float = HEX_SIZE * 0.866025  # sqrt(3)/2 * size
-const HEX_LAYER_Y: float = -20.0  # Y offset per layer
+const HEX_LAYER_Y: float = 20.0  # Y offset per layer (layer -1 → y=-20)
 
 # Loaded tiles: "q,r,layer" -> { node: Node3D, data: Dictionary }
 var tiles: Dictionary = {}
@@ -106,7 +106,7 @@ func _create_tile_node(tile_data: Dictionary, q: int, r: int, layer: int) -> Nod
 	_apply_tile_lighting(node, lighting)
 
 	# Create floor collision for raycasting / navigation
-	_create_hex_collision(node)
+	_create_hex_collision(node, layer)
 
 	return node
 
@@ -170,10 +170,12 @@ func _create_hex_floor(parent: Node3D, tile_data: Dictionary) -> void:
 
 	parent.add_child(mesh_instance)
 
-func _create_hex_collision(parent: Node3D) -> void:
-	## Create a collision shape for raycasting (layer 4: Environment)
+func _create_hex_collision(parent: Node3D, layer: int = 0) -> void:
+	## Create a collision shape for raycasting
+	## Overworld (layer >= 0) uses physics layer 4 (bit 3, value 8)
+	## Dungeon (layer < 0) uses physics layer 6 (bit 5, value 32)
 	var static_body = StaticBody3D.new()
-	static_body.collision_layer = 8  # Layer 4
+	static_body.collision_layer = 32 if layer < 0 else 8
 	static_body.collision_mask = 0
 
 	# Use a cylinder approximation for the hex

@@ -112,7 +112,7 @@ func HexToWorld(coord HexCoord) Vector3 {
 	// z = size * (sqrt(3)/2 * q + sqrt(3) * r)
 	x := HexSize * (1.5 * float64(coord.Q))
 	z := HexSize * (math.Sqrt(3)/2*float64(coord.Q) + math.Sqrt(3)*float64(coord.R))
-	y := float64(coord.Layer) * -20.0 // Each layer is 20 units below the previous
+	y := float64(coord.Layer) * 20.0 // Each layer is 20 units below the previous (layer -1 → y=-20)
 
 	return Vector3{X: x, Y: y, Z: z}
 }

@@ -4,7 +4,8 @@ extends Control
 const MAP_SIZE: float = 200.0  # Minimap size in pixels
 const HEX_DRAW_SIZE: float = 16.0  # Pixel size per hex tile on minimap
 const DOT_SIZE: float = 8.0  # Player dot size
-const HEX_INNER: float = HEX_DRAW_SIZE * 0.866025  # sqrt(3)/2
+const WORLD_HEX_SIZE: float = 12.0  # Must match level_manager.HEX_SIZE
+const MINIMAP_SCALE: float = HEX_DRAW_SIZE / WORLD_HEX_SIZE
 
 var game_world: Node3D = null
 var local_player: Node3D = null
@@ -117,6 +118,10 @@ func update_remote_players(players: Dictionary) -> void:
 			map_container.add_child(dot)
 			remote_dots[pid] = dot
 
+func add_tile(tile_data: Dictionary) -> void:
+	## Add a single tile to the minimap (used when tiles arrive via tile_data)
+	_draw_hex_tile(tile_data)
+
 func _refresh_hex_tiles() -> void:
 	## Redraw all hex tiles on the minimap from board summary
 	for child in hex_container.get_children():
@@ -165,7 +170,12 @@ func _draw_hex_tile(tile_summary: Dictionary) -> void:
 		"town":
 			style.bg_color = Color(0.7, 0.6, 0.4, 0.9)
 		"dungeon_entrance":
-			style.bg_color = Color(0.6, 0.3, 0.3, 0.9)
+			style.bg_color = Color(0.6, 0.2, 0.4, 0.95)
+			style.border_color = Color(1.0, 0.4, 0.8, 1.0)
+			style.border_width_left = 2
+			style.border_width_right = 2
+			style.border_width_top = 2
+			style.border_width_bottom = 2
 		"dungeon":
 			style.bg_color = Color(0.2, 0.2, 0.3, 0.9)
 		_:
@@ -192,25 +202,37 @@ func _draw_hex_tile(tile_summary: Dictionary) -> void:
 	hex_container.add_child(hex_panel)
 	_hex_tiles_drawn[key] = hex_panel
 
-func _hex_to_minimap(q: int, r: int, center_q: int, center_r: int) -> Vector2:
-	## Convert hex coord to minimap pixel position, centered on (center_q, center_r)
-	var dq: float = q - center_q
-	var dr: float = r - center_r
-	# Flat-top hex pixel offset
-	var px: float = HEX_DRAW_SIZE * (3.0 / 2.0 * dq)
-	var py: float = HEX_DRAW_SIZE * (sqrt(3.0) / 2.0 * dq + sqrt(3.0) * dr)
-	return Vector2(MAP_SIZE / 2.0 + px, MAP_SIZE / 2.0 + py)
+	# Add dungeon entrance marker (bright icon on top)
+	if tile_type == "dungeon_entrance":
+		var marker = Label.new()
+		marker.text = "D"
+		marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		marker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		marker.set_anchors_preset(PRESET_FULL_RECT)
+		marker.add_theme_font_size_override("font_size", 14)
+		marker.add_theme_color_override("font_color", Color(1.0, 0.4, 0.8))
+		marker.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+		marker.add_theme_constant_override("outline_size", 3)
+		marker.mouse_filter = MOUSE_FILTER_IGNORE
+		hex_panel.add_child(marker)
+
+func _world_to_minimap(world_pos: Vector3, center_pos: Vector3) -> Vector2:
+	## Convert a world position to minimap pixel position, centered on center_pos
+	var dx: float = world_pos.x - center_pos.x
+	var dz: float = world_pos.z - center_pos.z
+	return Vector2(MAP_SIZE / 2.0 + dx * MINIMAP_SCALE, MAP_SIZE / 2.0 + dz * MINIMAP_SCALE)
+
+func _hex_world_pos(q: int, r: int) -> Vector3:
+	## Compute world position of a hex tile (must match level_manager.hex_to_world)
+	var x: float = WORLD_HEX_SIZE * (3.0 / 2.0 * q)
+	var z: float = WORLD_HEX_SIZE * (sqrt(3.0) / 2.0 * q + sqrt(3.0) * r)
+	return Vector3(x, 0, z)
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(local_player):
 		return
 
-	# Get player's current hex tile (use level_manager if available)
-	var center_q: int = 0
-	var center_r: int = 0
-	if level_manager:
-		center_q = level_manager.current_player_tile.x
-		center_r = level_manager.current_player_tile.y
+	var player_pos: Vector3 = local_player.global_position
 
 	# Update local player dot (always centered)
 	local_player_dot.position = Vector2(
@@ -218,26 +240,24 @@ func _process(_delta: float) -> void:
 		(MAP_SIZE - DOT_SIZE) / 2.0
 	)
 
-	# Update remote player dots
+	# Update remote player dots (using continuous world positions)
 	for pid in remote_players.keys():
 		if remote_dots.has(pid) and is_instance_valid(remote_players[pid]):
-			var remote_pos = remote_players[pid].global_position
-			# Convert remote player world pos to hex, then to minimap
-			if level_manager:
-				var remote_hex = level_manager.world_to_hex(remote_pos)
-				var minimap_pos = _hex_to_minimap(remote_hex.x, remote_hex.y, center_q, center_r)
-				remote_dots[pid].position = minimap_pos - Vector2(DOT_SIZE / 2.0, DOT_SIZE / 2.0)
-				var in_bounds = minimap_pos.x >= 0 and minimap_pos.x <= MAP_SIZE and minimap_pos.y >= 0 and minimap_pos.y <= MAP_SIZE
-				remote_dots[pid].visible = in_bounds
+			var remote_pos: Vector3 = remote_players[pid].global_position
+			var minimap_pos = _world_to_minimap(remote_pos, player_pos)
+			remote_dots[pid].position = minimap_pos - Vector2(DOT_SIZE / 2.0, DOT_SIZE / 2.0)
+			var in_bounds = minimap_pos.x >= 0 and minimap_pos.x <= MAP_SIZE and minimap_pos.y >= 0 and minimap_pos.y <= MAP_SIZE
+			remote_dots[pid].visible = in_bounds
 
-	# Update hex tile positions (relative to player center)
+	# Update hex tile positions (relative to player's continuous world position)
 	for key in _hex_tiles_drawn.keys():
 		var panel: Panel = _hex_tiles_drawn[key]
 		if not is_instance_valid(panel):
 			continue
 		var hq: int = panel.get_meta("hex_q")
 		var hr: int = panel.get_meta("hex_r")
-		var minimap_pos = _hex_to_minimap(hq, hr, center_q, center_r)
+		var tile_world: Vector3 = _hex_world_pos(hq, hr)
+		var minimap_pos = _world_to_minimap(tile_world, player_pos)
 		panel.position = minimap_pos - panel.size / 2.0
 
 		# Hide tiles too far from view

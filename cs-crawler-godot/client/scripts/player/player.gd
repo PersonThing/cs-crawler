@@ -8,6 +8,9 @@ var move_speed: float = 5.0
 # 3D Health bar
 var health_bar_3d: Node3D = null
 var health_bar_fill: MeshInstance3D = null
+var health_name_label: Label3D = null
+var health_text_label: Label3D = null
+var username: String = "Player"
 
 # 3D Skill bar (for VR)
 var skill_bar_3d: Node3D = null
@@ -78,11 +81,24 @@ func _load_ability_configs() -> void:
 			print("[PLAYER] Loaded %s cooldown: %s" % [ability_type, ability_config["cooldown"]])
 
 func _setup_3d_health_bar() -> void:
-	# Create 3D health bar attached to player
+	# Create 3D health bar independent of player rotation (like skill bar)
 	health_bar_3d = Node3D.new()
 	health_bar_3d.name = "HealthBar3D"
-	health_bar_3d.position = Vector3(0, 2.5, 0)
+	health_bar_3d.top_level = true
 	add_child(health_bar_3d)
+
+	# Name label above bar
+	health_name_label = Label3D.new()
+	health_name_label.text = username
+	health_name_label.font_size = 48
+	health_name_label.position = Vector3(0, 0.2, 0)
+	health_name_label.pixel_size = 0.005
+	health_name_label.outline_size = 6
+	health_name_label.modulate = Color(0.4, 0.8, 1.0)
+	health_name_label.outline_modulate = Color(0, 0, 0)
+	health_name_label.no_depth_test = true
+	health_name_label.render_priority = 10
+	health_bar_3d.add_child(health_name_label)
 
 	# Background bar
 	var bg_mesh = MeshInstance3D.new()
@@ -92,12 +108,12 @@ func _setup_3d_health_bar() -> void:
 	var bg_mat = StandardMaterial3D.new()
 	bg_mat.albedo_color = Color(0.2, 0.2, 0.2, 0.9)
 	bg_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	bg_mat.no_depth_test = true  # Render on top of everything
+	bg_mat.no_depth_test = true
 	bg_mat.render_priority = 10
 	bg_mesh.material_override = bg_mat
 	health_bar_3d.add_child(bg_mesh)
 
-	# Health fill bar (green for player)
+	# Health fill bar
 	health_bar_fill = MeshInstance3D.new()
 	health_bar_fill.name = "HealthFill"
 	var fill_box = BoxMesh.new()
@@ -105,15 +121,31 @@ func _setup_3d_health_bar() -> void:
 	health_bar_fill.mesh = fill_box
 	health_bar_fill.position = Vector3(0, 0, 0.01)
 	var fill_mat = StandardMaterial3D.new()
-	fill_mat.albedo_color = Color(0.1, 0.8, 0.1)  # Green for player
-	fill_mat.no_depth_test = true  # Render on top of everything
+	fill_mat.albedo_color = Color(0.1, 0.8, 0.1)
+	fill_mat.no_depth_test = true
 	fill_mat.render_priority = 11
 	health_bar_fill.material_override = fill_mat
 	health_bar_3d.add_child(health_bar_fill)
 
+	# Health text below bar
+	health_text_label = Label3D.new()
+	health_text_label.text = "%d / %d" % [int(current_health), int(max_health)]
+	health_text_label.font_size = 36
+	health_text_label.position = Vector3(0, -0.18, 0)
+	health_text_label.pixel_size = 0.005
+	health_text_label.outline_size = 4
+	health_text_label.modulate = Color(1, 1, 1)
+	health_text_label.outline_modulate = Color(0, 0, 0)
+	health_text_label.no_depth_test = true
+	health_text_label.render_priority = 10
+	health_bar_3d.add_child(health_text_label)
+
 func _update_3d_health_bar() -> void:
 	if not health_bar_fill or not health_bar_3d:
 		return
+
+	# Position above player (top_level means we must set global_position manually)
+	health_bar_3d.global_position = global_position + Vector3(0, 2.5, 0)
 
 	var health_percent = current_health / max_health if max_health > 0 else 1.0
 	health_bar_fill.scale.x = health_percent
@@ -129,19 +161,25 @@ func _update_3d_health_bar() -> void:
 		else:
 			fill_mat.albedo_color = Color(0.9, 0.2, 0.2)  # Red
 
-	# Billboard: only rotate around Y axis to face camera (keeps position fixed)
+	# Update name and health text
+	if health_name_label:
+		health_name_label.text = username
+	if health_text_label:
+		health_text_label.text = "%d / %d" % [int(current_health), int(max_health)]
+
+	# Billboard: rotate to face camera around Y axis
 	var camera = get_viewport().get_camera_3d()
-	if camera and health_bar_3d:
+	if camera:
 		var cam_pos = camera.global_position
 		var bar_pos = health_bar_3d.global_position
 		var direction = Vector2(cam_pos.x - bar_pos.x, cam_pos.z - bar_pos.z)
 		health_bar_3d.rotation.y = atan2(direction.x, direction.y)
 
 func _setup_3d_skill_bar() -> void:
-	# Create 3D skill bar under the player (for VR mode)
+	# Create 3D skill bar near the player but independent of player rotation
 	skill_bar_3d = Node3D.new()
 	skill_bar_3d.name = "SkillBar3D"
-	skill_bar_3d.position = Vector3(0, 0.1, -1.5)  # Under and in front of player
+	skill_bar_3d.top_level = true  # Ignore parent transform (prevents inheriting player rotation)
 	add_child(skill_bar_3d)
 
 	# Order: X, Y, A, B (Lightning, Basic Attack, Fireball, Frostbolt)
@@ -221,10 +259,16 @@ func _update_3d_skill_bar() -> void:
 	if not skill_bar_3d or not is_local:
 		return
 
-	# Billboard: only rotate around Y axis to face camera (keeps position fixed)
+	# Position the bar at the player's feet, offset forward toward camera
 	var camera = get_viewport().get_camera_3d()
 	if camera:
 		var cam_pos = camera.global_position
+		var player_pos = global_position
+		# Direction from player toward camera (XZ only)
+		var to_cam = Vector2(cam_pos.x - player_pos.x, cam_pos.z - player_pos.z).normalized()
+		# Place bar slightly in front of the player (toward camera) and low
+		skill_bar_3d.global_position = player_pos + Vector3(to_cam.x * 1.5, 0.1, to_cam.y * 1.5)
+		# Billboard: rotate to face camera around Y axis
 		var bar_pos = skill_bar_3d.global_position
 		var direction = Vector2(cam_pos.x - bar_pos.x, cam_pos.z - bar_pos.z)
 		skill_bar_3d.rotation.y = atan2(direction.x, direction.y)
@@ -365,7 +409,6 @@ func _handle_local_movement(delta: float) -> void:
 		_send_move_input(direction)
 
 	elif is_following_path:
-		print("[PLAYER] Following nav path")
 		_follow_navigation_path(delta)
 
 	else:
@@ -492,7 +535,7 @@ func _cast_ability(ability_type: String) -> void:
 
 	var space_state = get_world_3d().direct_space_state
 	var query = PhysicsRayQueryParameters3D.create(from, to)
-	query.collision_mask = 1 << 3  # Layer 4: Environment
+	query.collision_mask = (1 << 5) if global_position.y < -10.0 else (1 << 3)
 
 	var result = space_state.intersect_ray(query)
 	var direction: Vector3
@@ -539,7 +582,7 @@ func apply_server_state(state: Dictionary) -> void:
 			print("[PLAYER] Server correction - Current: ", global_position, " Server: ", target_position, " Error: ", pos_error)
 			global_position = global_position.lerp(target_position, 0.3)
 		else:
-			print("[PLAYER] Server state - Pos: ", target_position, " (no correction needed)")
+			pass  # No correction needed
 	else:
 		# Smooth interpolation for remote players
 		global_position = global_position.lerp(target_position, 0.2)
