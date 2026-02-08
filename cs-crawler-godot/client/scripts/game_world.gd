@@ -25,6 +25,14 @@ var vr_trigger_was_pressed: bool = false
 var screen_shake_amount: float = 0.0
 var screen_shake_decay: float = 5.0
 
+# Player light (for dungeon darkness)
+var _player_light: OmniLight3D = null
+var _player_light_radius: float = 10.0
+var _is_in_dungeon: bool = false
+var _target_fog_density: float = 0.0
+var _current_fog_density: float = 0.0
+var _target_ambient_energy: float = 1.0
+
 # Camera settings (loaded from config)
 var camera_base_offset: Vector3 = Vector3(0, 20, 7.3)
 var vr_camera_offset: Vector3 = Vector3(0, 8, 12)  # Lower and further back for VR
@@ -102,6 +110,7 @@ func _ready() -> void:
 	NetworkManager.message_received.connect(_on_message_received)
 	NetworkManager.disconnected_from_server.connect(_on_disconnected)
 	_setup_level_manager()
+	_setup_player_light()
 	_setup_navigation_mesh()
 	_setup_enemy_ui_manager()
 	_setup_ability_bar()
@@ -142,7 +151,20 @@ func _setup_level_manager() -> void:
 	level_manager.name = "LevelManager"
 	level_manager.set_script(level_manager_script)
 	add_child(level_manager)
+	level_manager.player_tile_changed.connect(_on_player_tile_changed)
 	print("[WORLD] Level manager initialized")
+
+func _setup_player_light() -> void:
+	## Create a point light that follows the player (visible in dungeons)
+	_player_light = OmniLight3D.new()
+	_player_light.name = "PlayerLight"
+	_player_light.light_color = Color(1.0, 0.9, 0.7)
+	_player_light.light_energy = 0.0  # Start off, enabled when entering dungeon
+	_player_light.omni_range = _player_light_radius
+	_player_light.omni_attenuation = 1.5
+	_player_light.shadow_enabled = true
+	add_child(_player_light)
+	print("[WORLD] Player light initialized")
 
 func _setup_minions_container() -> void:
 	# Create minions container if it doesn't exist
@@ -599,6 +621,35 @@ func _handle_tile_data(message: Dictionary) -> void:
 	if level_manager:
 		level_manager.load_tile(tile)
 
+func _on_player_tile_changed(new_tile: Vector3i) -> void:
+	## Handle atmosphere changes when player moves between tiles
+	if not level_manager:
+		return
+
+	var key: String = level_manager.coord_key(new_tile.x, new_tile.y, new_tile.z)
+	var tile_info = level_manager.tiles.get(key, {})
+	var tile_node: Node3D = tile_info.get("node", null)
+	var tile_data: Dictionary = tile_info.get("data", {})
+
+	var tile_type: String = tile_data.get("tileType", "overworld")
+	var was_in_dungeon: bool = _is_in_dungeon
+	_is_in_dungeon = (tile_type == "dungeon")
+
+	# Get fog and ambient data from tile node metadata
+	if tile_node:
+		var fog_enabled: bool = tile_node.get_meta("fog_enabled", false) as bool
+		if fog_enabled:
+			_target_fog_density = tile_node.get_meta("fog_density", 0.01) as float
+		else:
+			_target_fog_density = 0.0
+		_target_ambient_energy = tile_node.get_meta("ambient_intensity", 0.85) as float
+
+	# Toggle player light on/off for dungeon
+	if _is_in_dungeon and not was_in_dungeon:
+		print("[WORLD] Entering dark zone - enabling player light")
+	elif not _is_in_dungeon and was_in_dungeon:
+		print("[WORLD] Leaving dark zone - disabling player light")
+
 func _handle_dungeon_entered(message: Dictionary) -> void:
 	## Server confirmed dungeon entry - teleport player to dungeon position
 	var pos_data = message.get("position", {})
@@ -675,6 +726,12 @@ func _handle_world_state(state: Dictionary) -> void:
 			# Update local player from server (for reconciliation)
 			if is_instance_valid(local_player):
 				local_player.apply_server_state(player_data)
+
+			# Read light radius from stats for dungeon visibility
+			var stats_data = player_data.get("stats", {})
+			var lr = stats_data.get("lightRadius", 10.0)
+			if lr > 0:
+				_player_light_radius = lr
 
 			# Update inventory panel if player data includes inventory
 			var inv_data = player_data.get("inventory", {})
@@ -1607,6 +1664,9 @@ func _process(delta: float) -> void:
 		if level_manager:
 			level_manager.update_player_tile(local_player.global_position)
 
+		# Update player light position and intensity
+		_update_player_light(delta)
+
 		# Clear click indicator when player stops following path
 		if not local_player.is_following_path and not _is_mouse_held:
 			_clear_click_indicator()
@@ -1617,6 +1677,41 @@ func _process(delta: float) -> void:
 			if distance <= PICKUP_RANGE:
 				_send_pickup_request(pending_pickup_target)
 				pending_pickup_target = ""
+
+	# Smoothly transition fog
+	_update_fog(delta)
+
+func _update_player_light(delta: float) -> void:
+	if not _player_light or not is_instance_valid(local_player):
+		return
+
+	# Follow the player
+	_player_light.global_position = local_player.global_position + Vector3(0, 2.0, 0)
+
+	# Smoothly transition light energy based on dungeon state
+	var target_energy: float = 0.0
+	if _is_in_dungeon:
+		target_energy = 3.0
+		_player_light.omni_range = _player_light_radius
+	_player_light.light_energy = lerp(_player_light.light_energy, target_energy, delta * 4.0)
+
+func _update_fog(delta: float) -> void:
+	# Smoothly transition fog density
+	_current_fog_density = lerp(_current_fog_density, _target_fog_density, delta * 3.0)
+
+	var env: Environment = get_world_3d().environment
+	if not env:
+		env = Environment.new()
+		get_world_3d().environment = env
+
+	if _current_fog_density > 0.001:
+		env.fog_enabled = true
+		env.fog_density = _current_fog_density
+		# Adjust ambient light for dungeon feel
+		env.ambient_light_energy = lerp(env.ambient_light_energy, _target_ambient_energy, delta * 3.0)
+	else:
+		env.fog_enabled = false
+		env.ambient_light_energy = lerp(env.ambient_light_energy, _target_ambient_energy, delta * 3.0)
 
 func _physics_process(delta: float) -> void:
 	if is_instance_valid(local_player):

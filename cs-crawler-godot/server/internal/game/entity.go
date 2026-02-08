@@ -45,6 +45,9 @@ type Player struct {
 	ColdResist      float64
 	LightningResist float64
 
+	// Dungeon visibility
+	LightRadius float64 // How far the player can see in dungeons
+
 	// Inventory
 	Inventory *Inventory
 
@@ -116,6 +119,7 @@ func (p *Player) RecalculateStats() {
 	p.FireResist = 0.0
 	p.ColdResist = 0.0
 	p.LightningResist = 0.0
+	p.LightRadius = 10.0 // Base light radius in world units
 
 	// Get stats from inventory
 	if p.Inventory != nil {
@@ -219,6 +223,7 @@ func (p *Player) Serialize() map[string]interface{} {
 			"fireResist":      p.FireResist,
 			"coldResist":      p.ColdResist,
 			"lightningResist": p.LightningResist,
+			"lightRadius":     p.LightRadius,
 		},
 	}
 

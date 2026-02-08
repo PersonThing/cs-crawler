@@ -157,13 +157,36 @@ func generateTownTile(tile *Tile, center Vector3, rng *rand.Rand) {
 	// No enemy spawns in town
 }
 
-func generateOverworldTile(tile *Tile, center Vector3, rng *rand.Rand, neighborEdges map[int]bool) {
-	// Bright outdoor lighting based on biome
-	tile.Lighting = TileLighting{
-		AmbientColor:     [3]float64{0.9, 0.85, 0.7},
-		AmbientIntensity: 0.85,
-		FogEnabled:       false,
+// biomeZoneProfile returns lighting and feature config for a biome.
+func biomeZoneProfile(biome string) TileLighting {
+	switch biome {
+	case "forest":
+		return TileLighting{
+			AmbientColor:     [3]float64{0.6, 0.75, 0.5},
+			AmbientIntensity: 0.7,
+			FogEnabled:       true,
+			FogColor:         [3]float64{0.3, 0.4, 0.3},
+			FogDensity:       0.008,
+		}
+	case "hills":
+		return TileLighting{
+			AmbientColor:     [3]float64{0.85, 0.8, 0.65},
+			AmbientIntensity: 0.9,
+			FogEnabled:       true,
+			FogColor:         [3]float64{0.7, 0.7, 0.65},
+			FogDensity:       0.004,
+		}
+	default: // grassland
+		return TileLighting{
+			AmbientColor:     [3]float64{0.95, 0.9, 0.7},
+			AmbientIntensity: 0.85,
+			FogEnabled:       false,
+		}
 	}
+}
+
+func generateOverworldTile(tile *Tile, center Vector3, rng *rand.Rand, neighborEdges map[int]bool) {
+	tile.Lighting = biomeZoneProfile(tile.Biome)
 
 	// Generate edge paths: at least 2 edges open, up to 4
 	numPaths := 2 + rng.Intn(3) // 2-4 paths
@@ -180,9 +203,20 @@ func generateOverworldTile(tile *Tile, center Vector3, rng *rand.Rand, neighborE
 		}
 	}
 
-	// Scatter terrain features
-	featureTypes := []TerrainFeatureType{FeatureTreeOak, FeatureRockSmall, FeatureBush, FeatureFlowerPatch}
-	numFeatures := 5 + rng.Intn(8) // 5-12 features
+	// Scatter terrain features based on biome
+	var featureTypes []TerrainFeatureType
+	var numFeatures int
+	switch tile.Biome {
+	case "forest":
+		featureTypes = []TerrainFeatureType{FeatureTreeOak, FeatureTreeOak, FeatureBush, FeatureRockSmall}
+		numFeatures = 8 + rng.Intn(6) // 8-13 dense features
+	case "hills":
+		featureTypes = []TerrainFeatureType{FeatureRockSmall, FeatureRockLarge, FeatureBush, FeatureFlowerPatch}
+		numFeatures = 4 + rng.Intn(5) // 4-8 sparse features
+	default: // grassland
+		featureTypes = []TerrainFeatureType{FeatureTreeOak, FeatureRockSmall, FeatureBush, FeatureFlowerPatch}
+		numFeatures = 5 + rng.Intn(8) // 5-12 features
+	}
 	for i := 0; i < numFeatures; i++ {
 		// Random position within hex bounds (use 70% of hex radius to keep away from edges)
 		angle := rng.Float64() * 2.0 * 3.14159
@@ -233,14 +267,20 @@ func generateOverworldTile(tile *Tile, center Vector3, rng *rand.Rand, neighborE
 		}
 	}
 
-	// If this is a dungeon entrance, place the entry point
+	// If this is a dungeon entrance, place the entry point and darken the tile
 	if tile.TileType == TileTypeDungeonEntrance {
 		tile.DungeonEntryPos = &Vector3{
 			X: center.X,
 			Y: center.Y,
 			Z: center.Z,
 		}
-		// Add a visual marker
+		// Darken the entrance tile slightly to hint at the dungeon below
+		tile.Lighting.AmbientIntensity *= 0.6
+		tile.Lighting.FogEnabled = true
+		tile.Lighting.FogColor = [3]float64{0.15, 0.12, 0.18}
+		tile.Lighting.FogDensity = 0.015
+
+		// Add visual markers (ruin pillars flanking entrance)
 		tile.Features = append(tile.Features, TerrainFeature{
 			Type:     FeatureRuinPillar,
 			Position: Vector3{X: center.X - 2, Y: center.Y, Z: center.Z},
@@ -250,6 +290,17 @@ func generateOverworldTile(tile *Tile, center Vector3, rng *rand.Rand, neighborE
 			Type:     FeatureRuinPillar,
 			Position: Vector3{X: center.X + 2, Y: center.Y, Z: center.Z},
 			Scale:    1.5,
+		})
+		// Braziers at the entrance
+		tile.Features = append(tile.Features, TerrainFeature{
+			Type:     FeatureBrazier,
+			Position: Vector3{X: center.X - 3, Y: center.Y, Z: center.Z + 1},
+			Scale:    1.0,
+		})
+		tile.Features = append(tile.Features, TerrainFeature{
+			Type:     FeatureBrazier,
+			Position: Vector3{X: center.X + 3, Y: center.Y, Z: center.Z + 1},
+			Scale:    1.0,
 		})
 	}
 }

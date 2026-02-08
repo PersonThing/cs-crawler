@@ -156,11 +156,16 @@ func _create_hex_floor(parent: Node3D, tile_data: Dictionary) -> void:
 		_:
 			mat.albedo_color = Color(0.4, 0.4, 0.4)
 
-	# Darken dungeon tiles
+	# Dungeon tiles: dark stone floor
 	if tile_type == "dungeon":
-		mat.albedo_color = mat.albedo_color.darkened(0.5)
+		mat.albedo_color = Color(0.18, 0.15, 0.2)
+		mat.roughness = 0.95
+	elif tile_type == "dungeon_entrance":
+		mat.albedo_color = mat.albedo_color.darkened(0.3)
+		mat.roughness = 0.9
+	else:
+		mat.roughness = 0.9
 
-	mat.roughness = 0.9
 	mesh_instance.material_override = mat
 
 	parent.add_child(mesh_instance)
@@ -417,22 +422,38 @@ func _apply_tile_lighting(node: Node3D, lighting: Dictionary) -> void:
 	## Apply per-tile ambient lighting
 	var ambient_color = lighting.get("ambientColor", [0.8, 0.8, 0.8])
 	var intensity: float = lighting.get("ambientIntensity", 0.7)
-
-	var light = DirectionalLight3D.new()
-	light.name = "TileLight"
+	var color := Color(0.8, 0.8, 0.8)
 	if ambient_color is Array and ambient_color.size() >= 3:
-		light.light_color = Color(ambient_color[0], ambient_color[1], ambient_color[2])
-	light.light_energy = intensity * 1.5
-	light.shadow_enabled = false
-	light.position = Vector3(0, 5, 0)
-	node.add_child(light)
+		color = Color(ambient_color[0], ambient_color[1], ambient_color[2])
 
-	# Fog metadata (for world environment to read)
+	# Use OmniLight for dungeons (localized), DirectionalLight for overworld
+	if intensity < 0.3:
+		# Dungeon: dim omnidirectional ambient fill
+		var light = OmniLight3D.new()
+		light.name = "TileLight"
+		light.light_color = color
+		light.light_energy = intensity * 2.0
+		light.omni_range = HEX_SIZE * 1.2
+		light.shadow_enabled = false
+		light.position = Vector3(0, 3, 0)
+		node.add_child(light)
+	else:
+		# Overworld: directional fill light
+		var light = DirectionalLight3D.new()
+		light.name = "TileLight"
+		light.light_color = color
+		light.light_energy = intensity * 1.5
+		light.shadow_enabled = false
+		light.position = Vector3(0, 5, 0)
+		node.add_child(light)
+
+	# Store fog data as metadata for the world environment system
 	var fog_enabled: bool = lighting.get("fogEnabled", false)
 	if fog_enabled:
 		node.set_meta("fog_enabled", true)
 		node.set_meta("fog_color", lighting.get("fogColor", [0.1, 0.1, 0.1]))
 		node.set_meta("fog_density", lighting.get("fogDensity", 0.01))
+	node.set_meta("ambient_intensity", intensity)
 
 # ---- Player tile tracking ----
 
