@@ -34,6 +34,9 @@ type World struct {
 	deathEvents       []DeathEvent
 	abilityCastEvents []AbilityCastEvent
 
+	// Character AI
+	pendingAIActions []PendingAIAction
+
 	// Item generation
 	nextItemID int
 }
@@ -403,8 +406,92 @@ func (w *World) Update(delta time.Duration) {
 		}
 	}
 
+	// Process character AI for players with auto-combat enabled
+	w.processCharacterAI(delta.Seconds())
+
 	// Respawn enemies in active tiles that have been cleared
 	w.checkTileRespawns()
+}
+
+// processCharacterAI runs autonomous combat decisions for players with auto-combat enabled.
+// AI actions are stored in PendingAIActions for the network layer to process.
+func (w *World) processCharacterAI(delta float64) {
+	// Boost trust for nearby enemy kills
+	for _, deathEvent := range w.deathEvents {
+		if deathEvent.EntityType == "enemy" {
+			for _, player := range w.players {
+				if player.CharAI != nil && player.ID == deathEvent.KillerID {
+					player.CharAI.RecordPlayerDecision(1.0)
+				}
+			}
+		}
+	}
+
+	for _, player := range w.players {
+		if player.CharAI == nil {
+			continue
+		}
+
+		// Track trust based on health changes (applies whether auto-combat is on or not)
+		healthPct := player.Health / player.MaxHealth
+		if healthPct < 0.2 && !player.IsDead() {
+			// Player got into dangerous territory - character loses trust
+			player.CharAI.RecordPlayerDecision(-0.5 * delta)
+		}
+
+		if !player.AutoCombat {
+			continue
+		}
+		if player.IsDead() {
+			continue
+		}
+
+		// Gather nearby enemies visible to this player
+		layer := layerFromY(player.Position.Y)
+		activeTiles := make(map[HexCoord]bool)
+		for _, coord := range w.Board.GetActiveTilesForPlayer(player.Position, layer) {
+			activeTiles[coord] = true
+		}
+
+		nearbyEnemies := make(map[string]*Enemy)
+		for id, enemy := range w.enemies {
+			if enemy.IsDead() {
+				continue
+			}
+			eLayer := layerFromY(enemy.Position.Y)
+			eCoord := WorldToHex(enemy.Position, eLayer)
+			if activeTiles[eCoord] {
+				nearbyEnemies[id] = enemy
+			}
+		}
+
+		action := player.CharAI.Update(delta, player, nearbyEnemies)
+		if action == nil {
+			continue
+		}
+
+		// Store the action for the network layer to pick up and execute
+		w.pendingAIActions = append(w.pendingAIActions, PendingAIAction{
+			PlayerID: player.ID,
+			Action:   action,
+		})
+	}
+}
+
+// PendingAIAction holds an AI decision that needs to be executed by the network layer.
+type PendingAIAction struct {
+	PlayerID string
+	Action   *AIAction
+}
+
+// DrainPendingAIActions returns and clears all pending AI actions.
+func (w *World) DrainPendingAIActions() []PendingAIAction {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	actions := w.pendingAIActions
+	w.pendingAIActions = nil
+	return actions
 }
 
 // layerFromY determines the layer based on Y position.

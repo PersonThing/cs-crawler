@@ -175,6 +175,7 @@ func (s *Server) broadcastLoop() {
 
 	for range ticker.C {
 		s.broadcastWorldStates()
+		s.broadcastAIActions()
 	}
 }
 
@@ -209,6 +210,60 @@ func (s *Server) broadcastWorldStates() {
 				"type": "tile_data",
 				"tile": tile.Serialize(),
 			})
+		}
+	}
+}
+
+// broadcastAIActions sends character AI decisions to the appropriate clients
+func (s *Server) broadcastAIActions() {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Build client lookup by player ID
+	clientByPlayer := make(map[string]*Client)
+	worldIDs := make(map[string]bool)
+	for client := range s.clients {
+		if client.playerID != "" && client.worldID != "" {
+			clientByPlayer[client.playerID] = client
+			worldIDs[client.worldID] = true
+		}
+	}
+
+	// Drain AI actions from each world
+	for worldID := range worldIDs {
+		world, ok := s.gameServer.GetWorld(worldID)
+		if !ok {
+			continue
+		}
+
+		actions := world.DrainPendingAIActions()
+		for _, pa := range actions {
+			client, ok := clientByPlayer[pa.PlayerID]
+			if !ok {
+				continue
+			}
+
+			// Send character action to the player's client
+			msg := map[string]interface{}{
+				"type":     "character_action",
+				"action":   pa.Action.Type,
+				"mood":     string(pa.Action.Mood),
+				"dialogue": pa.Action.Dialogue,
+			}
+			if pa.Action.TargetID != "" {
+				msg["targetId"] = pa.Action.TargetID
+			}
+			if pa.Action.Type == "ability" {
+				msg["ability"] = string(pa.Action.Ability)
+				msg["direction"] = map[string]interface{}{
+					"x": pa.Action.Direction.X,
+					"y": pa.Action.Direction.Y,
+					"z": pa.Action.Direction.Z,
+				}
+				// Actually execute the ability on behalf of the character
+				client.executeAIAbility(pa.Action)
+			}
+			client.Send(msg)
 		}
 	}
 }

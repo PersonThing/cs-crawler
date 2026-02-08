@@ -33,6 +33,14 @@ var _target_fog_density: float = 0.0
 var _current_fog_density: float = 0.0
 var _target_ambient_energy: float = 1.0
 
+# Character AI state
+var _auto_combat: bool = false
+var _character_mood: String = "neutral"
+var _character_trust: float = 75.0
+var _dialogue_label: Label = null
+var _dialogue_timer: float = 0.0
+var _mood_label: Label = null
+
 # Camera settings (loaded from config)
 var camera_base_offset: Vector3 = Vector3(0, 20, 7.3)
 var vr_camera_offset: Vector3 = Vector3(0, 8, 12)  # Lower and further back for VR
@@ -119,6 +127,7 @@ func _ready() -> void:
 	_setup_ground_items_container()
 	_setup_inventory_panel()
 	_setup_hover_reticle()
+	_setup_character_ai_ui()
 	_setup_fps_label()
 	_setup_player_labels()
 	_setup_ai_debug_overlay()
@@ -584,6 +593,10 @@ func _on_message_received(message: Dictionary) -> void:
 			_handle_dungeon_entered(message)
 		"dungeon_exited":
 			_handle_dungeon_exited(message)
+		"character_action":
+			_handle_character_action(message)
+		"auto_combat_toggled":
+			_handle_auto_combat_toggled(message)
 
 func _handle_board_data(message: Dictionary) -> void:
 	## Handle board summary from server (minimap data for all tiles)
@@ -620,6 +633,77 @@ func _handle_tile_data(message: Dictionary) -> void:
 
 	if level_manager:
 		level_manager.load_tile(tile)
+
+func _setup_character_ai_ui() -> void:
+	# Mood indicator (top-right)
+	_mood_label = Label.new()
+	_mood_label.name = "MoodLabel"
+	_mood_label.text = ""
+	_mood_label.add_theme_font_size_override("font_size", 16)
+	_mood_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_mood_label.position = Vector2(-200, 40)
+	_mood_label.size = Vector2(190, 30)
+	_mood_label.anchors_preset = Control.PRESET_TOP_RIGHT
+	add_child(_mood_label)
+
+	# Dialogue bubble (floats above player)
+	_dialogue_label = Label.new()
+	_dialogue_label.name = "DialogueLabel"
+	_dialogue_label.text = ""
+	_dialogue_label.add_theme_font_size_override("font_size", 14)
+	_dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dialogue_label.visible = false
+	_dialogue_label.anchors_preset = Control.PRESET_CENTER_TOP
+	_dialogue_label.position = Vector2(-100, 80)
+	_dialogue_label.size = Vector2(200, 30)
+	add_child(_dialogue_label)
+
+func _handle_character_action(message: Dictionary) -> void:
+	var action_type: String = message.get("action", "")
+	var mood: String = message.get("mood", "neutral")
+	var dialogue: String = message.get("dialogue", "")
+
+	_character_mood = mood
+	_update_mood_display()
+
+	if dialogue != "":
+		_show_dialogue(dialogue)
+
+func _handle_auto_combat_toggled(message: Dictionary) -> void:
+	_auto_combat = message.get("autoCombat", false)
+	_update_mood_display()
+	print("[AI] Auto-combat: ", _auto_combat)
+
+func _show_dialogue(text: String) -> void:
+	if _dialogue_label:
+		_dialogue_label.text = text
+		_dialogue_label.visible = true
+		_dialogue_timer = 2.0  # Show for 2 seconds
+
+func _update_mood_display() -> void:
+	if not _mood_label:
+		return
+	if not _auto_combat:
+		_mood_label.text = ""
+		return
+	var mood_icon: String = ""
+	match _character_mood:
+		"confident":
+			mood_icon = "Confident"
+			_mood_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3))
+		"anxious":
+			mood_icon = "Anxious"
+			_mood_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.3))
+		"frustrated":
+			mood_icon = "Frustrated"
+			_mood_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.2))
+		"refusing":
+			mood_icon = "Refusing"
+			_mood_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+		_:
+			mood_icon = "Neutral"
+			_mood_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	_mood_label.text = "[AI] %s" % mood_icon
 
 func _on_player_tile_changed(new_tile: Vector3i) -> void:
 	## Handle atmosphere changes when player moves between tiles
@@ -732,6 +816,14 @@ func _handle_world_state(state: Dictionary) -> void:
 			var lr = stats_data.get("lightRadius", 10.0)
 			if lr > 0:
 				_player_light_radius = lr
+
+			# Read character AI state
+			var ai_data = player_data.get("characterAI", {})
+			if ai_data.size() > 0:
+				_character_trust = ai_data.get("trust", 75.0)
+				_character_mood = ai_data.get("mood", "neutral")
+				_auto_combat = player_data.get("autoCombat", false)
+				_update_mood_display()
 
 			# Update inventory panel if player data includes inventory
 			var inv_data = player_data.get("inventory", {})
@@ -1493,6 +1585,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
+	# Tab key: toggle auto-combat
+	if event is InputEventKey and event.pressed and event.keycode == KEY_TAB:
+		NetworkManager.send_message({"type": "toggle_auto_combat"})
+		get_viewport().set_input_as_handled()
+		return
+
 	# E key: interact with dungeon entrance/exit
 	if event is InputEventKey and event.pressed and event.keycode == KEY_E:
 		if is_instance_valid(local_player) and level_manager:
@@ -1680,6 +1778,12 @@ func _process(delta: float) -> void:
 
 	# Smoothly transition fog
 	_update_fog(delta)
+
+	# Dialogue timer
+	if _dialogue_timer > 0:
+		_dialogue_timer -= delta
+		if _dialogue_timer <= 0 and _dialogue_label:
+			_dialogue_label.visible = false
 
 func _update_player_light(delta: float) -> void:
 	if not _player_light or not is_instance_valid(local_player):

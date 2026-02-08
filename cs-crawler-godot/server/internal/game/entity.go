@@ -54,6 +54,10 @@ type Player struct {
 	// Abilities
 	Abilities *AbilityManager
 
+	// Character AI (autonomous combat)
+	CharAI     *CharacterAI
+	AutoCombat bool // When true, character AI handles combat
+
 	// Tile tracking
 	CurrentTile HexCoord
 
@@ -79,6 +83,8 @@ func NewPlayer(id, username string) *Player {
 		BaseArmor:     0.0,
 		Inventory:     NewInventory(),
 		Abilities:     NewAbilityManager(),
+		CharAI:        NewCharacterAI(),
+		AutoCombat:    false,
 		LastUpdate:    time.Now(),
 	}
 
@@ -96,6 +102,11 @@ func (p *Player) Update(delta float64) {
 	p.Position.Z += p.Velocity.Z * p.MoveSpeed * delta
 
 	p.LastUpdate = time.Now()
+}
+
+// IsDead returns true if the player has no health
+func (p *Player) IsDead() bool {
+	return p.Health <= 0
 }
 
 // SetVelocity updates player velocity (normalized by client)
@@ -229,6 +240,11 @@ func (p *Player) Serialize() map[string]interface{} {
 
 	if p.Inventory != nil {
 		result["inventory"] = p.Inventory.Serialize()
+	}
+
+	if p.CharAI != nil {
+		result["characterAI"] = p.CharAI.Serialize()
+		result["autoCombat"] = p.AutoCombat
 	}
 
 	return result

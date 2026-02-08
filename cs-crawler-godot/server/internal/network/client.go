@@ -136,6 +136,10 @@ func (c *Client) handleMessage(data []byte) {
 		c.handleEnterDungeon(msg)
 	case "exit_dungeon":
 		c.handleExitDungeon(msg)
+	case "toggle_auto_combat":
+		c.handleToggleAutoCombat(msg)
+	case "set_priority_target":
+		c.handleSetPriorityTarget(msg)
 	// Lobby messages
 	case "list_games":
 		c.handleListGames(msg)
@@ -976,6 +980,76 @@ func (c *Client) handleDropItem(msg map[string]interface{}) {
 	if config.Server.Debug.LogItemDrops {
 		log.Printf("[DROP] Player %s dropped item from %s", c.playerID, source)
 	}
+}
+
+// executeAIAbility executes an ability on behalf of the character AI.
+// It reuses the same logic as handleUseAbility but with AI-provided direction.
+func (c *Client) executeAIAbility(action *game.AIAction) {
+	if c.playerID == "" || c.worldID == "" {
+		return
+	}
+
+	// Build a synthetic ability message and process it
+	msg := map[string]interface{}{
+		"type":        "use_ability",
+		"abilityType": string(action.Ability),
+		"direction": map[string]interface{}{
+			"x": action.Direction.X,
+			"y": action.Direction.Y,
+			"z": action.Direction.Z,
+		},
+	}
+	c.handleUseAbility(msg)
+}
+
+// handleToggleAutoCombat toggles character AI combat mode
+func (c *Client) handleToggleAutoCombat(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	player := world.GetPlayer(c.playerID)
+	if player == nil {
+		return
+	}
+
+	player.AutoCombat = !player.AutoCombat
+	c.Send(map[string]interface{}{
+		"type":       "auto_combat_toggled",
+		"autoCombat": player.AutoCombat,
+	})
+
+	log.Printf("[AI] Player %s auto-combat: %v", c.playerID, player.AutoCombat)
+}
+
+// handleSetPriorityTarget sets the character AI's priority target
+func (c *Client) handleSetPriorityTarget(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		return
+	}
+
+	targetID, _ := msg["targetId"].(string)
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	player := world.GetPlayer(c.playerID)
+	if player == nil || player.CharAI == nil {
+		return
+	}
+
+	player.CharAI.PriorityTargetID = targetID
+	c.Send(map[string]interface{}{
+		"type":     "priority_target_set",
+		"targetId": targetID,
+	})
 }
 
 // handleEnterDungeon moves the player into the dungeon beneath their current tile
