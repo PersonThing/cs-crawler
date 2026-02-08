@@ -35,6 +35,7 @@ type World struct {
 	abilityCastEvents []AbilityCastEvent
 
 	// Character AI
+	LLM              *LLMManager
 	pendingAIActions []PendingAIAction
 
 	// Item generation
@@ -57,6 +58,10 @@ func NewWorld(id string) *World {
 		abilityCastEvents: make([]AbilityCastEvent, 0),
 		nextItemID:        1,
 	}
+
+	// Initialize LLM manager (starts with fallback; can be replaced with real provider)
+	w.LLM = NewLLMManager(LLMManagerConfig{})
+	w.LLM.Start()
 
 	// Generate hex board (3 rings = 37 tiles)
 	seed := time.Now().UnixNano()
@@ -465,7 +470,7 @@ func (w *World) processCharacterAI(delta float64) {
 			}
 		}
 
-		action := player.CharAI.Update(delta, player, nearbyEnemies)
+		action := player.CharAI.UpdateWithLLM(delta, player, nearbyEnemies, w.LLM)
 		if action == nil {
 			continue
 		}

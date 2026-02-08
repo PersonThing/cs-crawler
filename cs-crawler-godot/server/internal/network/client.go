@@ -140,6 +140,8 @@ func (c *Client) handleMessage(data []byte) {
 		c.handleToggleAutoCombat(msg)
 	case "set_priority_target":
 		c.handleSetPriorityTarget(msg)
+	case "get_ai_stats":
+		c.handleGetAIStats(msg)
 	// Lobby messages
 	case "list_games":
 		c.handleListGames(msg)
@@ -1050,6 +1052,32 @@ func (c *Client) handleSetPriorityTarget(msg map[string]interface{}) {
 		"type":     "priority_target_set",
 		"targetId": targetID,
 	})
+}
+
+// handleGetAIStats returns LLM inference statistics
+func (c *Client) handleGetAIStats(msg map[string]interface{}) {
+	if c.playerID == "" || c.worldID == "" {
+		return
+	}
+
+	world, ok := c.server.gameServer.GetWorld(c.worldID)
+	if !ok {
+		return
+	}
+
+	stats := map[string]interface{}{
+		"type": "ai_stats",
+	}
+	if world.LLM != nil {
+		stats["llm"] = world.LLM.Stats()
+	}
+
+	player := world.GetPlayer(c.playerID)
+	if player != nil && player.CharAI != nil {
+		stats["character"] = player.CharAI.Serialize()
+	}
+
+	c.Send(stats)
 }
 
 // handleEnterDungeon moves the player into the dungeon beneath their current tile

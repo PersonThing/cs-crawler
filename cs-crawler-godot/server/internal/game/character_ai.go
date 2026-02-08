@@ -303,6 +303,109 @@ func (ai *CharacterAI) pickDialogue(ability AbilityType, mood CharacterMood) str
 	}
 }
 
+// UpdateWithLLM attempts to use the LLM for decision-making.
+// If the LLM returns nil (unavailable or error), falls back to the behavior tree.
+func (ai *CharacterAI) UpdateWithLLM(delta float64, player *Player, enemies map[string]*Enemy, llm *LLMManager) *AIAction {
+	ai.lastDecisionAge += delta
+	if ai.lastDecisionAge < ai.decisionRate {
+		return nil
+	}
+
+	if len(enemies) == 0 {
+		ai.lastDecisionAge = 0
+		ai.tendMood(MoodNeutral, 0.1)
+		return nil
+	}
+
+	// Try LLM if available
+	if llm != nil {
+		snapshot := BuildStateSnapshot(player, enemies)
+		resultCh := llm.RequestDecision(player.ID, snapshot)
+
+		// Non-blocking check with tiny timeout (don't block the game loop)
+		select {
+		case action := <-resultCh:
+			ai.lastDecisionAge = 0
+			if action != nil {
+				// LLM produced a result - apply mood
+				ai.Mood = action.Mood
+				return action
+			}
+			// LLM returned nil = fallback to behavior tree
+		default:
+			// LLM is busy, use behavior tree this tick
+		}
+	}
+
+	// Behavior tree fallback (reuse existing Update logic)
+	ai.lastDecisionAge = 0
+	return ai.behaviorTreeDecision(player, enemies)
+}
+
+// behaviorTreeDecision is the original hand-coded decision logic,
+// extracted so it can be used as a fallback for the LLM path.
+func (ai *CharacterAI) behaviorTreeDecision(player *Player, enemies map[string]*Enemy) *AIAction {
+	target := ai.selectTarget(player, enemies)
+	if target == nil {
+		return nil
+	}
+
+	threatLevel := ai.evaluateThreat(player, enemies)
+
+	if ai.Trust < 20 && threatLevel > 0.8 {
+		ai.Mood = MoodRefusing
+		return &AIAction{
+			Type:     "idle",
+			Mood:     MoodRefusing,
+			Dialogue: "I'm not doing that.",
+		}
+	}
+
+	if threatLevel > 0.6 {
+		ai.tendMood(MoodAnxious, 0.2)
+	}
+
+	ability := ai.chooseAbility(player, target)
+	if ability == nil {
+		return nil
+	}
+
+	dir := Vector3{
+		X: target.Position.X - player.Position.X,
+		Z: target.Position.Z - player.Position.Z,
+	}
+	dist := math.Sqrt(dir.X*dir.X + dir.Z*dir.Z)
+	if dist > 0.001 {
+		dir.X /= dist
+		dir.Z /= dist
+	}
+
+	if player.Health/player.MaxHealth < 0.3 && dist < 3.0 && rand.Float64() < 0.4 {
+		ai.tendMood(MoodAnxious, 0.3)
+		return &AIAction{
+			Type:      "dodge",
+			Direction: Vector3{X: -dir.X, Z: -dir.Z},
+			Mood:      ai.Mood,
+			Dialogue:  "Too close!",
+		}
+	}
+
+	if player.Health/player.MaxHealth > 0.7 && threatLevel < 0.3 {
+		ai.tendMood(MoodConfident, 0.1)
+	}
+
+	dialogue := ai.pickDialogue(ability.Type, ai.Mood)
+
+	return &AIAction{
+		Type:      "ability",
+		Ability:   ability.Type,
+		TargetID:  target.ID,
+		Direction: dir,
+		Mood:      ai.Mood,
+		Dialogue:  dialogue,
+	}
+}
+
 // Serialize returns the character AI state for network transmission
 func (ai *CharacterAI) Serialize() map[string]interface{} {
 	return map[string]interface{}{
