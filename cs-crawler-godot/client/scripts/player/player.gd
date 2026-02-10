@@ -1,9 +1,16 @@
 extends CharacterBody3D
 ## Player controller with client prediction
 
+const RiggedPlayerModel = preload("res://scripts/player/rigged_player_model.gd")
+const LOCAL_PLAYER_COLOR = Color(0.0, 0.67, 1.0)
+const REMOTE_PLAYER_COLOR = Color(0.0, 0.85, 0.3)
+
 var player_id: String = ""
 var is_local: bool = false
 var move_speed: float = 5.0
+
+# Rigged model
+var rigged_model: Node3D = null
 
 # 3D Health bar
 var health_bar_3d: Node3D = null
@@ -49,6 +56,7 @@ var ability_cooldown_times: Dictionary = {}  # Loaded from config
 
 func _ready() -> void:
 	print("[PLAYER] _ready called - is_local: ", is_local, " player_id: ", player_id)
+	_setup_rigged_model()
 	_setup_3d_health_bar()
 	if is_local:
 		_setup_navigation()
@@ -76,6 +84,26 @@ func _load_ability_configs() -> void:
 		if ability_config and ability_config.has("cooldown"):
 			ability_cooldown_times[ability_type] = ability_config["cooldown"]
 			print("[PLAYER] Loaded %s cooldown: %s" % [ability_type, ability_config["cooldown"]])
+
+func _setup_rigged_model() -> void:
+	# Remove the wozard model if present
+	var wozard = get_node_or_null("wozard")
+	if wozard:
+		wozard.queue_free()
+
+	# Remove the placeholder MeshInstance3D
+	var placeholder = get_node_or_null("MeshInstance3D")
+	if placeholder:
+		placeholder.queue_free()
+
+	# Create the rigged cube humanoid
+	rigged_model = RiggedPlayerModel.new()
+	rigged_model.name = "RiggedModel"
+	var color = LOCAL_PLAYER_COLOR if is_local else REMOTE_PLAYER_COLOR
+	rigged_model.setup(color)
+	# Rotate to match wozard orientation (model faces -Z, wozard faced +X)
+	rigged_model.rotation.y = -PI / 2.0
+	add_child(rigged_model)
 
 func _setup_3d_health_bar() -> void:
 	# Create 3D health bar attached to player
@@ -336,6 +364,11 @@ func _physics_process(delta: float) -> void:
 		_handle_abilities(delta)
 	else:
 		_handle_remote_movement(delta)
+
+	# Update rigged model walk animation
+	if rigged_model:
+		var is_moving = Vector2(velocity.x, velocity.z).length() > 0.1
+		rigged_model.update_animation(is_moving, delta)
 
 var _last_input_log: int = 0
 

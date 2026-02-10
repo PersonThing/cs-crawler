@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://c28hyikih487p"]
 
 [ext_resource type="Script" uid="uid://ce0ndo1grjyi7" path="res://scripts/player/player.gd" id="1"]
-[ext_resource type="PackedScene" uid="uid://byxplyvunsjak" path="res://scenes/player/wozard.glb" id="2_dovo2"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.6
@@ -10,12 +9,6 @@ height = 2.7
 [node name="Player" type="CharacterBody3D" unique_id=1590101139]
 script = ExtResource("1")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=974558269]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
-
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1391204932]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
 shape = SubResource("CapsuleShape3D_1")
-
-[node name="wozard" parent="." unique_id=1310652705 instance=ExtResource("2_dovo2")]
-transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0.75, 0)
