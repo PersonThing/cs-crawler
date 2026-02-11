@@ -11,15 +11,21 @@ const SERVER_URL = "ws://localhost:7000/ws"
 
 var _client = null  # Untyped to allow test mocking
 var _connected: bool = false
+var _auto_fallback_to_local: bool = false
+var _connection_attempts: int = 0
+const MAX_CONNECTION_ATTEMPTS = 3
 
 func _ready() -> void:
 	print("NetworkManager initialized")
 	set_process(false)
 
-func connect_to_server(url: String = SERVER_URL) -> void:
+func connect_to_server(url: String = SERVER_URL, auto_fallback: bool = false) -> void:
 	if _connected:
 		print("Already connected to server")
 		return
+
+	_auto_fallback_to_local = auto_fallback
+	_connection_attempts += 1
 
 	_client = WebSocketPeer.new()
 	_client.inbound_buffer_size = 1024 * 1024  # 1 MB
@@ -28,6 +34,7 @@ func connect_to_server(url: String = SERVER_URL) -> void:
 
 	if err != OK:
 		connection_error.emit("Failed to initiate connection: " + str(err))
+		_handle_connection_failure()
 		return
 
 	print("Connecting to server: ", url)
@@ -89,4 +96,16 @@ func _process(_delta: float) -> void:
 			var close_code = _client.get_close_code()
 			var close_reason = _client.get_close_reason()
 			print("WebSocket closed with code: ", close_code, ", reason: ", close_reason)
+			_handle_connection_failure()
 			disconnect_from_server()
+
+func _handle_connection_failure() -> void:
+	# If auto-fallback is enabled and we haven't exceeded max attempts
+	if _auto_fallback_to_local and _connection_attempts < MAX_CONNECTION_ATTEMPTS:
+		print("[NetworkManager] Connection failed, attempting local server fallback...")
+		# Don't emit error yet, wait for local server
+	else:
+		_connection_attempts = 0  # Reset for next connection attempt
+
+func reset_connection_attempts() -> void:
+	_connection_attempts = 0

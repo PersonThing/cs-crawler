@@ -26,18 +26,22 @@ type Server struct {
 
 	// Database
 	db *database.DB
+
+	// LLM Provider for AI combat
+	llmProvider LLMProvider
 }
 
 // NewServer creates a new game server
-func NewServer(tickRate int, db *database.DB) *Server {
+func NewServer(tickRate int, db *database.DB, llmProvider LLMProvider) *Server {
 	return &Server{
-		tickRate:   tickRate,
-		tickPeriod: time.Second / time.Duration(tickRate),
-		stopChan:   make(chan struct{}),
-		worlds:     make(map[string]*World),
-		Lobby:      NewLobbyService(),
-		Chat:       NewChatService(),
-		db:         db,
+		tickRate:    tickRate,
+		tickPeriod:  time.Second / time.Duration(tickRate),
+		stopChan:    make(chan struct{}),
+		worlds:      make(map[string]*World),
+		Lobby:       NewLobbyService(),
+		Chat:        NewChatService(),
+		db:          db,
+		llmProvider: llmProvider,
 	}
 }
 
@@ -158,7 +162,7 @@ func (s *Server) CreateWorld(worldID string) *World {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	world := NewWorld(worldID)
+	world := NewWorld(worldID, s.llmProvider)
 	s.worlds[worldID] = world
 
 	log.Printf("Created world: %s", worldID)

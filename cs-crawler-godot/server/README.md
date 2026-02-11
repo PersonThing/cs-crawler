@@ -21,12 +21,31 @@ server/
 └── tests/              # Integration tests
 ```
 
+## Quick Start - Single Player Mode
+
+**New!** No database setup required for single-player:
+
+```bash
+# Build the server (Windows)
+build.bat
+
+# Build the server (Linux/Mac)
+./build.sh
+
+# Run with SQLite (no PostgreSQL needed!)
+./gameserver -db-type sqlite
+```
+
+The game client can automatically start this server for offline play!
+
+See [SINGLE_PLAYER_QUICKSTART.md](../SINGLE_PLAYER_QUICKSTART.md) for details.
+
 ## Development
 
 ### Prerequisites
-- Go 1.22+
-- Docker & Docker Compose
-- PostgreSQL (via Docker)
+- Go 1.23+
+- **For single-player**: Nothing else needed! (uses SQLite)
+- **For multiplayer**: Docker & Docker Compose, PostgreSQL
 
 ### Setup
 ```bash
@@ -88,22 +107,43 @@ go test ./tests/load -v -timeout 30m
 
 Server is configured via command-line flags or environment variables:
 
+### Single-Player (SQLite)
 ```bash
 ./gameserver \
   --addr=:7000 \
+  --db-type=sqlite \
+  --db-file=./data/players.db \
+  --tick-rate=60
+```
+
+### Multiplayer (PostgreSQL)
+```bash
+./gameserver \
+  --addr=:7000 \
+  --db-type=postgres \
   --db-host=localhost \
   --db-port=7001 \
   --tick-rate=60
 ```
 
-Environment variables (Docker):
-- `SERVER_ADDR` - WebSocket address (default: `:7000`)
-- `DB_HOST` - PostgreSQL host
-- `DB_PORT` - PostgreSQL port
-- `DB_USER` - Database user
-- `DB_PASSWORD` - Database password
-- `DB_NAME` - Database name
-- `TICK_RATE` - Game loop ticks per second
+### All Configuration Options
+
+**Server:**
+- `SERVER_ADDR` / `--addr` - WebSocket address (default: `:7000`)
+- `TICK_RATE` / `--tick-rate` - Game loop ticks per second (default: `60`)
+
+**Database:**
+- `DB_TYPE` / `--db-type` - Database type: `sqlite` or `postgres` (default: `sqlite`)
+
+**SQLite (single-player):**
+- `DB_FILE` / `--db-file` - SQLite database file path (default: `./data/players.db`)
+
+**PostgreSQL (multiplayer):**
+- `DB_HOST` / `--db-host` - PostgreSQL host (default: `localhost`)
+- `DB_PORT` / `--db-port` - PostgreSQL port (default: `7001`)
+- `DB_USER` / `--db-user` - Database user (default: `crawler`)
+- `DB_PASSWORD` / `--db-password` - Database password (default: `crawler`)
+- `DB_NAME` / `--db-name` - Database name (default: `crawler`)
 
 ## Architecture
 
@@ -123,7 +163,8 @@ Environment variables (Docker):
 - Client-server architecture (server is authoritative)
 
 ### Database
-- PostgreSQL for persistent data (accounts, characters)
+- **SQLite** for single-player (lightweight, no setup required)
+- **PostgreSQL** for multiplayer (scalable, concurrent access)
 - In-memory for game state (positions, health, etc.)
 - Optional Redis for session caching
 
@@ -170,11 +211,14 @@ go tool pprof mem.prof
 
 ### Production Build
 ```bash
-# Build optimized binary
-CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gameserver ./cmd/gameserver
+# Build optimized binary (pure Go, no CGO needed)
+GOOS=linux go build -o gameserver ./cmd/gameserver
 
-# Run
-./gameserver --addr=:7000
+# Run with SQLite (single-player)
+./gameserver --addr=:7000 --db-type=sqlite
+
+# Run with PostgreSQL (multiplayer)
+./gameserver --addr=:7000 --db-type=postgres --db-host=your-db-host
 ```
 
 ### Docker Production

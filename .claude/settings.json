@@ -5,7 +5,15 @@
       "Bash(go mod tidy:*)",
       "Bash(go build:*)",
       "Bash(go run:*)",
-      "Bash(go get:*)"
+      "Bash(go get:*)",
+      "Bash(set CGO_ENABLED=1:*)",
+      "Bash(if [ -d config ])",
+      "Bash(then echo \"Config dir exists\")",
+      "Bash(elif [ -L config ])",
+      "Bash(then echo \"Config symlink exists\")",
+      "Bash(else echo \"Creating symlink\")",
+      "Bash(fi)",
+      "Bash(cmd /c \"mklink /D config ..\\\\config\")"
     ],
     "additionalDirectories": [
       "c:\\dev\\cs-crawler\\cs-crawler-godot\\client\\assets"

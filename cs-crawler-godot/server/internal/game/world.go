@@ -43,7 +43,7 @@ type World struct {
 }
 
 // NewWorld creates a new game world with a hex board
-func NewWorld(id string) *World {
+func NewWorld(id string, llmProvider LLMProvider) *World {
 	w := &World{
 		ID:                id,
 		created:           time.Now(),
@@ -59,8 +59,10 @@ func NewWorld(id string) *World {
 		nextItemID:        1,
 	}
 
-	// Initialize LLM manager (starts with fallback; can be replaced with real provider)
-	w.LLM = NewLLMManager(LLMManagerConfig{})
+	// Initialize LLM manager with the provided provider
+	w.LLM = NewLLMManager(LLMManagerConfig{
+		Provider: llmProvider,
+	})
 	w.LLM.Start()
 
 	// Generate hex board (3 rings = 37 tiles)
@@ -414,8 +416,8 @@ func (w *World) Update(delta time.Duration) {
 	// Process character AI for players with auto-combat enabled
 	w.processCharacterAI(delta.Seconds())
 
-	// NOTE: Enemy respawning disabled - enemies no longer respawn after being killed
-	// w.checkTileRespawns()
+	// Check and spawn enemies in active tiles
+	w.checkTileRespawns()
 }
 
 // processCharacterAI runs autonomous combat decisions for players with auto-combat enabled.

@@ -32,10 +32,15 @@ type Client struct {
 // NewClient creates a new client
 func NewClient(conn *websocket.Conn, server *Server) *Client {
 	return &Client{
-		conn:      conn,
-		server:    server,
-		send:      make(chan []byte, 1024), // Increased buffer for 60 TPS world states
-		modifiers: make(map[string]bool),
+		conn:   conn,
+		server: server,
+		send:   make(chan []byte, 1024), // Increased buffer for 60 TPS world states
+		modifiers: map[string]bool{
+			"homing":   true,
+			"piercing": true,
+			"pet":      true,
+			"turret":   true,
+		},
 	}
 }
 

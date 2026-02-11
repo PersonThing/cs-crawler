@@ -29,6 +29,10 @@ go.work.sum
 *.db
 *.sqlite
 *.sqlite3
+data/
+
+# Config (copied from parent during build)
+config/
 
 # Logs
 *.log

@@ -79,7 +79,7 @@ func _build_skeleton() -> void:
 	left_hip.position = Vector3(-0.12, 0, 0)
 	hips.add_child(left_hip)
 
-	var left_upper_leg = _create_limb("LeftUpperLeg", UPPER_LEG_SIZE, pants_color)
+	var left_upper_leg = _create_limb("LeftUpperLeg", UPPER_LEG_SIZE, pants_color, Vector3(3, 0, 5))
 	left_upper_leg.position = Vector3(0, -UPPER_LEG_SIZE.y / 2.0, 0)
 	left_hip.add_child(left_upper_leg)
 
@@ -88,7 +88,7 @@ func _build_skeleton() -> void:
 	left_knee.position = Vector3(0, -UPPER_LEG_SIZE.y, 0)
 	left_hip.add_child(left_knee)
 
-	var left_lower_leg = _create_limb("LeftLowerLeg", LOWER_LEG_SIZE, SHOE_COLOR)
+	var left_lower_leg = _create_limb("LeftLowerLeg", LOWER_LEG_SIZE, SHOE_COLOR, Vector3(-2, 0, -3))
 	left_lower_leg.position = Vector3(0, -LOWER_LEG_SIZE.y / 2.0, 0)
 	left_knee.add_child(left_lower_leg)
 
@@ -98,7 +98,7 @@ func _build_skeleton() -> void:
 	right_hip.position = Vector3(0.12, 0, 0)
 	hips.add_child(right_hip)
 
-	var right_upper_leg = _create_limb("RightUpperLeg", UPPER_LEG_SIZE, pants_color)
+	var right_upper_leg = _create_limb("RightUpperLeg", UPPER_LEG_SIZE, pants_color, Vector3(3, 0, -5))
 	right_upper_leg.position = Vector3(0, -UPPER_LEG_SIZE.y / 2.0, 0)
 	right_hip.add_child(right_upper_leg)
 
@@ -107,7 +107,7 @@ func _build_skeleton() -> void:
 	right_knee.position = Vector3(0, -UPPER_LEG_SIZE.y, 0)
 	right_hip.add_child(right_knee)
 
-	var right_lower_leg = _create_limb("RightLowerLeg", LOWER_LEG_SIZE, SHOE_COLOR)
+	var right_lower_leg = _create_limb("RightLowerLeg", LOWER_LEG_SIZE, SHOE_COLOR, Vector3(-2, 0, 3))
 	right_lower_leg.position = Vector3(0, -LOWER_LEG_SIZE.y / 2.0, 0)
 	right_knee.add_child(right_lower_leg)
 
@@ -118,24 +118,24 @@ func _build_skeleton() -> void:
 	hips.add_child(spine)
 	_base_spine_y = spine.position.y
 
-	# Torso
-	torso_node = _create_limb("Torso", TORSO_SIZE, torso_color)
+	# Torso (slight lean back for natural posture)
+	torso_node = _create_limb("Torso", TORSO_SIZE, torso_color, Vector3(-2, 0, 0))
 	torso_node.position = Vector3(0, TORSO_SIZE.y / 2.0, 0)
 	spine.add_child(torso_node)
 
-	# Head
-	head_node = _create_limb("Head", HEAD_SIZE, SKIN_COLOR)
+	# Head (slight tilt for character)
+	head_node = _create_limb("Head", HEAD_SIZE, SKIN_COLOR, Vector3(2, 0, 0))
 	head_node.position = Vector3(0, TORSO_SIZE.y + HEAD_SIZE.y / 2.0 + 0.03, 0)
 	spine.add_child(head_node)
 	_base_head_y = head_node.position.y
 
-	# Eyes (two small dark cubes on the front of the head)
+	# Eyes (two small dark cubes on the front of the head, angled slightly)
 	var eye_size = Vector3(0.06, 0.06, 0.04)
 	var eye_z = HEAD_SIZE.z / 2.0 + 0.01
-	var left_eye = _create_limb("LeftEye", eye_size, EYE_COLOR)
+	var left_eye = _create_limb("LeftEye", eye_size, EYE_COLOR, Vector3(0, -8, 0))
 	left_eye.position = Vector3(-0.08, 0.03, -eye_z)
 	head_node.add_child(left_eye)
-	var right_eye = _create_limb("RightEye", eye_size, EYE_COLOR)
+	var right_eye = _create_limb("RightEye", eye_size, EYE_COLOR, Vector3(0, 8, 0))
 	right_eye.position = Vector3(0.08, 0.03, -eye_z)
 	head_node.add_child(right_eye)
 
@@ -145,7 +145,7 @@ func _build_skeleton() -> void:
 	left_shoulder.position = Vector3(-TORSO_SIZE.x / 2.0 - UPPER_ARM_SIZE.x / 2.0, TORSO_SIZE.y - 0.05, 0)
 	spine.add_child(left_shoulder)
 
-	var left_upper_arm = _create_limb("LeftUpperArm", UPPER_ARM_SIZE, torso_highlight)
+	var left_upper_arm = _create_limb("LeftUpperArm", UPPER_ARM_SIZE, torso_highlight, Vector3(-8, 0, -15))
 	left_upper_arm.position = Vector3(0, -UPPER_ARM_SIZE.y / 2.0, 0)
 	left_shoulder.add_child(left_upper_arm)
 
@@ -154,7 +154,7 @@ func _build_skeleton() -> void:
 	left_elbow.position = Vector3(0, -UPPER_ARM_SIZE.y, 0)
 	left_shoulder.add_child(left_elbow)
 
-	var left_lower_arm = _create_limb("LeftLowerArm", LOWER_ARM_SIZE, SKIN_COLOR)
+	var left_lower_arm = _create_limb("LeftLowerArm", LOWER_ARM_SIZE, SKIN_COLOR, Vector3(5, 0, 12))
 	left_lower_arm.position = Vector3(0, -LOWER_ARM_SIZE.y / 2.0, 0)
 	left_elbow.add_child(left_lower_arm)
 
@@ -164,7 +164,7 @@ func _build_skeleton() -> void:
 	right_shoulder.position = Vector3(TORSO_SIZE.x / 2.0 + UPPER_ARM_SIZE.x / 2.0, TORSO_SIZE.y - 0.05, 0)
 	spine.add_child(right_shoulder)
 
-	var right_upper_arm = _create_limb("RightUpperArm", UPPER_ARM_SIZE, torso_highlight)
+	var right_upper_arm = _create_limb("RightUpperArm", UPPER_ARM_SIZE, torso_highlight, Vector3(-8, 0, 15))
 	right_upper_arm.position = Vector3(0, -UPPER_ARM_SIZE.y / 2.0, 0)
 	right_shoulder.add_child(right_upper_arm)
 
@@ -173,18 +173,21 @@ func _build_skeleton() -> void:
 	right_elbow.position = Vector3(0, -UPPER_ARM_SIZE.y, 0)
 	right_shoulder.add_child(right_elbow)
 
-	var right_lower_arm = _create_limb("RightLowerArm", LOWER_ARM_SIZE, SKIN_COLOR)
+	var right_lower_arm = _create_limb("RightLowerArm", LOWER_ARM_SIZE, SKIN_COLOR, Vector3(5, 0, -12))
 	right_lower_arm.position = Vector3(0, -LOWER_ARM_SIZE.y / 2.0, 0)
 	right_elbow.add_child(right_lower_arm)
 
 
-func _create_limb(limb_name: String, size: Vector3, color: Color) -> MeshInstance3D:
+func _create_limb(limb_name: String, size: Vector3, color: Color, rotation_degrees: Vector3 = Vector3.ZERO) -> MeshInstance3D:
 	var mesh_instance = MeshInstance3D.new()
 	mesh_instance.name = limb_name
 
 	var box = BoxMesh.new()
 	box.size = size
 	mesh_instance.mesh = box
+
+	# Apply rotation to make it less blocky
+	mesh_instance.rotation_degrees = rotation_degrees
 
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = color

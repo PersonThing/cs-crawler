@@ -121,8 +121,7 @@ func _ready() -> void:
 	_setup_player_light()
 	_setup_navigation_mesh()
 	_setup_enemy_ui_manager()
-	_setup_ability_bar()
-	_setup_modifier_panel()
+	# Removed 2D ability bar and modifier panel - now using 3D displays on player
 	_setup_minions_container()
 	_setup_ground_items_container()
 	_setup_inventory_panel()
@@ -558,31 +557,32 @@ func _setup_enemy_ui_manager() -> void:
 		_get_hud_parent().add_child(enemy_ui_manager)
 		enemy_ui_manager.set_camera(camera)
 
-func _setup_ability_bar() -> void:
-	# Create ability bar UI if it doesn't exist
-	if not has_node("AbilityBarUI"):
-		var ability_bar = Control.new()
-		ability_bar.name = "AbilityBarUI"
-		ability_bar.set_script(ability_bar_script)
-
-		# Make it fill the screen
-		ability_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
-		ability_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Don't block mouse input
-
-		_get_hud_parent().add_child(ability_bar)
-
-func _setup_modifier_panel() -> void:
-	# Create modifier panel UI if it doesn't exist
-	if not has_node("ModifierPanel"):
-		var modifier_panel = Control.new()
-		modifier_panel.name = "ModifierPanel"
-		modifier_panel.set_script(modifier_panel_script)
-
-		# Make it fill the screen
-		modifier_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-		modifier_panel.mouse_filter = Control.MOUSE_FILTER_PASS  # Allow mouse interaction
-
-		_get_hud_parent().add_child(modifier_panel)
+# Removed - now using 3D displays on player instead of 2D UI
+#func _setup_ability_bar() -> void:
+#	# Create ability bar UI if it doesn't exist
+#	if not has_node("AbilityBarUI"):
+#		var ability_bar = Control.new()
+#		ability_bar.name = "AbilityBarUI"
+#		ability_bar.set_script(ability_bar_script)
+#
+#		# Make it fill the screen
+#		ability_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
+#		ability_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Don't block mouse input
+#
+#		_get_hud_parent().add_child(ability_bar)
+#
+#func _setup_modifier_panel() -> void:
+#	# Create modifier panel UI if it doesn't exist
+#	if not has_node("ModifierPanel"):
+#		var modifier_panel = Control.new()
+#		modifier_panel.name = "ModifierPanel"
+#		modifier_panel.set_script(modifier_panel_script)
+#
+#		# Make it fill the screen
+#		modifier_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+#		modifier_panel.mouse_filter = Control.MOUSE_FILTER_PASS  # Allow mouse interaction
+#
+#		_get_hud_parent().add_child(modifier_panel)
 
 var _msg_counts: Dictionary = {}
 

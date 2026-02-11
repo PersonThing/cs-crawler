@@ -31,6 +31,17 @@ const ABILITY_COLORS_3D = {
 	"basic_attack": Color(0.9, 0.2, 0.2),
 }
 
+# 3D Modifier bar
+var modifier_bar_3d: Node3D = null
+var modifier_icons: Array[MeshInstance3D] = []
+const MODIFIER_COLORS_3D = {
+	"homing": Color(0.9, 0.3, 0.9),
+	"piercing": Color(0.3, 0.9, 0.9),
+	"pet": Color(0.9, 0.9, 0.3),
+	"turret": Color(0.3, 0.9, 0.3),
+}
+var active_modifiers: Array[String] = []
+
 # Client prediction
 var input_sequence: int = 0
 var pending_inputs: Array = []
@@ -65,6 +76,7 @@ func _ready() -> void:
 		_setup_navigation()
 		_load_ability_configs()
 		_setup_3d_skill_bar()
+		_setup_3d_modifier_bar()
 		print("[PLAYER] Navigation setup complete for local player")
 
 		# Connect to network messages for ability feedback
@@ -106,6 +118,8 @@ func _setup_rigged_model() -> void:
 	rigged_model.setup(color)
 	# Rotate to match wozard orientation (model faces -Z, wozard faced +X)
 	rigged_model.rotation.y = -PI / 2.0
+	# Scale up by 50%
+	rigged_model.scale = Vector3(1.5, 1.5, 1.5)
 	add_child(rigged_model)
 
 func _setup_3d_health_bar() -> void:
@@ -173,7 +187,7 @@ func _update_3d_health_bar() -> void:
 		return
 
 	# Position above player (top_level means we must set global_position manually)
-	health_bar_3d.global_position = global_position + Vector3(0, 2.5, 0)
+	health_bar_3d.global_position = global_position + Vector3(0, 4.5, 0)
 
 	var health_percent = current_health / max_health if max_health > 0 else 1.0
 	health_bar_fill.scale.x = health_percent
@@ -195,13 +209,11 @@ func _update_3d_health_bar() -> void:
 	if health_text_label:
 		health_text_label.text = "%d / %d" % [int(current_health), int(max_health)]
 
-	# Billboard: rotate to face camera around Y axis
+	# Billboard: face camera like a 2D label (no perspective, just positioned in 3D)
 	var camera = get_viewport().get_camera_3d()
 	if camera:
-		var cam_pos = camera.global_position
-		var bar_pos = health_bar_3d.global_position
-		var direction = Vector2(cam_pos.x - bar_pos.x, cam_pos.z - bar_pos.z)
-		health_bar_3d.rotation.y = atan2(direction.x, direction.y)
+		# Align with camera's orientation so it looks flat/2D
+		health_bar_3d.global_transform.basis = camera.global_transform.basis
 
 func _setup_3d_skill_bar() -> void:
 	# Create 3D skill bar near the player but independent of player rotation
@@ -283,23 +295,79 @@ func _setup_3d_skill_bar() -> void:
 		skill_bar_3d.add_child(label)
 		skill_bar_labels.append(label)
 
+func _setup_3d_modifier_bar() -> void:
+	# Create 3D modifier bar below the skill bar
+	modifier_bar_3d = Node3D.new()
+	modifier_bar_3d.name = "ModifierBar3D"
+	modifier_bar_3d.top_level = true
+	add_child(modifier_bar_3d)
+
+	# Setup for 4 modifiers: homing, piercing, pet, turret
+	var modifier_types = ["homing", "piercing", "pet", "turret"]
+	var icon_size = 0.3
+	var spacing = 0.08
+	var total_width = (4 * icon_size) + (3 * spacing)
+	var start_x = -total_width / 2.0 + icon_size / 2.0
+
+	for i in range(4):
+		var modifier_type = modifier_types[i]
+		var x_pos = start_x + i * (icon_size + spacing)
+
+		# Create modifier icon (small colored sphere)
+		var icon_mesh = MeshInstance3D.new()
+		var sphere = SphereMesh.new()
+		sphere.radius = icon_size * 0.5
+		sphere.height = icon_size
+		icon_mesh.mesh = sphere
+		icon_mesh.position = Vector3(x_pos, 0, 0)
+		var icon_mat = StandardMaterial3D.new()
+		icon_mat.albedo_color = MODIFIER_COLORS_3D.get(modifier_type, Color.WHITE)
+		icon_mat.emission_enabled = true
+		icon_mat.emission = MODIFIER_COLORS_3D.get(modifier_type, Color.WHITE)
+		icon_mat.emission_energy_multiplier = 0.3  # Dimmed by default
+		icon_mat.no_depth_test = true
+		icon_mat.render_priority = 24
+		icon_mesh.material_override = icon_mat
+		modifier_bar_3d.add_child(icon_mesh)
+		modifier_icons.append(icon_mesh)
+
+func _update_3d_modifier_bar() -> void:
+	if not modifier_bar_3d or not is_local:
+		return
+
+	# Position below the skill bar
+	var camera = get_viewport().get_camera_3d()
+	if camera:
+		# Place bar below skill bar position (skill bar is at -1.0, so place this at -1.5)
+		modifier_bar_3d.global_position = global_position + Vector3(0, -2.5, 0)
+		# Billboard: face camera like a 2D label
+		modifier_bar_3d.global_transform.basis = camera.global_transform.basis
+
+	# Update modifier icons based on active modifiers
+	var modifier_types = ["homing", "piercing", "pet", "turret"]
+	for i in range(4):
+		if i >= modifier_icons.size():
+			continue
+		var modifier_type = modifier_types[i]
+		var is_active = modifier_type in active_modifiers
+		var icon_mesh = modifier_icons[i]
+		var mat = icon_mesh.material_override as StandardMaterial3D
+		if mat:
+			# Bright when active, dim when inactive
+			mat.emission_energy_multiplier = 1.0 if is_active else 0.3
+
 func _update_3d_skill_bar() -> void:
 	if not skill_bar_3d or not is_local:
 		return
 
-	# Position the bar at the player's feet, offset forward toward camera
+	# Position the bar directly at the player's feet
 	var camera = get_viewport().get_camera_3d()
 	if camera:
-		var cam_pos = camera.global_position
-		var player_pos = global_position
-		# Direction from player toward camera (XZ only)
-		var to_cam = Vector2(cam_pos.x - player_pos.x, cam_pos.z - player_pos.z).normalized()
-		# Place bar slightly in front of the player (toward camera) and low
-		skill_bar_3d.global_position = player_pos + Vector3(to_cam.x * 1.5, 0.1, to_cam.y * 1.5)
-		# Billboard: rotate to face camera around Y axis
-		var bar_pos = skill_bar_3d.global_position
-		var direction = Vector2(cam_pos.x - bar_pos.x, cam_pos.z - bar_pos.z)
-		skill_bar_3d.rotation.y = atan2(direction.x, direction.y)
+		# Place bar directly at player position, no offset calculation needed
+		skill_bar_3d.global_position = global_position + Vector3(0, -1.0, 0)
+		# Billboard: face camera like a 2D label (no perspective, just positioned in 3D)
+		# Align with camera's orientation so it looks flat/2D
+		skill_bar_3d.global_transform.basis = camera.global_transform.basis
 
 	# Update cooldown overlays based on ability cooldowns
 	# Order: X, Y, A, B (Lightning, Basic Attack, Fireball, Frostbolt)
@@ -337,6 +405,10 @@ func _on_message_received(message: Dictionary) -> void:
 			_on_ability_cast_confirmed(message)
 		"ability_failed":
 			_on_ability_failed(message)
+		"modifier_activated":
+			_on_modifier_activated(message)
+		"modifier_deactivated":
+			_on_modifier_deactivated(message)
 
 func _on_ability_cast_confirmed(message: Dictionary) -> void:
 	var player_id_msg = message.get("playerID", "")
@@ -354,6 +426,18 @@ func _on_ability_failed(message: Dictionary) -> void:
 	var ability_type = message.get("ability", "")
 	if ability_cooldowns.has(ability_type):
 		ability_cooldowns[ability_type] = 0.0
+
+func _on_modifier_activated(message: Dictionary) -> void:
+	var modifier_id = message.get("modifierID", "")
+	if modifier_id != "" and modifier_id not in active_modifiers:
+		active_modifiers.append(modifier_id)
+		print("[PLAYER] Modifier activated: ", modifier_id)
+
+func _on_modifier_deactivated(message: Dictionary) -> void:
+	var modifier_id = message.get("modifierID", "")
+	if modifier_id in active_modifiers:
+		active_modifiers.erase(modifier_id)
+		print("[PLAYER] Modifier deactivated: ", modifier_id)
 
 func _setup_navigation() -> void:
 	navigation_agent = NavigationAgent3D.new()
@@ -399,9 +483,10 @@ func _physics_process(delta: float) -> void:
 	# Update 3D health bar billboard
 	_update_3d_health_bar()
 
-	# Update 3D skill bar (local player only)
+	# Update 3D skill bar and modifier bar (local player only)
 	if is_local:
 		_update_3d_skill_bar()
+		_update_3d_modifier_bar()
 
 	if is_local:
 		_handle_local_movement(delta)

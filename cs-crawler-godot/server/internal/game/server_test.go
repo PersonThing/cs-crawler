@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewServer(t *testing.T) {
-	server := NewServer(60, nil)
+	server := NewServer(60, nil, nil)
 
 	assert.Equal(t, 60, server.tickRate)
 	assert.Equal(t, time.Second/60, server.tickPeriod)
@@ -18,7 +18,7 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestCreateWorld(t *testing.T) {
-	server := NewServer(60, nil)
+	server := NewServer(60, nil, nil)
 
 	world := server.CreateWorld("test-world")
 
@@ -32,7 +32,7 @@ func TestCreateWorld(t *testing.T) {
 }
 
 func TestDestroyWorld(t *testing.T) {
-	server := NewServer(60, nil)
+	server := NewServer(60, nil, nil)
 	server.CreateWorld("test-world")
 
 	server.DestroyWorld("test-world")
@@ -42,7 +42,7 @@ func TestDestroyWorld(t *testing.T) {
 }
 
 func TestGetWorld_NotFound(t *testing.T) {
-	server := NewServer(60, nil)
+	server := NewServer(60, nil, nil)
 
 	_, ok := server.GetWorld("nonexistent")
 	assert.False(t, ok)

@@ -8,7 +8,10 @@
       "Bash(git rm:*)",
       "Bash(pushd:*)",
       "Bash(popd)",
-      "Bash(docker rm:*)"
+      "Bash(docker rm:*)",
+      "Bash(./gameserver.exe:*)",
+      "Bash(./server/gameserver.exe:*)",
+      "Bash(go mod edit:*)"
     ],
     "additionalDirectories": [
       "c:\\dev\\cs-crawler\\cs-crawler-godot\\server\\{cmd",

@@ -4,12 +4,14 @@ extends Control
 @onready var username_input: LineEdit = $VBoxContainer/UsernameInput
 @onready var server_ip_input: LineEdit = null  # Will be created dynamically
 @onready var connect_button: Button = $VBoxContainer/ConnectButton
+@onready var single_player_button: Button = null  # Will be created dynamically
 @onready var status_label: Label = $VBoxContainer/Status
 
 const DEFAULT_SERVER_IP = "localhost:7000"
 const SETTINGS_FILE = "user://server_settings.cfg"
 
 var server_ip: String = DEFAULT_SERVER_IP
+var _is_single_player_mode: bool = false
 
 func _ready() -> void:
 	NetworkManager.connected_to_server.connect(_on_connected)
@@ -17,8 +19,15 @@ func _ready() -> void:
 	NetworkManager.connection_error.connect(_on_connection_error)
 	NetworkManager.message_received.connect(_on_message_received)
 
+	# Connect local server signals
+	LocalServerManager.server_started.connect(_on_local_server_started)
+	LocalServerManager.server_error.connect(_on_local_server_error)
+
 	# Create server IP input if it doesn't exist
 	_setup_server_ip_input()
+
+	# Create single player button
+	_setup_single_player_button()
 
 	# Set default username (overridden by saved settings if available)
 	username_input.text = "Player%d" % randi_range(1000, 9999)
@@ -80,6 +89,24 @@ func _setup_server_ip_input() -> void:
 	else:
 		server_ip_input = get_node("VBoxContainer/ServerIPInput")
 		server_ip_input.text = server_ip
+
+func _setup_single_player_button() -> void:
+	# Check if button already exists
+	if not has_node("VBoxContainer/SinglePlayerButton"):
+		var vbox = get_node("VBoxContainer")
+
+		# Create single player button
+		single_player_button = Button.new()
+		single_player_button.name = "SinglePlayerButton"
+		single_player_button.text = "Single Player (Local Server)"
+		single_player_button.pressed.connect(_on_single_player_pressed)
+
+		# Add after connect button
+		var connect_btn_index = connect_button.get_index()
+		vbox.add_child(single_player_button)
+		vbox.move_child(single_player_button, connect_btn_index + 1)
+	else:
+		single_player_button = get_node("VBoxContainer/SinglePlayerButton")
 
 func _load_settings() -> void:
 	var config = ConfigFile.new()
@@ -168,3 +195,38 @@ func _on_message_received(message: Dictionary) -> void:
 		var error_msg = message.get("message", "Unknown error")
 		status_label.text = "Error: " + error_msg
 		connect_button.disabled = false
+
+func _on_single_player_pressed() -> void:
+	var username = username_input.text.strip_edges()
+
+	if username.is_empty():
+		status_label.text = "Please enter a username"
+		return
+
+	_is_single_player_mode = true
+	status_label.text = "Starting local server..."
+	connect_button.disabled = true
+	single_player_button.disabled = true
+
+	print("[MAIN_MENU] Starting single-player mode")
+	LocalServerManager.start_local_server()
+
+func _on_local_server_started() -> void:
+	print("[MAIN_MENU] Local server started, connecting...")
+	status_label.text = "Local server started, connecting..."
+
+	# Wait a moment for the server to fully initialize
+	await get_tree().create_timer(1.0).timeout
+
+	# Connect to localhost
+	server_ip = "localhost:7000"
+	var ws_url = "ws://localhost:7000/ws"
+
+	NetworkManager.connect_to_server(ws_url)
+
+func _on_local_server_error(error: String) -> void:
+	status_label.text = "Local server error: " + error
+	connect_button.disabled = false
+	single_player_button.disabled = false
+	_is_single_player_mode = false
+	print("[MAIN_MENU] Local server error: ", error)

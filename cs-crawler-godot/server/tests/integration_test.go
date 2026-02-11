@@ -19,7 +19,7 @@ import (
 
 func TestClientServerIntegration(t *testing.T) {
 	// Create game server
-	gameServer := game.NewServer(60)
+	gameServer := game.NewServer(60, nil, nil)
 	go gameServer.Start()
 	defer gameServer.Stop()
 
@@ -85,7 +85,7 @@ func TestClientServerIntegration(t *testing.T) {
 
 func TestMultipleClients(t *testing.T) {
 	// Create servers
-	gameServer := game.NewServer(60)
+	gameServer := game.NewServer(60, nil, nil)
 	go gameServer.Start()
 	defer gameServer.Stop()
 
