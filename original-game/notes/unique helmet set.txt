@@ -1,7 +1,0 @@
-// id		name		armor		special attributes
-// 11		viking's helm	10		+5 cold resist
-// 12		silver crown	10		+5 fire resist, -2 poison resist
-// 13		turtle shell	11		+3 all resists, +5 extra armor when paired with turtle shell armor
-// 14		great diadem	12		+10 fire resist
-// 15		beanie		10		+3 cold resist, +5 all resists when paired with fencepost spear
-// 16		eebeeb		13		+10 all resists, +5 more when paired with eebeeb sword and armor.

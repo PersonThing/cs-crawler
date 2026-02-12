@@ -1,8 +1,0 @@
-// id		name		armor
-// 01		tatters		1
-// 02		gloves		2
-// 03		leather gloves	3
-// 04		chain cloves	4
-// 05		plated gloves	5
-// 06		greaves		6
-// 07		steel greaves	7

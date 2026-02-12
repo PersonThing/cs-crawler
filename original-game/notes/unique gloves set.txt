@@ -1,5 +1,0 @@
-// id		name		armor		special attributes
-
-// 08		black iron	10		+20 fire resist
-// 09		wyrmhide	10		+5 all resist, +50 additional armor when paired with all other wyrmhide
-// 10		eebeeb		15		+10 all resist, +50 additional armor when paired with all other eebeeb

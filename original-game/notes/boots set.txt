@@ -1,9 +1,0 @@
-// id		name		armor
-
-// 01		shoes		1
-// 02		boots		2
-// 03		winter boots	3
-// 04		heavy boots	4
-// 05		leather boots	5
-// 06		chain boots	6
-// 07		plated boots	8

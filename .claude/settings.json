@@ -16,7 +16,7 @@
       "Bash(cmd /c \"mklink /D config ..\\\\config\")"
     ],
     "additionalDirectories": [
-      "c:\\dev\\cs-crawler\\cs-crawler-godot\\client\\assets"
+      "c:\\dev\\cs-crawler\\client\\assets"
     ]
   }
 }

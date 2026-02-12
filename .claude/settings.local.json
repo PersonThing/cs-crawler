@@ -11,12 +11,13 @@
       "Bash(docker rm:*)",
       "Bash(./gameserver.exe:*)",
       "Bash(./server/gameserver.exe:*)",
-      "Bash(go mod edit:*)"
+      "Bash(go mod edit:*)",
+      "Bash(powershell -Command:*)"
     ],
     "additionalDirectories": [
-      "c:\\dev\\cs-crawler\\cs-crawler-godot\\server\\{cmd",
-      "c:\\dev\\cs-crawler\\cs-crawler-godot\\server\\internal",
-      "c:\\dev\\cs-crawler\\cs-crawler-godot\\server\\pkg"
+      "c:\\dev\\cs-crawler\\server\\{cmd",
+      "c:\\dev\\cs-crawler\\server\\internal",
+      "c:\\dev\\cs-crawler\\server\\pkg"
     ]
   }
 }
