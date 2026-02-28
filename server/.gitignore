@@ -32,7 +32,7 @@ go.work.sum
 data/
 
 # Config (copied from parent during build)
-config/
+/config/
 
 # Logs
 *.log
