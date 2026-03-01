@@ -197,6 +197,17 @@ func _setup_3d_health_bar() -> void:
 	health_text_label.render_priority = 10
 	health_bar_3d.add_child(health_text_label)
 
+func _screen_offset_to_world(camera: Camera3D, screen_px: Vector2) -> Vector3:
+	# Converts a 2D screen-pixel offset into a 3D world-space offset relative to this node.
+	# Uses camera basis vectors instead of unproject/project, which is unreliable on XRCamera3D.
+	var vp_height: float = get_viewport().get_visible_rect().size.y
+	if vp_height == 0.0:
+		vp_height = 1080.0
+	var distance := camera.global_position.distance_to(global_position)
+	var scale := 2.0 * distance * tan(deg_to_rad(camera.fov / 2.0)) / vp_height
+	return camera.global_transform.basis.x * (screen_px.x * scale) \
+		 + camera.global_transform.basis.y * (-screen_px.y * scale)
+
 func _update_3d_health_bar() -> void:
 	if not health_bar_fill or not health_bar_3d:
 		return
@@ -205,18 +216,7 @@ func _update_3d_health_bar() -> void:
 	if not camera:
 		return
 
-	# Convert player's 3D position to screen space
-	var player_screen_pos = camera.unproject_position(global_position)
-
-	# Offset in screen space (pixels): move UP on screen
-	var screen_offset = Vector2(0, -100)  # 100 pixels above player center
-	var target_screen_pos = player_screen_pos + screen_offset
-
-	# Convert back to 3D position at same distance from camera
-	var distance = camera.global_position.distance_to(global_position)
-	var target_3d_pos = camera.project_position(target_screen_pos, distance)
-
-	health_bar_3d.global_position = target_3d_pos
+	health_bar_3d.global_position = global_position + _screen_offset_to_world(camera, Vector2(0, -100))
 
 	var health_percent = current_health / max_health if max_health > 0 else 1.0
 	health_bar_fill.scale.x = health_percent
@@ -429,18 +429,7 @@ func _update_3d_modifier_bar() -> void:
 	if not camera:
 		return
 
-	# Convert player's 3D position to screen space
-	var player_screen_pos = camera.unproject_position(global_position)
-
-	# Offset in screen space (pixels): move DOWN on screen (below skill bar)
-	var screen_offset = Vector2(0, 100)  # 100 pixels below player center (40 below skill bar)
-	var target_screen_pos = player_screen_pos + screen_offset
-
-	# Convert back to 3D position at same distance from camera
-	var distance = camera.global_position.distance_to(global_position)
-	var target_3d_pos = camera.project_position(target_screen_pos, distance)
-
-	modifier_bar_3d.global_position = target_3d_pos
+	modifier_bar_3d.global_position = global_position + _screen_offset_to_world(camera, Vector2(0, 100))
 
 	# Billboard: face camera like a 2D label
 	modifier_bar_3d.global_transform.basis = camera.global_transform.basis
@@ -462,18 +451,7 @@ func _update_3d_skill_bar() -> void:
 	if not camera:
 		return
 
-	# Convert player's 3D position to screen space
-	var player_screen_pos = camera.unproject_position(global_position)
-
-	# Offset in screen space (pixels): move DOWN on screen
-	var screen_offset = Vector2(0, 60)  # 60 pixels below player center
-	var target_screen_pos = player_screen_pos + screen_offset
-
-	# Convert back to 3D position at same distance from camera
-	var distance = camera.global_position.distance_to(global_position)
-	var target_3d_pos = camera.project_position(target_screen_pos, distance)
-
-	skill_bar_3d.global_position = target_3d_pos
+	skill_bar_3d.global_position = global_position + _screen_offset_to_world(camera, Vector2(0, 60))
 
 	# Billboard: face camera like a 2D label (no perspective, just positioned in 3D)
 	skill_bar_3d.global_transform.basis = camera.global_transform.basis
@@ -512,12 +490,7 @@ func _update_3d_heal_bar(delta: float) -> void:
 		return
 
 	# Position to the left of the action bar
-	var player_screen_pos = camera.unproject_position(global_position)
-	var screen_offset = Vector2(-120, 60)  # Left of player, at action bar height
-	var target_screen_pos = player_screen_pos + screen_offset
-	var distance = camera.global_position.distance_to(global_position)
-	var target_3d_pos = camera.project_position(target_screen_pos, distance)
-	heal_bar_3d.global_position = target_3d_pos
+	heal_bar_3d.global_position = global_position + _screen_offset_to_world(camera, Vector2(-120, 60))
 	heal_bar_3d.global_transform.basis = camera.global_transform.basis
 
 	# Update heal cooldown

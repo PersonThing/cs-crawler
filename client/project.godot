@@ -117,4 +117,5 @@ global_illumination/gi/use_half_resolution=true
 
 [xr]
 
+openxr/enabled=true
 shaders/enabled=true
